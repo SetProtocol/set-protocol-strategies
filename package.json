@@ -1,0 +1,7 @@
+{
+  "name": "set-protocol-strategies",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "Justin Chen <justin@setprotocol.com>",
+  "license": "MIT"
+}
