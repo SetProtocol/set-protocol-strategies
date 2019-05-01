@@ -1,5 +1,4 @@
 import * as _ from 'lodash';
-import * as setProtocolUtils from 'set-protocol-utils';
 import { Address } from 'set-protocol-utils';
 
 import { HelloWorldContract } from '../contracts';
