@@ -7,21 +7,20 @@
     "module": "commonjs",
     "baseUrl": ".",
     "moduleResolution": "node",
-    "paths": {
-        "@utils/*": [ "utils/*" ]
-    },
     "rootDir": ".",
     "target": "es5",
     "types": [],
     "typeRoots": [
       "node_modules/@0xproject/types",
       "node_modules/set-protocol-utils/types",
+      "node_modules/set-protocol-contracts/types",
       "node_modules/@types"
     ],
     "paths": {
       "*": [
         "node_modules/@0xproject/types/*",
         "node_modules/set-protocol-utils/types/*",
+        "node_modules/set-protocol-contracts/types/*",
         "node_modules/*"
       ]
     },
@@ -32,7 +31,6 @@
   "include": [
     "artifacts/*.ts",
     "artifacts/ts/*.ts",
-    "types/**/*.ts",
-    "utils/**/*.ts"
+    "types/**/*.ts"
   ]
 }

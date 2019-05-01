@@ -5,10 +5,7 @@ module.exports = {
   copyPackages: ['openzeppelin-solidity'],
   skipFiles: [
     'Migrations.sol',
-    'lib/AddressArrayUtils.sol',
     'mocks',
     'external',
-    // https://github.com/sc-forks/solidity-coverage/blob/master/docs/faq.md#why-are-send-and-transfer-throwing
-    'supplementary/PayableExchangeIssue.sol' // Transfer functions cannot be properly tested. See link above.
   ],
 };

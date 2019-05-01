@@ -124,13 +124,6 @@
     "test/**/*.ts": [
       "yarn lint-ts --fix",
       "git add"
-    ],
-    "utils/**/*.ts": [
-      "yarn lint-ts --fix",
-      "git add"
     ]
-  },
-  "_moduleAliases": {
-    "@utils": "transpiled/utils"
   }
 }

@@ -7,23 +7,18 @@
     "module": "commonjs",
     "baseUrl": ".",
     "moduleResolution": "node",
-    "paths": {
-        "@utils/*": [ "utils/*" ]
-    },
     "rootDir": ".",
     "target": "es5",
     "allowJs": true,
     "typeRoots": [
-      "node_modules/@0xproject/types",
       "node_modules/set-protocol-utils/types",
+      "node_modules/set-protocol-contracts/types",
       "node_modules/@types"
     ],
     "esModuleInterop": true
   },
   "include": [
     "types/*.ts",
-    "utils/**/*.ts",
-    "test/**/*.ts",
-    "deployments/**/*.ts"
+    "test/**/*.ts"
   ]
 }
