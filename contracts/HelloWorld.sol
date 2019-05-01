@@ -4,8 +4,8 @@ import { CommonMath } from "set-protocol-contracts/contracts/lib/CommonMath.sol"
 
 
 contract HelloWorld {
-    function renderHelloWorld ()
-        public
+    function testMaxUInt256 ()
+        external
         pure
         returns (uint256) {
 
