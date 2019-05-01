@@ -7,6 +7,10 @@
     "module": "commonjs",
     "baseUrl": ".",
     "moduleResolution": "node",
+    "paths": {
+    "@deployments/*": [ "deployments/*" ],
+    "@utils/*": [ "utils/*" ]
+    },
     "rootDir": ".",
     "target": "es5",
     "allowJs": true,
@@ -19,6 +23,7 @@
   },
   "include": [
     "types/*.ts",
+    "utils/**/*.ts",
     "test/**/*.ts"
   ]
 }
