@@ -1,7 +1,6 @@
 import * as _ from 'lodash';
 import { Address } from 'set-protocol-utils';
 import { BigNumber } from 'bignumber.js';
-import { SetProtocolTestUtils as TestUtils }  from 'set-protocol-utils';
 
 import {
   StandardTokenMockContract,
