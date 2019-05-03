@@ -326,9 +326,9 @@
   integrity sha512-1axi39YdtBI7z957vdqXI4Ac25e7YihYQtJa+Clnxg1zTJEaIRbndt71O3sP4GAMgiAm0pY26/b9BrY4MR/PMw==
 
 "@types/node@*":
-  version "11.13.8"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-11.13.8.tgz#e5d71173c95533be9842b2c798978f095f912aab"
-  integrity sha512-szA3x/3miL90ZJxUCzx9haNbK5/zmPieGraZEe4WI+3srN0eGLiT22NXeMHmyhNEopn+IrxqMc7wdVwvPl8meg==
+  version "11.13.9"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-11.13.9.tgz#f80697caca7f7fb2526527a5c5a2743487f05ccc"
+  integrity sha512-NJ4yuEVw5podZbINp3tEqUIImMSAEHaCXRiWCf3KC32l6hIKf0iPJEh2uZdT0fELfRYk310yLmMXqy2leZQUbg==
 
 "@types/node@^10.0.3", "@types/node@^10.3.2":
   version "10.14.6"
@@ -1683,9 +1683,9 @@ camelcase@^4.1.0:
   integrity sha1-1UVjW+HjPFQmScaRc+Xeas+uNN0=
 
 caniuse-lite@^1.0.30000844:
-  version "1.0.30000963"
-  resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30000963.tgz#5be481d5292f22aff5ee0db4a6c049b65b5798b1"
-  integrity sha512-n4HUiullc7Lw0LyzpeLa2ffP8KxFBGdxqD/8G3bSL6oB758hZ2UE2CVK+tQN958tJIi0/tfpjAc67aAtoHgnrQ==
+  version "1.0.30000965"
+  resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30000965.tgz#b7cb85847433f0b535efcc468e2d5b70aa3dc428"
+  integrity sha512-BpMi+Aq8AgNjjrfornip07/BTUN65CTCe+fmZJxnmnL9CUZlPqtLIRdC6pgxMFOohg4yf/f775f/NE4AZeoIDA==
 
 canonical-weth@^1.3.1:
   version "1.4.0"
@@ -2459,9 +2459,9 @@ ee-first@1.1.1:
   integrity sha1-WQxhFWsK4vTwJVcyoViyZrxWsh0=
 
 electron-to-chromium@^1.3.47:
-  version "1.3.127"
-  resolved "https://registry.yarnpkg.com/electron-to-chromium/-/electron-to-chromium-1.3.127.tgz#9b34d3d63ee0f3747967205b953b25fe7feb0e10"
-  integrity sha512-1o25iFRf/dbgauTWalEzmD1EmRN3a2CzP/K7UVpYLEBduk96LF0FyUdCcf4Ry2mAWJ1VxyblFjC93q6qlLwA2A==
+  version "1.3.130"
+  resolved "https://registry.yarnpkg.com/electron-to-chromium/-/electron-to-chromium-1.3.130.tgz#27f84e823bd80a5090e2baeca4fefbaf476cf7af"
+  integrity sha512-UY2DI+gsnqGtQJqO8wXN0DnpJY+29FwJafACj0h18ZShn5besKnrRq6+lXWUbKzdxw92QQcnTqRLgNByOKXcUg==
 
 elegant-spinner@^1.0.1:
   version "1.0.1"
@@ -2921,13 +2921,6 @@ ethereumjs-common@^1.1.0:
   resolved "https://registry.yarnpkg.com/ethereumjs-common/-/ethereumjs-common-1.1.0.tgz#5ec9086c314d619d8f05e79a0525829fcb0e93cb"
   integrity sha512-LUmYkKV/HcZbWRyu3OU9YOevsH3VJDXtI6kEd8VZweQec+JjDGKCmAVKUyzhYUHqxRJu7JNALZ3A/b3NXOP6tA==
 
-ethereumjs-testrpc-sc@^6.1.6:
-  version "6.1.6"
-  resolved "https://registry.yarnpkg.com/ethereumjs-testrpc-sc/-/ethereumjs-testrpc-sc-6.1.6.tgz#290595380b5182814564d4aa38f35b7788aab070"
-  integrity sha512-iv2qiGBFgk9mn5Nq2enX8dG5WQ7Lk+FCqpnxfPfH4Ns8KLPwttmNOy264nh3SXDJJvcQwz/XnlLteDQVILotbg==
-  dependencies:
-    source-map-support "^0.5.3"
-
 "ethereumjs-testrpc-sc@https://github.com/leapdao/testrpc-sc.git#master":
   version "6.4.0"
   resolved "https://github.com/leapdao/testrpc-sc.git#a32549b8c58080b016f10688874a18f66d08a6b6"
@@ -2984,7 +2977,24 @@ ethereumjs-util@^6.0.0:
     safe-buffer "^5.1.1"
     secp256k1 "^3.0.1"
 
-ethereumjs-vm@^2.1.0, ethereumjs-vm@^2.3.4, ethereumjs-vm@^2.6.0, "ethereumjs-vm@https://github.com/leapdao/ethereumjs-vm-sc.git#master":
+ethereumjs-vm@^2.1.0, ethereumjs-vm@^2.3.4, ethereumjs-vm@^2.6.0:
+  version "2.6.0"
+  resolved "https://registry.yarnpkg.com/ethereumjs-vm/-/ethereumjs-vm-2.6.0.tgz#76243ed8de031b408793ac33907fb3407fe400c6"
+  integrity sha512-r/XIUik/ynGbxS3y+mvGnbOKnuLo40V5Mj1J25+HEO63aWYREIqvWeRO/hnROlMBE5WoniQmPmhiaN0ctiHaXw==
+  dependencies:
+    async "^2.1.2"
+    async-eventemitter "^0.2.2"
+    ethereumjs-account "^2.0.3"
+    ethereumjs-block "~2.2.0"
+    ethereumjs-common "^1.1.0"
+    ethereumjs-util "^6.0.0"
+    fake-merkle-patricia-tree "^1.0.1"
+    functional-red-black-tree "^1.0.1"
+    merkle-patricia-tree "^2.3.2"
+    rustbn.js "~0.2.0"
+    safe-buffer "^5.1.1"
+
+"ethereumjs-vm@https://github.com/leapdao/ethereumjs-vm-sc.git#master":
   version "2.6.0"
   resolved "https://github.com/leapdao/ethereumjs-vm-sc.git#1fdd9d832f93bf948bdcf9421a6aa627dde8f574"
   dependencies:
@@ -6239,9 +6249,9 @@ pull-pushable@^2.0.0:
   integrity sha1-Xy867UethpGfAbEqLpnW8b13ZYE=
 
 pull-stream@^3.2.3, pull-stream@^3.4.0, pull-stream@^3.6.8:
-  version "3.6.9"
-  resolved "https://registry.yarnpkg.com/pull-stream/-/pull-stream-3.6.9.tgz#c774724cd63bc0984c3695f74c819aa02e977320"
-  integrity sha512-hJn4POeBrkttshdNl0AoSCVjMVSuBwuHocMerUdoZ2+oIUzrWHFTwJMlbHND7OiKLVgvz6TFj8ZUVywUMXccbw==
+  version "3.6.10"
+  resolved "https://registry.yarnpkg.com/pull-stream/-/pull-stream-3.6.10.tgz#602fffec56ab000a5d93c6099d64976c6d5805f4"
+  integrity sha512-wRbdq8mDLYO4n8HoNI9rqPqb3Y6FWofr9ZlKnSYMT3P0iBr8qUoBNDm4ubOpef+oIpEcvjlmKNhiS42hgqEASw==
 
 pull-window@^2.1.4:
   version "2.1.4"
@@ -7239,7 +7249,7 @@ source-map-support@^0.4.15:
   dependencies:
     source-map "^0.5.6"
 
-source-map-support@^0.5.0, source-map-support@^0.5.3, source-map-support@^0.5.6:
+source-map-support@^0.5.0, source-map-support@^0.5.6:
   version "0.5.12"
   resolved "https://registry.yarnpkg.com/source-map-support/-/source-map-support-0.5.12.tgz#b4f3b10d51857a5af0138d3ce8003b201613d599"
   integrity sha512-4h2Pbvyy15EE02G+JOZpUCmqWJuqrs+sEkzewTm++BPi7Hvn/HwcqLAcNxYAyI0x13CpPPn+kMjl+hplXMHITQ==
@@ -7802,9 +7812,9 @@ truffle-hdwallet-provider@^1.0.0-web3one.0:
     websocket "^1.0.28"
 
 truffle@^5.0.3:
-  version "5.0.14"
-  resolved "https://registry.yarnpkg.com/truffle/-/truffle-5.0.14.tgz#589e301f64aac1b22481c5e41b31aa08bbcd8fea"
-  integrity sha512-Mlf4S58NMyR8YZFvQLAzA+7eCaDZw6ZSa92NWXDQjy1RbUfpl08/VPa06KLT+LosQuOPZr/NSH9f0u2qxfo/Qw==
+  version "5.0.15"
+  resolved "https://registry.yarnpkg.com/truffle/-/truffle-5.0.15.tgz#b0b87829766cce6be072a6f09794cf038930070b"
+  integrity sha512-/FAabG/+xv4mADQvm4YXTMWThXrc9Z4MsMCqWixrd6DlQMPBQIV5F86DeYHgkKbp8hRM3oGUdBVfpWRaha6YKg==
   dependencies:
     app-module-path "^2.2.0"
     mocha "^4.1.0"
@@ -7998,9 +8008,9 @@ typewiselite@~1.0.0:
   integrity sha1-yIgvobsQksBgBal/NO9chQjjZk4=
 
 uglify-js@^3.1.4:
-  version "3.5.9"
-  resolved "https://registry.yarnpkg.com/uglify-js/-/uglify-js-3.5.9.tgz#372fbf95939555b1f460b1777d33a67d4a994ac9"
-  integrity sha512-WpT0RqsDtAWPNJK955DEnb6xjymR8Fn0OlK4TT4pS0ASYsVPqr5ELhgwOwLCP5J5vHeJ4xmMmz3DEgdqC10JeQ==
+  version "3.5.10"
+  resolved "https://registry.yarnpkg.com/uglify-js/-/uglify-js-3.5.10.tgz#652bef39f86d9dbfd6674407ee05a5e2d372cf2d"
+  integrity sha512-/GTF0nosyPLbdJBd+AwYiZ+Hu5z8KXWnO0WCGt1BQ/u9Iamhejykqmz5o1OHJ53+VAk6xVxychonnApDjuqGsw==
   dependencies:
     commander "~2.20.0"
     source-map "~0.6.1"
