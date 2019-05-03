@@ -4,7 +4,6 @@ import * as chai from 'chai';
 import { BigNumber } from 'bignumber.js';
 import { Address } from 'set-protocol-utils';
 
-
 import ChaiSetup from '@utils/chaiSetup';
 import { BigNumberSetup } from '@utils/bigNumberSetup';
 import { HelloWorldContract } from '@utils/contracts';
