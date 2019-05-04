@@ -78,6 +78,3 @@ workflows:
       - coverage:
           requires:
             - checkout_and_compile
-      - deployment:
-          requires:
-            - checkout_and_compile
