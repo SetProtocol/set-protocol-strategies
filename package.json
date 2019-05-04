@@ -74,7 +74,7 @@
     "lodash": "^4.17.4",
     "set-abi-gen": "1.1.0-beta.1",
     "solc": "^0.5.4",
-    "solidity-coverage": "https://github.com/leapdao/solidity-coverage#master",
+    "solidity-coverage": "https://github.com/leapdao/solidity-coverage#0c2fe7d3bf64208f473bad1f57e4e14455abe141",
     "truffle": "^5.0.3",
     "tslint": "^5.8.0",
     "tslint-no-unused-expression-chai": "0.0.3",
