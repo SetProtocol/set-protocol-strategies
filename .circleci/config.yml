@@ -46,9 +46,6 @@ jobs:
           command: yarn chain
           background: true
       - run:
-          name: Deploy Contracts to TestRPC
-          command: yarn deploy-continuous
-      - run:
           name: Truffle Test
           command: |
             TEST_FILES="$(circleci tests glob "./transpiled/test/**/*.spec.js" | circleci tests split --split-by=timings)"
