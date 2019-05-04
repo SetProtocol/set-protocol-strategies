@@ -13,7 +13,7 @@
     lodash "^4.17.5"
     valid-url "^1.0.9"
 
-"@0xproject/assert@^1.0.5":
+"@0xproject/assert@^1.0.5", "@0xproject/assert@^1.0.6":
   version "1.0.6"
   resolved "https://registry.yarnpkg.com/@0xproject/assert/-/assert-1.0.6.tgz#871e5d3426ae5324ab2cee93235c6b067f6610fb"
   integrity sha512-8ygWq0GYJd6cDQ1vmgoPLm6gTBeb+UXzOTFmoLaUGc/vOzQAJByde4wvwTNl9ROTQxWI7fvh0/Okk9QdcPtCFA==
@@ -35,6 +35,18 @@
     ethereum-types "^1.0.3"
     ethers "3.0.22"
     lodash "^4.17.4"
+
+"@0xproject/base-contract@^2.0.0":
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/@0xproject/base-contract/-/base-contract-2.0.0.tgz#d399721de39ae8128055d0e8a443ac2b4d178365"
+  integrity sha512-3BxcQ+12o8WXzMFD/AOe86vdO5lrOuNMuUd+XJQVJvMEyrNNhDhgjZWf/JV1en+g/oltCMN/mhjryypRqvae/A==
+  dependencies:
+    "@0xproject/typescript-typings" "^1.0.5"
+    "@0xproject/utils" "^1.0.6"
+    "@0xproject/web3-wrapper" "^2.0.0"
+    ethereum-types "^1.0.5"
+    ethers "3.0.22"
+    lodash "^4.17.5"
 
 "@0xproject/base-contract@^3.0.1":
   version "3.0.1"
@@ -86,6 +98,26 @@
     ethereumjs-abi "0.6.5"
     ethereumjs-util "^5.1.1"
     ethers "4.0.0-beta.14"
+    lodash "^4.17.5"
+
+"@0xproject/order-utils@^1.0.1-rc.3":
+  version "1.0.1-rc.4"
+  resolved "https://registry.yarnpkg.com/@0xproject/order-utils/-/order-utils-1.0.1-rc.4.tgz#7d5f14bfcf7adbe1b37a78b88a5633dd238fea4b"
+  integrity sha512-o6t9rtGmbZ8jUMkpBeOQ1Nyk/0MFK43KOVna1MrdytYTaPZPNqFOA3bi9Rh+lwwjEDgStF7ywtdXru94I6C1EQ==
+  dependencies:
+    "@0xproject/assert" "^1.0.6"
+    "@0xproject/base-contract" "^2.0.0"
+    "@0xproject/json-schemas" "^1.0.1-rc.5"
+    "@0xproject/types" "^1.0.1-rc.5"
+    "@0xproject/typescript-typings" "^1.0.5"
+    "@0xproject/utils" "^1.0.6"
+    "@0xproject/web3-wrapper" "^2.0.0"
+    "@types/node" "^8.0.53"
+    bn.js "^4.11.8"
+    ethereum-types "^1.0.5"
+    ethereumjs-abi "0.6.5"
+    ethereumjs-util "^5.1.1"
+    ethers "3.0.22"
     lodash "^4.17.5"
 
 "@0xproject/types@^1.0.1-rc.4", "@0xproject/types@^1.0.1-rc.5":
@@ -174,6 +206,20 @@
     "@0xproject/typescript-typings" "^1.0.4"
     "@0xproject/utils" "^1.0.5"
     ethereum-types "^1.0.4"
+    ethereumjs-util "^5.1.1"
+    ethers "3.0.22"
+    lodash "^4.17.5"
+
+"@0xproject/web3-wrapper@^2.0.0":
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/@0xproject/web3-wrapper/-/web3-wrapper-2.0.0.tgz#c6d477e5488e538081c0835bfd764bdde2d8df9e"
+  integrity sha512-2JUnigliKtXXw6ePxVI6hopoUqeidxZ39w4cF7fMRA39ZTiAz4ieDCsaxfqNytkb7RWiG+kXEdVuSvHlbFZ1dQ==
+  dependencies:
+    "@0xproject/assert" "^1.0.6"
+    "@0xproject/json-schemas" "^1.0.1-rc.5"
+    "@0xproject/typescript-typings" "^1.0.5"
+    "@0xproject/utils" "^1.0.6"
+    ethereum-types "^1.0.5"
     ethereumjs-util "^5.1.1"
     ethers "3.0.22"
     lodash "^4.17.5"
@@ -5749,7 +5795,7 @@ solc@^0.5.4:
     tmp "0.0.33"
     yargs "^11.0.0"
 
-"solidity-coverage@https://github.com/leapdao/solidity-coverage#0c2fe7d3bf64208f473bad1f57e4e14455abe141":
+"solidity-coverage@https://github.com/leapdao/solidity-coverage#master":
   version "0.5.11"
   resolved "https://github.com/leapdao/solidity-coverage#0c2fe7d3bf64208f473bad1f57e4e14455abe141"
   dependencies:
