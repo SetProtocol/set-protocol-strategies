@@ -13,6 +13,7 @@ import { Blockchain } from '@utils/blockchain';
 import { ether } from '@utils/units';
 import {
   ZERO,
+  DEFAULT_GAS
 } from '@utils/constants';
 import { expectRevertError } from '@utils/tokenAssertions';
 import { getWeb3 } from '@utils/web3Helper';
@@ -25,7 +26,7 @@ const web3 = getWeb3();
 const { expect } = chai;
 const blockchain = new Blockchain(web3);
 
-contract('DailyPriceDataBank', accounts => {
+contract('LinkedListLibrary', accounts => {
   const [
     deployerAccount,
   ] = accounts;
@@ -56,7 +57,8 @@ contract('DailyPriceDataBank', accounts => {
     async function subject(): Promise<string> {
       return linkedListLibraryMock.initialize.sendTransactionAsync(
         subjectDataSizeLimit,
-        subjectInitialValue
+        subjectInitialValue,
+        { gas: DEFAULT_GAS}
       );
     }
 
@@ -106,7 +108,8 @@ contract('DailyPriceDataBank', accounts => {
       dataSizeLimit = new BigNumber(2);
       await linkedListLibraryMock.initialize.sendTransactionAsync(
         dataSizeLimit,
-        initialValue
+        initialValue,
+        { gas: DEFAULT_GAS}
       );
 
       subjectAddedValue = ether(160);
@@ -114,7 +117,8 @@ contract('DailyPriceDataBank', accounts => {
 
     async function subject(): Promise<string> {
       return linkedListLibraryMock.addNode.sendTransactionAsync(
-        subjectAddedValue
+        subjectAddedValue,
+        { gas: DEFAULT_GAS}
       );
     }
 
@@ -168,12 +172,14 @@ contract('DailyPriceDataBank', accounts => {
       dataSizeLimit = biggerDataLimit || new BigNumber(2);
       await linkedListLibraryMock.initialize.sendTransactionAsync(
         dataSizeLimit,
-        initialValue
+        initialValue,
+        { gas: DEFAULT_GAS}
       );
 
       addedValue = ether(160);
       await linkedListLibraryMock.addNode.sendTransactionAsync(
-        addedValue
+        addedValue,
+        { gas: DEFAULT_GAS}
       );
 
       subjectUpdatedValue = ether(170);
@@ -181,7 +187,8 @@ contract('DailyPriceDataBank', accounts => {
 
     async function subject(): Promise<string> {
       return linkedListLibraryMock.updateNode.sendTransactionAsync(
-        subjectUpdatedValue
+        subjectUpdatedValue,
+        { gas: DEFAULT_GAS}
       );
     }
 
@@ -248,7 +255,8 @@ contract('DailyPriceDataBank', accounts => {
       dataSizeLimit = new BigNumber(2);
       await linkedListLibraryMock.initialize.sendTransactionAsync(
         dataSizeLimit,
-        initialValue
+        initialValue,
+        { gas: DEFAULT_GAS}
       );
 
       subjectUpdatedValue = ether(170);
@@ -256,7 +264,8 @@ contract('DailyPriceDataBank', accounts => {
 
     async function subject(): Promise<string> {
       return linkedListLibraryMock.editList.sendTransactionAsync(
-        subjectUpdatedValue
+        subjectUpdatedValue,
+        { gas: DEFAULT_GAS}
       );
     }
 

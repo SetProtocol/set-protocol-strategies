@@ -39,6 +39,13 @@ library LinkedListLibrary {
         mapping (uint => uint) links;
     }
 
+    /*
+     * Initialize LinkedList by setting limit on amount of nodes and inital value of node 0
+     *
+     * @param  _self                        LinkedList to operate on 
+     * @param  _dataSizeLimit               Max amount of nodes allowed in LinkedList
+     * @param  _initialValue                Initial value of node 0 in LinkedList
+     */
     function initialize(
         LinkedList storage _self,
         uint256 _dataSizeLimit,
@@ -54,6 +61,13 @@ library LinkedListLibrary {
         _self.lastUpdatedIndex = 0;
     }
 
+    /*
+     * Add new value to list by either creating new node if node limit not reached or updating
+     * existing node value
+     *
+     * @param  _self                        LinkedList to operate on 
+     * @param  _addedValue                  Value to add to list
+     */
     function editList(
         LinkedList storage _self,
         uint256 _addedValue        
@@ -68,6 +82,12 @@ library LinkedListLibrary {
         }
     }
 
+    /*
+     * Add new value to list by either creating new node. Node limit must not be reached.
+     *
+     * @param  _self                        LinkedList to operate on 
+     * @param  _addedValue                  Value to add to list
+     */
     function addNode(
         LinkedList storage _self,
         uint256 _addedValue
@@ -90,6 +110,13 @@ library LinkedListLibrary {
         _self.lastUpdatedIndex = newNodeIndex;
     }
 
+    /*
+     * Add new value to list by updating existing node. Updates only happen if node limit has been
+     * reached.
+     *
+     * @param  _self                        LinkedList to operate on 
+     * @param  _addedValue                  Value to add to list
+     */
     function updateNode(
         LinkedList storage _self,
         uint256 _addedValue

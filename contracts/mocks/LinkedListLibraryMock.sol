@@ -20,10 +20,10 @@ pragma experimental "ABIEncoderV2";
 import { LinkedListLibrary } from "../meta-oracles/lib/LinkedListLibrary.sol";
 
 /**
- * @title LinkedListLibrary
+ * @title LinkedListLibraryMock
  * @author Set Protocol
  *
- * Library for creating and altering circularly linked lists, optimezed for sequential updating
+ * Mock contract for interacting with LinkedListLibrary
  */
 contract LinkedListLibraryMock {
 
