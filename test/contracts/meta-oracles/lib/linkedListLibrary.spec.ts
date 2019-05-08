@@ -205,7 +205,7 @@ contract('LinkedListLibrary', accounts => {
 
       const actualDataArray = await linkedListLibraryMock.getDataArray.callAsync();
       const expectedDataArray = [subjectUpdatedValue, addedValue];
-      console.log(actualDataArray);
+
       expect(JSON.stringify(actualDataArray)).to.equal(JSON.stringify(expectedDataArray));
     });
 
