@@ -4,14 +4,18 @@ import { Address } from 'set-protocol-utils';
 import { BigNumber } from 'bignumber.js';
 
 import { MedianContract } from 'set-protocol-contracts';
-
-import { FeedFactoryContract, PriceFeedContract } from '../contracts';
+import {
+  FeedFactoryContract,
+  PriceFeedContract,
+  LinkedListLibraryMockContract,
+} from '../contracts';
 import { getWeb3 } from '../web3Helper';
 import { FeedCreatedArgs } from '../contract_logs/oracle';
 
 const web3 = getWeb3();
 const FeedFactory = artifacts.require('FeedFactory');
 const Median = artifacts.require('Median');
+const LinkedListLibraryMock = artifacts.require('LinkedListLibraryMock');
 
 const { SetProtocolTestUtils: SetTestUtils, SetProtocolUtils: SetUtils } = setProtocolUtils;
 const setTestUtils = new SetTestUtils(web3);
@@ -68,6 +72,19 @@ export class OracleWrapper {
 
     return new MedianContract(
       new web3.eth.Contract(medianizer.abi, medianizer.address),
+      { from },
+    );
+  }
+
+  public async deployLinkedListLibraryMockAsync(
+    from: Address = this._contractOwnerAddress
+  ): Promise<LinkedListLibraryMockContract> {
+    const linkedList = await LinkedListLibraryMock.new(
+      { from },
+    );
+
+    return new LinkedListLibraryMockContract(
+      new web3.eth.Contract(linkedList.abi, linkedList.address),
       { from },
     );
   }
