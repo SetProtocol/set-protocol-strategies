@@ -1,6 +1,6 @@
 import { BigNumber } from 'bignumber.js';
 
-import { Address, Log, Bytes } from 'set-protocol-utils';
+import { Address, Log } from 'set-protocol-utils';
 
 interface CreateLogArgs {
    _setTokenAddress: Address;

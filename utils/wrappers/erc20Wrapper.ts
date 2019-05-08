@@ -2,17 +2,13 @@ import * as _ from 'lodash';
 import { Address } from 'set-protocol-utils';
 import { BigNumber } from 'bignumber.js';
 
-import { SetTokenContract } from 'set-protocol-contracts';
-
 import {
+  StandardTokenMock,
   StandardTokenMockContract,
   WethMockContract,
-} from '../contracts';
+} from 'set-protocol-contracts';
 
 import {
-  DEFAULT_GAS,
-  DEFAULT_MOCK_TOKEN_DECIMALS,
-  DEPLOYED_TOKEN_QUANTITY,
   UNLIMITED_ALLOWANCE_IN_BASE_UNITS,
 } from '../constants';
 import {
@@ -20,10 +16,6 @@ import {
 } from '../web3Helper';
 
 const web3 = getWeb3();
-
-const StandardTokenMock = artifacts.require('StandardTokenMock');
-const WethMock = artifacts.require('WethMock');
-
 
 export class ERC20Wrapper {
   private _senderAccountAddress: Address;
@@ -34,70 +26,6 @@ export class ERC20Wrapper {
 
   /* ============ Deployment ============ */
 
-  public async deployTokenAsync(
-    initialAccount: Address,
-    decimals: number = DEFAULT_MOCK_TOKEN_DECIMALS,
-    initialTokenAmount: BigNumber = DEPLOYED_TOKEN_QUANTITY,
-  ): Promise<StandardTokenMockContract> {
-    const truffleMockToken = await StandardTokenMock.new(
-      initialAccount,
-      initialTokenAmount,
-      'Mock Token',
-      'MOCK',
-      decimals,
-      { from: this._senderAccountAddress, gas: DEFAULT_GAS },
-    );
-
-    return new StandardTokenMockContract(
-      new web3.eth.Contract(truffleMockToken.abi, truffleMockToken.address),
-      { from: this._senderAccountAddress },
-    );
-  }
-
-  public async deployTokensAsync(
-    tokenCount: number,
-    initialAccount: Address,
-  ): Promise<StandardTokenMockContract[]> {
-    const mockTokens: StandardTokenMockContract[] = [];
-    const mockTokenPromises = _.times(tokenCount, async index => {
-      return await StandardTokenMock.new(
-        initialAccount,
-        DEPLOYED_TOKEN_QUANTITY,
-        `Component ${index}`,
-        index.toString(),
-        _.random(4, 18),
-        { from: this._senderAccountAddress, gas: DEFAULT_GAS },
-      );
-    });
-
-    await Promise.all(mockTokenPromises).then(tokenMocks => {
-      _.each(tokenMocks, standardToken => {
-        mockTokens.push(new StandardTokenMockContract(
-          new web3.eth.Contract(standardToken.abi, standardToken.address),
-          { from: this._senderAccountAddress }
-        ));
-      });
-    });
-
-    return mockTokens;
-  }
-
-  public async deployWrappedEtherAsync(
-    initialAccount: Address,
-    initialTokenAmount: BigNumber = DEPLOYED_TOKEN_QUANTITY,
-  ): Promise<WethMockContract> {
-    const truffleMockToken = await WethMock.new(
-      initialAccount,
-      initialTokenAmount,
-      { from: this._senderAccountAddress, gas: DEFAULT_GAS },
-    );
-
-    return new WethMockContract(
-      new web3.eth.Contract(truffleMockToken.abi, truffleMockToken.address),
-      { from: this._senderAccountAddress },
-    );
-  }
-
   public async approveTransferAsync(
     token: StandardTokenMockContract,
     to: Address,
@@ -107,7 +35,7 @@ export class ERC20Wrapper {
   }
 
   public async approveTransfersAsync(
-    tokens: (StandardTokenMockContract | WethMockContract | SetTokenContract)[],
+    tokens: (StandardTokenMockContract | WethMockContract)[],
     to: Address,
     from: Address = this._senderAccountAddress,
   ) {

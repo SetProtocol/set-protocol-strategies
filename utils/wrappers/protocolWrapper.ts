@@ -5,13 +5,9 @@ import { Address } from 'set-protocol-utils';
 import {
   Core,
   CoreContract,
-  CoreMockContract,
-  ExchangeIssuanceModuleContract,
   LinearAuctionPriceCurve,
   LinearAuctionPriceCurveContract,
-  Median,
   MedianContract,
-  RebalancingSetExchangeIssuanceModuleContract,
   RebalanceAuctionModule,
   RebalanceAuctionModuleContract,
   RebalancingSetTokenContract,
@@ -22,7 +18,6 @@ import {
   SetTokenFactory,
   SetTokenFactoryContract,
   StandardTokenMockContract,
-  TimeLockUpgradeMockContract,
   TransferProxy,
   TransferProxyContract,
   Vault,
@@ -37,8 +32,6 @@ import {
   DEFAULT_GAS,
   DEFAULT_UNIT_SHARES,
   DEFAULT_REBALANCING_NATURAL_UNIT,
-  DEFAULT_REBALANCING_MINIMUM_NATURAL_UNIT,
-  DEFAULT_REBALANCING_MAXIMUM_NATURAL_UNIT,
   ONE_DAY_IN_SECONDS,
 } from '../constants';
 import { extractNewSetTokenAddressFromLogs } from '../contract_logs/core';
@@ -111,25 +104,25 @@ export class ProtocolWrapper {
   }
 
   public async getDeployedWBTCMedianizerAsync(): Promise<MedianContract> {
-    const address = await getDeployedAddress("WBTC_MEDIANIZER");
+    const address = await getDeployedAddress('WBTC_MEDIANIZER');
 
      return await MedianContract.at(address, web3, {});
   }
 
   public async getDeployedWETHMedianizerAsync(): Promise<MedianContract> {
-    const address = await getDeployedAddress("WETH_MEDIANIZER");
+    const address = await getDeployedAddress('WETH_MEDIANIZER');
 
      return await MedianContract.at(address, web3, {});
   }
 
   public async getDeployedWBTCAsync(): Promise<StandardTokenMockContract> {
-    const address = await getDeployedAddress("WBTC");
+    const address = await getDeployedAddress('WBTC');
 
      return await StandardTokenMockContract.at(address, web3, {});
   }
 
   public async getDeployedWETHAsync(): Promise<WethMockContract> {
-    const address = await getDeployedAddress("WETH");
+    const address = await getDeployedAddress('WETH');
 
      return await WethMockContract.at(address, web3, {});
   }
@@ -159,7 +152,7 @@ export class ProtocolWrapper {
       encodedName,
       encodedSymbol,
       callData,
-      { from },
+      { from, gas: DEFAULT_GAS },
     );
 
     const logs = await setTestUtils.getLogsFromTxHash(txHash);
@@ -168,7 +161,7 @@ export class ProtocolWrapper {
     return await SetTokenContract.at(
       setAddress,
       web3,
-      { from }
+      { from, gas: DEFAULT_GAS }
     );
   }
 
@@ -194,7 +187,7 @@ export class ProtocolWrapper {
       encodedName,
       encodedSymbol,
       callData,
-      { from },
+      { from, gas: DEFAULT_GAS },
     );
 
     const logs = await setTestUtils.getLogsFromTxHash(txHash);
@@ -203,7 +196,7 @@ export class ProtocolWrapper {
     return await RebalancingSetTokenContract.at(
       setAddress,
       web3,
-      { from }
+      { from, gas: DEFAULT_GAS }
     );
   }
 
