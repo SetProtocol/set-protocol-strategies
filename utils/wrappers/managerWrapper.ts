@@ -2,6 +2,8 @@ import * as _ from 'lodash';
 import * as setProtocolUtils from 'set-protocol-utils';
 import { Address } from 'set-protocol-utils';
 
+import { SetTokenContract } from 'set-protocol-contracts';
+
 import {
   BTCETHRebalancingManagerContract,
 } from '../contracts';
@@ -74,5 +76,124 @@ export class ManagerWrapper {
       new web3.eth.Contract(truffleRebalacingTokenManager.abi, truffleRebalacingTokenManager.address),
       { from, gas: DEFAULT_GAS },
     );
+  }
+
+  public getExpectedBtcEthNextSetParameters(
+    btcPrice: BigNumber,
+    ethPrice: BigNumber,
+    btcMultiplier: BigNumber,
+    ethMultiplier: BigNumber,
+  ): any {
+    let units: BigNumber[];
+    let naturalUnit: BigNumber;
+    if (btcPrice.greaterThanOrEqualTo(ethPrice)) {
+      const ethUnits = btcPrice.mul(new BigNumber(10 ** 10)).div(ethPrice).round(0, 3);
+      units = [new BigNumber(1).mul(btcMultiplier), ethUnits.mul(ethMultiplier)];
+      naturalUnit = new BigNumber(10 ** 10);
+    } else {
+      const btcUnits = ethPrice.mul(new BigNumber(100)).mul(btcMultiplier).div(btcPrice).round(0, 3);
+      const ethUnits = new BigNumber(100).mul(new BigNumber(10 ** 10)).mul(ethMultiplier);
+      units = [btcUnits, ethUnits];
+      naturalUnit = new BigNumber(10 ** 12);
+    }
+
+    return {
+      units,
+      naturalUnit,
+    };
+  }
+
+  public async getExpectedBtcEthAuctionParameters(
+    btcPrice: BigNumber,
+    ethPrice: BigNumber,
+    btcMultiplier: BigNumber,
+    ethMultiplier: BigNumber,
+    auctionTimeToPivot: BigNumber,
+    currentSetToken: SetTokenContract,
+  ): Promise<any> {
+    const THIRTY_MINUTES_IN_SECONDS = new BigNumber(30 * 60);
+    const BTC_DECIMALS = WBTC_FULL_TOKEN_UNITS;
+    const ETH_DECIMALS = WETH_FULL_TOKEN_UNITS;
+
+    const nextSetParams = this.getExpectedBtcEthNextSetParameters(
+      btcPrice,
+      ethPrice,
+      btcMultiplier,
+      ethMultiplier,
+    );
+
+    const currentSetNaturalUnit = await currentSetToken.naturalUnit.callAsync();
+    const currentSetUnits = await currentSetToken.getUnits.callAsync();
+
+    const currentSetDollarAmount = this.computeTokenValue(
+      currentSetUnits,
+      currentSetNaturalUnit,
+      btcPrice,
+      ethPrice,
+      BTC_DECIMALS,
+      ETH_DECIMALS,
+    );
+
+    const nextSetDollarAmount = this.computeTokenValue(
+      nextSetParams['units'],
+      nextSetParams['naturalUnit'],
+      btcPrice,
+      ethPrice,
+      BTC_DECIMALS,
+      ETH_DECIMALS,
+    );
+
+    const fairValue = nextSetDollarAmount.div(currentSetDollarAmount).mul(1000).round(0, 3);
+    const onePercentSlippage = fairValue.div(100).round(0, 3);
+
+    const thirtyMinutePeriods = auctionTimeToPivot.div(THIRTY_MINUTES_IN_SECONDS).round(0, 3);
+    const halfPriceRange = thirtyMinutePeriods.mul(onePercentSlippage).div(2).round(0, 3);
+
+    const auctionStartPrice = fairValue.sub(halfPriceRange);
+    const auctionPivotPrice = fairValue.add(halfPriceRange);
+
+    return {
+      auctionStartPrice,
+      auctionPivotPrice,
+    };
+  }
+
+  private computeTokenValue(
+    units: BigNumber[],
+    naturalUnit: BigNumber,
+    tokenOnePrice: BigNumber,
+    tokenTwoPrice: BigNumber,
+    tokenOneDecimals: BigNumber,
+    tokenTwoDecimals: BigNumber,
+  ): BigNumber {
+    const tokenOneUnitsInFullToken = SET_FULL_TOKEN_UNITS.mul(units[0]).div(naturalUnit).round(0, 3);
+    const tokenTwoUnitsInFullToken = SET_FULL_TOKEN_UNITS.mul(units[1]).div(naturalUnit).round(0, 3);
+
+    const tokenOneDollarAmount = this.computeTokenDollarAmount(
+      tokenOnePrice,
+      tokenOneUnitsInFullToken,
+      tokenOneDecimals
+    );
+    const tokenTwoDollarAmount = this.computeTokenDollarAmount(
+      tokenTwoPrice,
+      tokenTwoUnitsInFullToken,
+      tokenTwoDecimals
+    );
+
+    return tokenOneDollarAmount.add(tokenTwoDollarAmount);
+  }
+
+  private computeTokenDollarAmount(
+    tokenPrice: BigNumber,
+    unitsInFullSet: BigNumber,
+    tokenDecimals: BigNumber,
+  ): BigNumber {
+    const VALUE_TO_CENTS_CONVERSION = new BigNumber(10 ** 16);
+
+    return tokenPrice
+             .mul(unitsInFullSet)
+             .div(tokenDecimals)
+             .div(VALUE_TO_CENTS_CONVERSION)
+             .round(0, 3);
   }
 }

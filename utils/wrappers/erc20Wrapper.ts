@@ -2,6 +2,8 @@ import * as _ from 'lodash';
 import { Address } from 'set-protocol-utils';
 import { BigNumber } from 'bignumber.js';
 
+import { SetTokenContract } from 'set-protocol-contracts';
+
 import {
   StandardTokenMockContract,
   WethMockContract,
@@ -29,8 +31,6 @@ export class ERC20Wrapper {
   constructor(senderAccountAddress: Address) {
     this._senderAccountAddress = senderAccountAddress;
   }
-
-
 
   /* ============ Deployment ============ */
 
@@ -107,7 +107,7 @@ export class ERC20Wrapper {
   }
 
   public async approveTransfersAsync(
-    tokens: (StandardTokenMockContract | WethMockContract)[],
+    tokens: (StandardTokenMockContract | WethMockContract | SetTokenContract)[],
     to: Address,
     from: Address = this._senderAccountAddress,
   ) {
