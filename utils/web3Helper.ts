@@ -19,9 +19,9 @@ export const getContractInstance = contractName => {
 export const getGasUsageInEth = async txHash => {
   const web3 = getWeb3();
   const txReceipt = await web3.eth.getTransactionReceipt(txHash);
-    const txn = await web3.eth.getTransaction(txHash);
-    const { gasPrice } = txn;
-    const { gasUsed } = txReceipt;
+  const txn = await web3.eth.getTransaction(txHash);
+  const { gasPrice } = txn;
+  const { gasUsed } = txReceipt;
 
-    return new BigNumber(gasPrice).mul(gasUsed);
+  return new BigNumber(gasPrice).mul(gasUsed);
 };
