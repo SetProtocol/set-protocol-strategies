@@ -1,7 +1,7 @@
 pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
-import { ManagerLibrary } from "../../supplementary/rebalancing-manager/lib/ManagerLibrary.sol";
+import { ManagerLibrary } from "../../managers/lib/ManagerLibrary.sol";
 
 // Mock contract implementation of ManagerLibrary functions
 contract ManagerLibraryMock {

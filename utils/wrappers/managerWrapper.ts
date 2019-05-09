@@ -7,7 +7,7 @@ import { SetTokenContract } from 'set-protocol-contracts';
 import {
   BTCETHRebalancingManagerContract,
   BTCDaiRebalancingManagerContract,
-  // ETHDaiRebalancingManagerContract,
+  ETHDaiRebalancingManagerContract,
 } from '../contracts';
 import { BigNumber } from 'bignumber.js';
 
@@ -99,6 +99,37 @@ export class ManagerWrapper {
     );
 
     return new BTCDaiRebalancingManagerContract(
+      new web3.eth.Contract(truffleRebalacingTokenManager.abi, truffleRebalacingTokenManager.address),
+      { from, gas: DEFAULT_GAS },
+    );
+  }
+
+  public async deployETHDaiRebalancingManagerAsync(
+    coreAddress: Address,
+    ethPriceFeedAddress: Address,
+    daiAddress: Address,
+    ethAddress: Address,
+    setTokenFactoryAddress: Address,
+    auctionLibrary: Address,
+    auctionTimeToPivot: BigNumber = new BigNumber(100000),
+    multiplers: BigNumber[],
+    allocationBounds: BigNumber[],
+    from: Address = this._tokenOwnerAddress
+  ): Promise<ETHDaiRebalancingManagerContract> {
+    const truffleRebalacingTokenManager = await ETHDaiRebalancingManager.new(
+      coreAddress,
+      ethPriceFeedAddress,
+      daiAddress,
+      ethAddress,
+      setTokenFactoryAddress,
+      auctionLibrary,
+      auctionTimeToPivot,
+      multiplers,
+      allocationBounds,
+      { from },
+    );
+
+    return new ETHDaiRebalancingManagerContract(
       new web3.eth.Contract(truffleRebalacingTokenManager.abi, truffleRebalacingTokenManager.address),
       { from, gas: DEFAULT_GAS },
     );

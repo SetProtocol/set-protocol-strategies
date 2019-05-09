@@ -46,11 +46,9 @@ const setTestUtils = new SetTestUtils(web3);
 
 export class ProtocolWrapper {
   private _tokenOwnerAddress: Address;
-  private _contractOwnerAddress: Address;
 
-  constructor(tokenOwnerAddress: Address, contractOwnerAddress: Address) {
+  constructor(tokenOwnerAddress: Address) {
     this._tokenOwnerAddress = tokenOwnerAddress;
-    this._contractOwnerAddress = contractOwnerAddress;
   }
 
   /* ============ Deployed Contracts ============ */
