@@ -6,6 +6,8 @@ import { SetTokenContract } from 'set-protocol-contracts';
 
 import {
   BTCETHRebalancingManagerContract,
+  BTCDaiRebalancingManagerContract,
+  // ETHDaiRebalancingManagerContract,
 } from '../contracts';
 import { BigNumber } from 'bignumber.js';
 
@@ -17,6 +19,8 @@ import { getWeb3 } from '../web3Helper';
 
 const web3 = getWeb3();
 const BTCETHRebalancingManager = artifacts.require('BTCETHRebalancingManager');
+const BTCDaiRebalancingManager = artifacts.require('BTCDaiRebalancingManager');
+const ETHDaiRebalancingManager = artifacts.require('ETHDaiRebalancingManager');
 
 const { SetProtocolUtils: SetUtils } = setProtocolUtils;
 const {
@@ -69,6 +73,37 @@ export class ManagerWrapper {
     );
   }
 
+  public async deployBTCDaiRebalancingManagerAsync(
+    coreAddress: Address,
+    btcPriceFeedAddress: Address,
+    daiAddress: Address,
+    btcAddress: Address,
+    setTokenFactoryAddress: Address,
+    auctionLibrary: Address,
+    auctionTimeToPivot: BigNumber = new BigNumber(100000),
+    multiplers: BigNumber[],
+    allocationBounds: BigNumber[],
+    from: Address = this._tokenOwnerAddress
+  ): Promise<BTCDaiRebalancingManagerContract> {
+    const truffleRebalacingTokenManager = await BTCDaiRebalancingManager.new(
+      coreAddress,
+      btcPriceFeedAddress,
+      daiAddress,
+      btcAddress,
+      setTokenFactoryAddress,
+      auctionLibrary,
+      auctionTimeToPivot,
+      multiplers,
+      allocationBounds,
+      { from },
+    );
+
+    return new BTCDaiRebalancingManagerContract(
+      new web3.eth.Contract(truffleRebalacingTokenManager.abi, truffleRebalacingTokenManager.address),
+      { from, gas: DEFAULT_GAS },
+    );
+  }
+
   public getExpectedBtcEthNextSetParameters(
     btcPrice: BigNumber,
     ethPrice: BigNumber,
@@ -91,6 +126,89 @@ export class ManagerWrapper {
     return {
       units,
       naturalUnit,
+    };
+  }
+
+  public getExpectedGeneralNextSetParameters(
+    tokenOnePrice: BigNumber,
+    tokenTwoPrice: BigNumber,
+    tokenOneMultiplier: BigNumber,
+    tokenTwoMultiplier: BigNumber,
+    decimalDifference: BigNumber,
+    pricePrecision: BigNumber
+  ): any {
+    let units: BigNumber[];
+
+    const naturalUnit: BigNumber = pricePrecision.mul(decimalDifference);
+    if (tokenTwoPrice.greaterThanOrEqualTo(tokenOnePrice)) {
+      const tokenOneUnits = tokenTwoPrice.mul(decimalDifference).mul(pricePrecision).div(tokenOnePrice).round(0, 3);
+      units = [tokenOneMultiplier.mul(tokenOneUnits), tokenTwoMultiplier.mul(pricePrecision)];
+    } else {
+      const tokenTwoUnits = tokenOnePrice.mul(pricePrecision).div(tokenTwoPrice).round(0, 3);
+      units = [pricePrecision.mul(decimalDifference).mul(tokenOneMultiplier), tokenTwoUnits.mul(tokenTwoMultiplier)];
+    }
+
+    return {
+      units,
+      naturalUnit,
+    };
+  }
+
+  public async getExpectedGeneralAuctionParameters(
+    tokenOnePrice: BigNumber,
+    tokenTwoPrice: BigNumber,
+    tokenOneMultiplier: BigNumber,
+    tokenTwoMultiplier: BigNumber,
+    tokenOneDecimals: BigNumber,
+    tokenTwoDecimals: BigNumber,
+    pricePrecision: BigNumber,
+    auctionTimeToPivot: BigNumber,
+    currentSetToken: SetTokenContract,
+  ): Promise<any> {
+    const THIRTY_MINUTES_IN_SECONDS = new BigNumber(30 * 60);
+
+    const nextSetParams = this.getExpectedGeneralNextSetParameters(
+      tokenOnePrice,
+      tokenTwoPrice,
+      tokenOneMultiplier,
+      tokenTwoMultiplier,
+      tokenOneDecimals.div(tokenTwoDecimals),
+      pricePrecision,
+    );
+
+    const currentSetNaturalUnit = await currentSetToken.naturalUnit.callAsync();
+    const currentSetUnits = await currentSetToken.getUnits.callAsync();
+
+    const currentSetDollarAmount = this.computeTokenValue(
+      currentSetUnits,
+      currentSetNaturalUnit,
+      tokenOnePrice,
+      tokenTwoPrice,
+      tokenOneDecimals,
+      tokenTwoDecimals,
+    );
+
+    const nextSetDollarAmount = this.computeTokenValue(
+      nextSetParams['units'],
+      nextSetParams['naturalUnit'],
+      tokenOnePrice,
+      tokenTwoPrice,
+      tokenOneDecimals,
+      tokenTwoDecimals,
+    );
+
+    const fairValue = nextSetDollarAmount.div(currentSetDollarAmount).mul(1000).round(0, 3);
+    const onePercentSlippage = fairValue.div(100).round(0, 3);
+
+    const thirtyMinutePeriods = auctionTimeToPivot.div(THIRTY_MINUTES_IN_SECONDS).round(0, 3);
+    const halfPriceRange = thirtyMinutePeriods.mul(onePercentSlippage).div(2).round(0, 3);
+
+    const auctionStartPrice = fairValue.sub(halfPriceRange);
+    const auctionPivotPrice = fairValue.add(halfPriceRange);
+
+    return {
+      auctionStartPrice,
+      auctionPivotPrice,
     };
   }
 

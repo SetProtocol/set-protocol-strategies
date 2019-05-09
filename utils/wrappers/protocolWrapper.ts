@@ -127,6 +127,12 @@ export class ProtocolWrapper {
      return await WethMockContract.at(address, web3, {});
   }
 
+  public async getDeployedDAIAsync(): Promise<StandardTokenMockContract> {
+    const address = await getDeployedAddress('DAI');
+
+     return await StandardTokenMockContract.at(address, web3, {});
+  }
+
   /* ============ CoreFactory Extension ============ */
 
   public async createSetTokenAsync(
