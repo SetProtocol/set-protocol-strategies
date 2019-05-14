@@ -5,8 +5,6 @@ import { FeedFactoryContract } from '../types/generated/feed_factory';
 import { LinkedListLibraryMockContract } from '../types/generated/linked_list_library_mock';
 import { ManagerLibraryMockContract } from '../types/generated/manager_library_mock';
 import { PriceFeedContract } from '../types/generated/price_feed';
-import { StandardTokenMockContract } from '../types/generated/standard_token_mock';
-import { WethMockContract } from '../types/generated/weth_mock';
 
 export {
   BTCDaiRebalancingManagerContract,
@@ -16,6 +14,4 @@ export {
   LinkedListLibraryMockContract,
   ManagerLibraryMockContract,
   PriceFeedContract,
-  StandardTokenMockContract,
-  WethMockContract,
 };
