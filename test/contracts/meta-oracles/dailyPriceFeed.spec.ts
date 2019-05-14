@@ -117,7 +117,7 @@ contract('DailyPriceDataBank', accounts => {
     });
   });
 
-  describe('#update', async () => {
+  describe('#poke', async () => {
     let initialEthPrice: BigNumber;
     let newEthPrice: BigNumber;
 
