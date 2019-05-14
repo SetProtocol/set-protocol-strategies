@@ -1,5 +1,5 @@
 /*
-    Copyright 2018 Set Labs Inc.
+    Copyright 2019 Set Labs Inc.
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ import { LinkedListLibrary } from "./lib/LinkedListLibrary.sol";
 
 
 /**
- * @title DailyPriceDataBank
+ * @title DailyPriceFeed
  * @author Set Protocol
  *
  * Contract used to store daily price data from an off-chain oracle
