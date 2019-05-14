@@ -141,4 +141,28 @@ library LinkedListLibrary {
         _self.dataArray[updateNodeIndex] = _addedValue;
         _self.lastUpdatedIndex = updateNodeIndex;
     }
+
+    function readList(
+        LinkedList storage _self,
+        uint256 _dataPoints
+    )
+        internal
+        view
+        returns (uint256[] memory)
+    {
+        // Instantiate output array in memory
+        uint256[] memory outputArray = new uint256[](_dataPoints);
+
+        // Find head of list
+        uint256 linkedListIndex = _self.lastUpdatedIndex;
+        for (uint256 i = 0; i < _dataPoints; i++) {
+            // Get value at index in linkedList
+            outputArray[i] = _self.dataArray[linkedListIndex];
+
+            // Find next linked index
+            linkedListIndex = _self.links[linkedListIndex];
+        }
+
+        return outputArray;
+    }
 }

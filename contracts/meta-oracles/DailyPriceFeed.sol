@@ -18,6 +18,7 @@ pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
 import { IMedian } from "../external/DappHub/interfaces/IMedian.sol";
+import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { LinkedListLibrary } from "./lib/LinkedListLibrary.sol";
 
 
@@ -27,9 +28,10 @@ import { LinkedListLibrary } from "./lib/LinkedListLibrary.sol";
  *
  * Contract used to store daily price data from an off-chain oracle
  */
-contract DailyPriceDataBank {
+contract DailyPriceFeed {
 
     using LinkedListLibrary for LinkedListLibrary.LinkedList;
+    using SafeMath for uint256;
 
     /* ============ Constants ============ */
     uint256 constant TWENTY_FOUR_HOURS_IN_SECONDS = 86400;
@@ -40,7 +42,7 @@ contract DailyPriceDataBank {
     uint256 public lastUpdatedAt;
     string public dataDescription;
 
-    LinkedListLibrary.LinkedList private dailyPriceData;
+    LinkedListLibrary.LinkedList public dailyPriceData;
     IMedian private medianizerInstance;
 
     /* ============ Constructor ============ */
@@ -74,5 +76,40 @@ contract DailyPriceDataBank {
 
         // Set last updated timestamp
         lastUpdatedAt = block.timestamp;
+    }
+
+    function poke()
+        public
+    {
+        // Make sure 24 hours have passed since last update
+        require(
+            block.timestamp >= lastUpdatedAt.add(TWENTY_FOUR_HOURS_IN_SECONDS),
+            "DailyPriceFeed: Not enough time passed between updates"
+        );
+
+        // Get current price
+        uint256 newValue = uint256(medianizerInstance.read());
+
+        // Update linkedList with new price
+        dailyPriceData.editList(newValue);
+
+        // Update the timestamp to current block timestamp
+        lastUpdatedAt = block.timestamp;
+    }
+
+    function read(
+        uint256 _dataDays
+    )
+        external
+        view
+        returns (uint256[] memory)
+    {
+        // Make sure query isn't for more data than collected
+        require(
+            _dataDays <= dailyPriceData.dataArray.length,
+            "DailyPriceFeed: Querying more data than available"
+        );
+
+        return dailyPriceData.readList(_dataDays);
     }
 }

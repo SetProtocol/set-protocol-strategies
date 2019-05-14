@@ -75,13 +75,23 @@ contract LinkedListLibraryMock {
         linkedList.updateNode(
             _addedValue
         );
-    }   
+    }
+
+    function readList(
+        uint256 _dataPoints
+    )
+        public
+        returns (uint256[] memory)
+    {
+        return linkedList.readList(_dataPoints);
+    }
 
 
     /* ============ Getters ============ */
 
     function getDataSizeLimit()
         public
+        view
         returns (uint256)
     {
         return linkedList.dataSizeLimit;
@@ -89,6 +99,7 @@ contract LinkedListLibraryMock {
 
     function getLastUpdatedIndex()
         public
+        view
         returns (uint256)
     {
         return linkedList.lastUpdatedIndex;
@@ -96,6 +107,7 @@ contract LinkedListLibraryMock {
 
     function getDataArray()
         public
+        view
         returns (uint256[] memory)
     {
         return linkedList.dataArray;
@@ -105,6 +117,7 @@ contract LinkedListLibraryMock {
         uint256 _index
     )
         public
+        view
         returns (uint256)
     {
         return linkedList.links[_index];

@@ -328,4 +328,53 @@ contract('LinkedListLibrary', accounts => {
       });
     });
   });
+
+  describe('#readList', async () => {
+    let initialValue: BigNumber;
+    let addedValues: BigNumber[];
+    let dataSizeLimit: BigNumber;
+
+    let subjectDataPoints: BigNumber;
+
+    beforeEach(async () => {
+      initialValue = ether(150);
+      dataSizeLimit = new BigNumber(5);
+      await linkedListLibraryMock.initialize.sendTransactionAsync(
+        dataSizeLimit,
+        initialValue,
+        { gas: DEFAULT_GAS}
+      );
+
+      addedValues = [
+        ether(160),
+        ether(175),
+        ether(157),
+        ether(162),
+        ether(173),
+      ];
+      const editListPromises = _.map(addedValues, value =>
+        linkedListLibraryMock.editList.sendTransactionAsync(
+          value,
+          { gas: DEFAULT_GAS}
+        ),
+      );
+      await Promise.all(editListPromises);
+
+      subjectDataPoints = new BigNumber(4);
+    });
+
+    async function subject(): Promise<BigNumber[]> {
+      return linkedListLibraryMock.readList.callAsync(
+        subjectDataPoints,
+        { gas: DEFAULT_GAS}
+      );
+    }
+
+    it('sets correct last updated index', async () => {
+      const actualOutputArray = await subject();
+      const expectedOutputArray = addedValues.slice(-subjectDataPoints.toNumber()).reverse();
+
+      expect(JSON.stringify(actualOutputArray)).to.equal(JSON.stringify(expectedOutputArray));
+    });
+  });
 });
