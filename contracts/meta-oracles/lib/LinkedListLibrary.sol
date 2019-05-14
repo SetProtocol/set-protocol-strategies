@@ -1,5 +1,5 @@
 /*
-    Copyright 2018 Set Labs Inc.
+    Copyright 2019 Set Labs Inc.
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ library LinkedListLibrary {
         uint256 dataSizeLimit;
         uint256 lastUpdatedIndex;
         uint256[] dataArray;
-        mapping (uint => uint) links;
+        mapping (uint256 => uint256) links;
     }
 
     /*

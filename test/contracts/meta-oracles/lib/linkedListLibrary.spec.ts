@@ -18,7 +18,7 @@ import {
 import { expectRevertError } from '@utils/tokenAssertions';
 import { getWeb3 } from '@utils/web3Helper';
 
-import { OracleWrapper } from '@utils/wrappers/oracleWrapper';
+import { LibraryMockWrapper } from '@utils/wrappers/libraryMockWrapper';
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
@@ -33,12 +33,12 @@ contract('LinkedListLibrary', accounts => {
 
   let linkedListLibraryMock: LinkedListLibraryMockContract;
 
-  const oracleWrapper = new OracleWrapper(deployerAccount);
+  const libraryMockWrapper = new LibraryMockWrapper(deployerAccount);
 
   beforeEach(async () => {
     blockchain.saveSnapshotAsync();
 
-    linkedListLibraryMock = await oracleWrapper.deployLinkedListLibraryMockAsync();
+    linkedListLibraryMock = await libraryMockWrapper.deployLinkedListLibraryMockAsync();
   });
 
   afterEach(async () => {
