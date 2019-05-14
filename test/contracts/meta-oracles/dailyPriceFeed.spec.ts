@@ -11,9 +11,9 @@ import ChaiSetup from '@utils/chaiSetup';
 import { BigNumberSetup } from '@utils/bigNumberSetup';
 import { Blockchain } from '@utils/blockchain';
 import { ether } from '@utils/units';
+import { MedianContract } from 'set-protocol-contracts';
 import {
   DailyPriceFeedContract,
-  MedianContract,
 } from '@utils/contracts';
 import {
   DEFAULT_GAS,
@@ -233,7 +233,7 @@ contract('DailyPriceDataBank', accounts => {
 
     describe('when querying more data than available', async () => {
       beforeEach(async () => {
-        subjectDataDays = new BigNumber(10);
+        subjectDataDays = new BigNumber(22);
       });
 
       it('should revert', async () => {
