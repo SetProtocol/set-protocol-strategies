@@ -55,7 +55,6 @@ contract DailyPriceFeed {
      * @param  _medianizerAddress         The oracle address to read daily data from
      * @param  _dataDescription           Description of data in Data Bank
      */
-
     constructor(
         address _medianizerAddress,
         string memory _dataDescription
@@ -78,6 +77,10 @@ contract DailyPriceFeed {
         lastUpdatedAt = block.timestamp;
     }
 
+    /*
+     * Updates linked list with newest data point by querying medianizer. Can only be called
+     * every 24 hours.
+     */
     function poke()
         public
     {
@@ -97,6 +100,12 @@ contract DailyPriceFeed {
         lastUpdatedAt = block.timestamp;
     }
 
+    /*
+     * Query linked list for specified days of data. Will revert if number of days
+     * passed exceeds amount of days collected.
+     *
+     * @param  _dataDays            Number of dats of data being queried
+     */
     function read(
         uint256 _dataDays
     )
