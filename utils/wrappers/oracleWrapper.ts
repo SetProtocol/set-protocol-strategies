@@ -4,8 +4,10 @@ import { Address } from 'set-protocol-utils';
 import { BigNumber } from 'bignumber.js';
 
 import { MedianContract } from 'set-protocol-contracts';
-
-import { FeedFactoryContract, PriceFeedContract } from '../contracts';
+import {
+  FeedFactoryContract,
+  PriceFeedContract,
+} from '../contracts';
 import { getWeb3 } from '../web3Helper';
 import { FeedCreatedArgs } from '../contract_logs/oracle';
 

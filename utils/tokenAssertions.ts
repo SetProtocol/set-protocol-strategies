@@ -1,4 +1,5 @@
 import * as chai from 'chai';
+
 import { BigNumber } from 'bignumber.js';
 
 import ChaiSetup from './chaiSetup';
