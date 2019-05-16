@@ -17,8 +17,8 @@
 pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
-import { IMedian } from "../external/DappHub/interfaces/IMedian.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import { IMedian } from "../external/DappHub/interfaces/IMedian.sol";
 import { LinkedListLibrary } from "./lib/LinkedListLibrary.sol";
 
 
@@ -48,7 +48,7 @@ contract DailyPriceFeed {
     /* ============ Constructor ============ */
 
     /*
-     * Daily Price Data Bank constructor.
+     * Daily Price Feed constructor.
      * Stores daily prices according to passed in oracle address. Updates must be 
      * triggered off chain to be stored in this smart contract.
      *
@@ -82,7 +82,7 @@ contract DailyPriceFeed {
      * every 24 hours.
      */
     function poke()
-        public
+        external
     {
         // Make sure 24 hours have passed since last update
         require(
@@ -104,7 +104,8 @@ contract DailyPriceFeed {
      * Query linked list for specified days of data. Will revert if number of days
      * passed exceeds amount of days collected.
      *
-     * @param  _dataDays            Number of dats of data being queried
+     * @param  _dataDays       Number of days of data being queried
+     * @returns                Array of daily price data of length _dataDays                   
      */
     function read(
         uint256 _dataDays
