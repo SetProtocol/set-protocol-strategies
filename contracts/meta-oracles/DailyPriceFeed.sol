@@ -54,10 +54,14 @@ contract DailyPriceFeed {
      *
      * @param  _medianizerAddress         The oracle address to read daily data from
      * @param  _dataDescription           Description of data in Data Bank
+     * @param  _seededValues              Array of previous days' daily price values to seed
+     *                                    initial values in list. Should NOT contain the current
+     *                                    days price.
      */
     constructor(
         address _medianizerAddress,
-        string memory _dataDescription
+        string memory _dataDescription,
+        uint256[] memory _seededValues
     )
         public
     {
@@ -66,12 +70,20 @@ contract DailyPriceFeed {
         dataDescription = _dataDescription;
         medianizerInstance = IMedian(_medianizerAddress);
 
+        // Create initial values array from _seededValues and current price
+        uint256[] memory initialValues = createInitialValues(_seededValues);
+
         // Define upper data size limit for linked list and input initial value
-        uint256 initalValue = uint256(medianizerInstance.read());
         dailyPriceData.initialize(
             DAYS_IN_DATASET,
-            initalValue
+            initialValues[0]
         );
+
+        // Cycle through input values array (skipping first value used to initialize LinkedList)
+        // and add to dailyPriceData
+        for (uint256 i = 1; i < initialValues.length; i++) {
+            dailyPriceData.editList(initialValues[i]);
+        }
 
         // Set last updated timestamp
         lastUpdatedAt = block.timestamp;
@@ -121,5 +133,36 @@ contract DailyPriceFeed {
         );
 
         return dailyPriceData.readList(_dataDays);
+    }
+
+    /*
+     * Create initialValues array from _seededValues and the current medianizer price.
+     * Added to dailyPriceData in constructor.
+     *
+     * @param  _seededValues        Array of previous days' daily price values to seed
+     * @returns                     Array of initial values to add to dailyPriceData                  
+     */
+    function createInitialValues(
+        uint256[] memory _seededValues
+    )
+        private
+        returns (uint256[] memory)
+    {
+        // Get current value from medianizer
+        uint256 currentValue = uint256(medianizerInstance.read());
+
+        // Instantiate outputArray
+        uint256 seededValuesLength = _seededValues.length;
+        uint256[] memory outputArray = new uint256[](seededValuesLength.add(1));
+
+        // Take values from _seededValues array and add to outputArray
+        for (uint256 i = 0; i < _seededValues.length; i++) {
+            outputArray[i] = _seededValues[i];
+        }
+
+        // Add currentValue to outputArray
+        outputArray[seededValuesLength] = currentValue;
+
+        return outputArray;
     }
 }

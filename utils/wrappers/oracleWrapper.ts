@@ -88,11 +88,13 @@ export class OracleWrapper {
   public async deployDailyPriceFeedAsync(
     medianizerAddress: Address,
     dataDescription: string,
+    seededValues: BigNumber[],
     from: Address = this._contractOwnerAddress
   ): Promise<DailyPriceFeedContract> {
     const dailyPriceFeed = await DailyPriceFeed.new(
       medianizerAddress,
       dataDescription,
+      seededValues,
       { from },
     );
 

@@ -58,6 +58,7 @@ contract('DailyPriceDataBank', accounts => {
 
     let subjectMedianizerAddress: Address;
     let subjectDataDescription: string;
+    let subjectSeededValues: BigNumber[];
 
     beforeEach(async () => {
       ethPrice = ether(150);
@@ -69,12 +70,14 @@ contract('DailyPriceDataBank', accounts => {
 
       subjectMedianizerAddress = ethMedianizer.address;
       subjectDataDescription = '200DailyETHPrice';
+      subjectSeededValues = [];
     });
 
     async function subject(): Promise<DailyPriceFeedContract> {
       return oracleWrapper.deployDailyPriceFeedAsync(
         subjectMedianizerAddress,
-        subjectDataDescription
+        subjectDataDescription,
+        subjectSeededValues,
       );
     }
 
@@ -105,7 +108,7 @@ contract('DailyPriceDataBank', accounts => {
       expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
     });
 
-    it('sets the correct initial price', async () => {
+    it('sets the correct price array', async () => {
       dailyPriceFeed = await subject();
 
       const daysOfData = new BigNumber(1);
@@ -114,6 +117,23 @@ contract('DailyPriceDataBank', accounts => {
       const expectedPriceArray = [ethPrice];
 
       expect(JSON.stringify(actualPriceArray)).to.equal(JSON.stringify(expectedPriceArray));
+    });
+
+    describe('when the price feed is seeded with values', async () => {
+      beforeEach(async () => {
+        subjectSeededValues = [ether(160), ether(170), ether(165)];
+      });
+
+      it('should set the correct price array with 4 values', async () => {
+        dailyPriceFeed = await subject();
+
+        const daysOfData = new BigNumber(4);
+        const actualPriceArray = await dailyPriceFeed.read.callAsync(daysOfData);
+
+        const expectedPriceArray = [ethPrice].concat(subjectSeededValues.reverse());
+
+        expect(JSON.stringify(actualPriceArray)).to.equal(JSON.stringify(expectedPriceArray));
+      });
     });
   });
 
@@ -133,9 +153,11 @@ contract('DailyPriceDataBank', accounts => {
 
       const medianizerAddress = ethMedianizer.address;
       const dataDescription = '200DailyETHPrice';
+      const seededValues = [];
       dailyPriceFeed = await oracleWrapper.deployDailyPriceFeedAsync(
         medianizerAddress,
-        dataDescription
+        dataDescription,
+        seededValues
       );
 
       newEthPrice = ether(160);
@@ -202,9 +224,11 @@ contract('DailyPriceDataBank', accounts => {
 
       const medianizerAddress = ethMedianizer.address;
       const dataDescription = '200DailyETHPrice';
+      const seededValues = [];
       dailyPriceFeed = await oracleWrapper.deployDailyPriceFeedAsync(
         medianizerAddress,
-        dataDescription
+        dataDescription,
+        seededValues,
       );
 
       updatedPrices = await oracleWrapper.batchUpdateDailyPriceFeedAsync(
