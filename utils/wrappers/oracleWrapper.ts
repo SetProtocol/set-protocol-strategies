@@ -10,6 +10,7 @@ import { ether } from '@utils/units';
 import {
   DailyPriceFeedContract,
   FeedFactoryContract,
+  MovingAverageOracleContract,
   PriceFeedContract,
 } from '../contracts';
 import {
@@ -23,6 +24,7 @@ const web3 = getWeb3();
 const DailyPriceFeed = artifacts.require('DailyPriceFeed');
 const FeedFactory = artifacts.require('FeedFactory');
 const Median = artifacts.require('Median');
+const MovingAverageOracle = artifacts.require('MovingAverageOracle');
 
 const { SetProtocolTestUtils: SetTestUtils, SetProtocolUtils: SetUtils } = setProtocolUtils;
 const setTestUtils = new SetTestUtils(web3);
@@ -103,6 +105,26 @@ export class OracleWrapper {
       { from },
     );
   }
+
+  public async deployMovingAverageOracleAsync(
+    priceFeedAddress: Address,
+    dataPoints: BigNumber,
+    dataDescription: string,
+    from: Address = this._contractOwnerAddress
+  ): Promise<MovingAverageOracleContract> {
+    const movingAverageOracle = await MovingAverageOracle.new(
+      priceFeedAddress,
+      dataPoints,
+      dataDescription,
+      { from },
+    );
+
+    return new MovingAverageOracleContract(
+      new web3.eth.Contract(movingAverageOracle.abi, movingAverageOracle.address),
+      { from },
+    );
+  }
+
   /* ============ Transactions ============ */
 
   public async addPriceFeedOwnerToMedianizer(
