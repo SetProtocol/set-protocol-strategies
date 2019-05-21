@@ -25,63 +25,78 @@ import { LinkedListLibrary } from "../meta-oracles/lib/LinkedListLibrary.sol";
  *
  * Mock contract for interacting with LinkedListLibrary
  */
-contract LinkedListLibraryMock {
-
-    using LinkedListLibrary for LinkedListLibrary.LinkedList;
-
+contract LinkedListLibraryMock is
+    LinkedListLibrary
+{
     /* ============ State Variables ============ */
 
     LinkedListLibrary.LinkedList private linkedList;
 
     /* ============ Public Function ============ */
 
-    function initialize(
+    function initializeMock(
         uint256 _dataSizeLimit,
         uint256 _initialValue
     )
         public
     {
-        linkedList.initialize(
+        initialize(
+            linkedList,
             _dataSizeLimit,
             _initialValue
         );
     }
 
-    function editList(
+    function editListMock(
         uint256 _addedValue
     )
         public
     {
-        linkedList.editList(
+        editList(
+            linkedList,
             _addedValue
         );
     }
 
-    function addNode(
+    function addNodeMock(
         uint256 _addedValue
     )
         public
     {
-        linkedList.addNode(
+        addNode(
+            linkedList,
             _addedValue
         );
     }
 
-    function updateNode(
+    function updateNodeMock(
         uint256 _addedValue
     )
         public
     {
-        linkedList.updateNode(
+        updateNode(
+            linkedList,
             _addedValue
         );
-    }   
+    }
 
+    function readListMock(
+        uint256 _dataPoints
+    )
+        public
+        returns (uint256[] memory)
+    {
+        return readList(
+            linkedList,
+            _dataPoints
+        );
+    }
 
     /* ============ Getters ============ */
 
     function getDataSizeLimit()
         public
+        view
         returns (uint256)
     {
         return linkedList.dataSizeLimit;
@@ -89,6 +104,7 @@ contract LinkedListLibraryMock {
 
     function getLastUpdatedIndex()
         public
+        view
         returns (uint256)
     {
         return linkedList.lastUpdatedIndex;
@@ -96,6 +112,7 @@ contract LinkedListLibraryMock {
 
     function getDataArray()
         public
+        view
         returns (uint256[] memory)
     {
         return linkedList.dataArray;
@@ -105,6 +122,7 @@ contract LinkedListLibraryMock {
         uint256 _index
     )
         public
+        view
         returns (uint256)
     {
         return linkedList.links[_index];

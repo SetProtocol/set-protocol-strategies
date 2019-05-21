@@ -4,14 +4,23 @@ import { Address } from 'set-protocol-utils';
 import { BigNumber } from 'bignumber.js';
 
 import { MedianContract } from 'set-protocol-contracts';
+import { Blockchain } from '@utils/blockchain';
+import { ether } from '@utils/units';
+
 import {
+  DailyPriceFeedContract,
   FeedFactoryContract,
   PriceFeedContract,
 } from '../contracts';
+import {
+  DEFAULT_GAS,
+  ONE_DAY_IN_SECONDS,
+} from '@utils/constants';
 import { getWeb3 } from '../web3Helper';
 import { FeedCreatedArgs } from '../contract_logs/oracle';
 
 const web3 = getWeb3();
+const DailyPriceFeed = artifacts.require('DailyPriceFeed');
 const FeedFactory = artifacts.require('FeedFactory');
 const Median = artifacts.require('Median');
 
@@ -22,9 +31,11 @@ const setUtils = new SetUtils(web3);
 
 export class OracleWrapper {
   private _contractOwnerAddress: Address;
+  private _blockchain: Blockchain;
 
   constructor(contractOwnerAddress: Address) {
     this._contractOwnerAddress = contractOwnerAddress;
+    this._blockchain = new Blockchain(web3);
   }
 
   /* ============ Deployment ============ */
@@ -74,6 +85,24 @@ export class OracleWrapper {
     );
   }
 
+  public async deployDailyPriceFeedAsync(
+    medianizerAddress: Address,
+    dataDescription: string,
+    seededValues: BigNumber[],
+    from: Address = this._contractOwnerAddress
+  ): Promise<DailyPriceFeedContract> {
+    const dailyPriceFeed = await DailyPriceFeed.new(
+      medianizerAddress,
+      dataDescription,
+      seededValues,
+      { from },
+    );
+
+    return new DailyPriceFeedContract(
+      new web3.eth.Contract(dailyPriceFeed.abi, dailyPriceFeed.address),
+      { from },
+    );
+  }
   /* ============ Transactions ============ */
 
   public async addPriceFeedOwnerToMedianizer(
@@ -141,5 +170,47 @@ export class OracleWrapper {
       [ecSignature.s],
       { from }
     );
+  }
+
+  public async updateDailyPriceFeedAsync(
+    dailyPriceFeed: DailyPriceFeedContract,
+    medianizer: MedianContract,
+    price: BigNumber,
+    timeOffset: number,
+    from: Address = this._contractOwnerAddress
+  ): Promise<void> {
+    await this._blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS);
+
+    await this.updateMedianizerPriceAsync(
+      medianizer,
+      price,
+      SetTestUtils.generateTimestamp(timeOffset),
+    );
+
+    await dailyPriceFeed.poke.sendTransactionAsync(
+      { gas: DEFAULT_GAS},
+    );
+  }
+
+  public async batchUpdateDailyPriceFeedAsync(
+    dailyPriceFeed: DailyPriceFeedContract,
+    medianizer: MedianContract,
+    daysOfData: number,
+    from: Address = this._contractOwnerAddress
+  ): Promise<BigNumber[]> {
+    const priceArray = Array.from({length: daysOfData}, () => ether(Math.floor(Math.random() * 1000) + 100));
+
+    const ONE_DAY_IN_MINUTES = 1440;
+    let i: number;
+    for (i = 0; i < priceArray.length; i++) {
+      await this.updateDailyPriceFeedAsync(
+        dailyPriceFeed,
+        medianizer,
+        priceArray[i],
+        ONE_DAY_IN_MINUTES * (i + 1)
+      );
+    }
+
+    return priceArray;
   }
 }

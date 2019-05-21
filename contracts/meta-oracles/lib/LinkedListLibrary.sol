@@ -26,7 +26,7 @@ import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
  *
  * Library for creating and altering uni-directional circularly linked lists, optimized for sequential updating
  */
-library LinkedListLibrary {
+contract LinkedListLibrary {
 
     using SafeMath for uint256;
 
@@ -140,5 +140,41 @@ library LinkedListLibrary {
         // Update node value and last updated index
         _self.dataArray[updateNodeIndex] = _addedValue;
         _self.lastUpdatedIndex = updateNodeIndex;
+    }
+
+    /*
+     * Read list from the lastUpdatedIndex back the passed amount of data points.
+     *
+     * @param  _self                        LinkedList to operate on 
+     * @param  _dataPoints                  Number of data points to return
+     */
+    function readList(
+        LinkedList storage _self,
+        uint256 _dataPoints
+    )
+        internal
+        view
+        returns (uint256[] memory)
+    {
+        // Make sure query isn't for more data than collected
+        require(
+            _dataPoints <= _self.dataArray.length,
+            "LinkedListLibrary: Querying more data than available"
+        );
+
+        // Instantiate output array in memory
+        uint256[] memory outputArray = new uint256[](_dataPoints);
+
+        // Find head of list
+        uint256 linkedListIndex = _self.lastUpdatedIndex;
+        for (uint256 i = 0; i < _dataPoints; i++) {
+            // Get value at index in linkedList
+            outputArray[i] = _self.dataArray[linkedListIndex];
+
+            // Find next linked index
+            linkedListIndex = _self.links[linkedListIndex];
+        }
+
+        return outputArray;
     }
 }

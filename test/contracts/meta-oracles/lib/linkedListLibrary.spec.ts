@@ -55,7 +55,7 @@ contract('LinkedListLibrary', accounts => {
     });
 
     async function subject(): Promise<string> {
-      return linkedListLibraryMock.initialize.sendTransactionAsync(
+      return linkedListLibraryMock.initializeMock.sendTransactionAsync(
         subjectDataSizeLimit,
         subjectInitialValue,
         { gas: DEFAULT_GAS}
@@ -106,7 +106,7 @@ contract('LinkedListLibrary', accounts => {
     beforeEach(async () => {
       initialValue = ether(150);
       dataSizeLimit = new BigNumber(2);
-      await linkedListLibraryMock.initialize.sendTransactionAsync(
+      await linkedListLibraryMock.initializeMock.sendTransactionAsync(
         dataSizeLimit,
         initialValue,
         { gas: DEFAULT_GAS}
@@ -116,7 +116,7 @@ contract('LinkedListLibrary', accounts => {
     });
 
     async function subject(): Promise<string> {
-      return linkedListLibraryMock.addNode.sendTransactionAsync(
+      return linkedListLibraryMock.addNodeMock.sendTransactionAsync(
         subjectAddedValue,
         { gas: DEFAULT_GAS}
       );
@@ -170,14 +170,14 @@ contract('LinkedListLibrary', accounts => {
     beforeEach(async () => {
       initialValue = ether(150);
       dataSizeLimit = biggerDataLimit || new BigNumber(2);
-      await linkedListLibraryMock.initialize.sendTransactionAsync(
+      await linkedListLibraryMock.initializeMock.sendTransactionAsync(
         dataSizeLimit,
         initialValue,
         { gas: DEFAULT_GAS}
       );
 
       addedValue = ether(160);
-      await linkedListLibraryMock.addNode.sendTransactionAsync(
+      await linkedListLibraryMock.addNodeMock.sendTransactionAsync(
         addedValue,
         { gas: DEFAULT_GAS}
       );
@@ -186,7 +186,7 @@ contract('LinkedListLibrary', accounts => {
     });
 
     async function subject(): Promise<string> {
-      return linkedListLibraryMock.updateNode.sendTransactionAsync(
+      return linkedListLibraryMock.updateNodeMock.sendTransactionAsync(
         subjectUpdatedValue,
         { gas: DEFAULT_GAS}
       );
@@ -253,7 +253,7 @@ contract('LinkedListLibrary', accounts => {
     beforeEach(async () => {
       initialValue = ether(150);
       dataSizeLimit = new BigNumber(2);
-      await linkedListLibraryMock.initialize.sendTransactionAsync(
+      await linkedListLibraryMock.initializeMock.sendTransactionAsync(
         dataSizeLimit,
         initialValue,
         { gas: DEFAULT_GAS}
@@ -263,7 +263,7 @@ contract('LinkedListLibrary', accounts => {
     });
 
     async function subject(): Promise<string> {
-      return linkedListLibraryMock.editList.sendTransactionAsync(
+      return linkedListLibraryMock.editListMock.sendTransactionAsync(
         subjectUpdatedValue,
         { gas: DEFAULT_GAS}
       );
@@ -305,7 +305,7 @@ contract('LinkedListLibrary', accounts => {
     describe('when updating existing node', async () => {
       beforeEach(async () => {
         addedValue = ether(160);
-        await linkedListLibraryMock.addNode.sendTransactionAsync(
+        await linkedListLibraryMock.addNodeMock.sendTransactionAsync(
           addedValue
         );
       });
@@ -325,6 +325,65 @@ contract('LinkedListLibrary', accounts => {
         const expectedDataArray = [subjectUpdatedValue, addedValue];
 
         expect(JSON.stringify(actualDataArray)).to.equal(JSON.stringify(expectedDataArray));
+      });
+    });
+  });
+
+  describe('#readList', async () => {
+    let initialValue: BigNumber;
+    let addedValues: BigNumber[];
+    let dataSizeLimit: BigNumber;
+
+    let subjectDataPoints: BigNumber;
+
+    beforeEach(async () => {
+      initialValue = ether(150);
+      dataSizeLimit = new BigNumber(5);
+      await linkedListLibraryMock.initializeMock.sendTransactionAsync(
+        dataSizeLimit,
+        initialValue,
+        { gas: DEFAULT_GAS}
+      );
+
+      addedValues = [
+        ether(160),
+        ether(175),
+        ether(157),
+        ether(162),
+        ether(173),
+      ];
+      const editListPromises = _.map(addedValues, value =>
+        linkedListLibraryMock.editListMock.sendTransactionAsync(
+          value,
+          { gas: DEFAULT_GAS}
+        ),
+      );
+      await Promise.all(editListPromises);
+
+      subjectDataPoints = new BigNumber(4);
+    });
+
+    async function subject(): Promise<BigNumber[]> {
+      return linkedListLibraryMock.readListMock.callAsync(
+        subjectDataPoints,
+        { gas: DEFAULT_GAS}
+      );
+    }
+
+    it('sets correct last updated index', async () => {
+      const actualOutputArray = await subject();
+      const expectedOutputArray = addedValues.slice(-subjectDataPoints.toNumber()).reverse();
+
+      expect(JSON.stringify(actualOutputArray)).to.equal(JSON.stringify(expectedOutputArray));
+    });
+
+    describe('when attempting to read more data than exists', async () => {
+      beforeEach(async () => {
+        subjectDataPoints = new BigNumber(10);
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
       });
     });
   });
