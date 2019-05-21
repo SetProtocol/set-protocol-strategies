@@ -108,13 +108,11 @@ export class OracleWrapper {
 
   public async deployMovingAverageOracleAsync(
     priceFeedAddress: Address,
-    dataPoints: BigNumber,
     dataDescription: string,
     from: Address = this._contractOwnerAddress
   ): Promise<MovingAverageOracleContract> {
     const movingAverageOracle = await MovingAverageOracle.new(
       priceFeedAddress,
-      dataPoints,
       dataDescription,
       { from },
     );

@@ -64,7 +64,6 @@ contract('MovingAverageOracle', accounts => {
     let seededValues: BigNumber[];
 
     let subjectPriceFeedAddress: Address;
-    let subjectDataPoints: BigNumber;
     let subjectDataDescription: string;
 
     beforeEach(async () => {
@@ -77,14 +76,12 @@ contract('MovingAverageOracle', accounts => {
       );
 
       subjectPriceFeedAddress = dailyPriceFeed.address;
-      subjectDataPoints = new BigNumber(20);
-      subjectDataDescription = 'ETH20dayMA';
+      subjectDataDescription = 'ETHDailyMA';
     });
 
     async function subject(): Promise<MovingAverageOracleContract> {
       return oracleWrapper.deployMovingAverageOracleAsync(
         subjectPriceFeedAddress,
-        subjectDataPoints,
         subjectDataDescription
       );
     }
@@ -95,14 +92,6 @@ contract('MovingAverageOracle', accounts => {
       const actualPriceFeedAddress = await movingAverageOracle.priceFeedAddress.callAsync();
 
       expect(actualPriceFeedAddress).to.equal(subjectPriceFeedAddress);
-    });
-
-    it('sets the correct data points amount', async () => {
-      movingAverageOracle = await subject();
-
-      const actualDataPoints = await movingAverageOracle.dataPoints.callAsync();
-
-      expect(actualDataPoints).to.be.bignumber.equal(subjectDataPoints);
     });
 
     it('sets the correct data description', async () => {
@@ -116,6 +105,8 @@ contract('MovingAverageOracle', accounts => {
 
   describe('#read', async () => {
     let updatedValues: BigNumber[];
+
+    let subjectDataPoints: BigNumber;
 
     beforeEach(async () => {
       const feedDataDescription = '200DailyETHPrice';
@@ -132,17 +123,19 @@ contract('MovingAverageOracle', accounts => {
         19
       );
 
-      const dataPoints = new BigNumber(20);
       const dataDescription = 'ETH20dayMA';
       movingAverageOracle = await oracleWrapper.deployMovingAverageOracleAsync(
         dailyPriceFeed.address,
-        dataPoints,
         dataDescription
       );
+
+      subjectDataPoints = new BigNumber(20);
     });
 
     async function subject(): Promise<string> {
-      return movingAverageOracle.read.callAsync();
+      return movingAverageOracle.read.callAsync(
+        subjectDataPoints
+      );
     }
 
     it('returns the correct moving average', async () => {
@@ -150,7 +143,7 @@ contract('MovingAverageOracle', accounts => {
 
       updatedValues.push(initialEthPrice);
       const expectedMovingAverage = updatedValues.reduce((a, b) => a.add(b), ZERO).div(updatedValues.length);
-      console.log(parseInt(actualMovingAverage), expectedMovingAverage);
+
       expect(actualMovingAverage).to.be.bignumber.equal(expectedMovingAverage);
     });
   });

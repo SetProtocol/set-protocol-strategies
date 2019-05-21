@@ -34,7 +34,6 @@ contract MovingAverageOracle {
 
     /* ============ State Variables ============ */
     address public priceFeedAddress;
-    uint256 public dataPoints;
     string public dataDescription;
 
     IDailyPriceFeed private priceFeedInterface;
@@ -47,12 +46,10 @@ contract MovingAverageOracle {
      * price feed and return to querying contract
      *
      * @param  _priceFeed               Price Feed to get list of data from
-     * @param  _dataPoints              Number of data points to create average from
      * @param  _dataDescription         Description of data (i.e. 200DailyMA or 24HourMA)
      */
     constructor(
         address _priceFeed,
-        uint256 _dataPoints,
         string memory _dataDescription
     )
         public
@@ -60,21 +57,25 @@ contract MovingAverageOracle {
         priceFeedAddress = _priceFeed;
         priceFeedInterface = IDailyPriceFeed(_priceFeed);
 
-        dataPoints = _dataPoints;
         dataDescription = _dataDescription;
     }
 
     /*
      * Get moving average over defined amount of data points by querying price feed and
-     * averaging returned data.
+     * averaging returned data. Returns bytes32 to conform to Maker oracles user in system.
+     *
+     * @param  _dataPoints       Number of data points to create average from
+     * @returns                  Moving average for passed number of _dataPoints
      */
-    function read()
+    function read(
+        uint256 _dataPoints    
+    )
         public
         view
         returns (bytes32)
     {
         // Get data from price feed
-        uint256[] memory dataArray = priceFeedInterface.read(dataPoints);
+        uint256[] memory dataArray = priceFeedInterface.read(_dataPoints);
 
         // Sum data retrieved from daily price feed
         uint256 dataSumTotal = 0;
@@ -83,6 +84,6 @@ contract MovingAverageOracle {
         }
 
         // Return average price
-        return bytes32(dataSumTotal.div(dataPoints));
+        return bytes32(dataSumTotal.div(_dataPoints));
     }
 }
