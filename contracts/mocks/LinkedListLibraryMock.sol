@@ -25,67 +25,72 @@ import { LinkedListLibrary } from "../meta-oracles/lib/LinkedListLibrary.sol";
  *
  * Mock contract for interacting with LinkedListLibrary
  */
-contract LinkedListLibraryMock {
-
-    using LinkedListLibrary for LinkedListLibrary.LinkedList;
-
+contract LinkedListLibraryMock is
+    LinkedListLibrary
+{
     /* ============ State Variables ============ */
 
     LinkedListLibrary.LinkedList private linkedList;
 
     /* ============ Public Function ============ */
 
-    function initialize(
+    function initializeMock(
         uint256 _dataSizeLimit,
         uint256 _initialValue
     )
         public
     {
-        linkedList.initialize(
+        initialize(
+            linkedList,
             _dataSizeLimit,
             _initialValue
         );
     }
 
-    function editList(
+    function editListMock(
         uint256 _addedValue
     )
         public
     {
-        linkedList.editList(
+        editList(
+            linkedList,
             _addedValue
         );
     }
 
-    function addNode(
+    function addNodeMock(
         uint256 _addedValue
     )
         public
     {
-        linkedList.addNode(
+        addNode(
+            linkedList,
             _addedValue
         );
     }
 
-    function updateNode(
+    function updateNodeMock(
         uint256 _addedValue
     )
         public
     {
-        linkedList.updateNode(
+        updateNode(
+            linkedList,
             _addedValue
         );
     }
 
-    function readList(
+    function readListMock(
         uint256 _dataPoints
     )
         public
         returns (uint256[] memory)
     {
-        return linkedList.readList(_dataPoints);
+        return readList(
+            linkedList,
+            _dataPoints
+        );
     }
-
 
     /* ============ Getters ============ */
 

@@ -55,7 +55,7 @@ contract('LinkedListLibrary', accounts => {
     });
 
     async function subject(): Promise<string> {
-      return linkedListLibraryMock.initialize.sendTransactionAsync(
+      return linkedListLibraryMock.initializeMock.sendTransactionAsync(
         subjectDataSizeLimit,
         subjectInitialValue,
         { gas: DEFAULT_GAS}
@@ -106,7 +106,7 @@ contract('LinkedListLibrary', accounts => {
     beforeEach(async () => {
       initialValue = ether(150);
       dataSizeLimit = new BigNumber(2);
-      await linkedListLibraryMock.initialize.sendTransactionAsync(
+      await linkedListLibraryMock.initializeMock.sendTransactionAsync(
         dataSizeLimit,
         initialValue,
         { gas: DEFAULT_GAS}
@@ -116,7 +116,7 @@ contract('LinkedListLibrary', accounts => {
     });
 
     async function subject(): Promise<string> {
-      return linkedListLibraryMock.addNode.sendTransactionAsync(
+      return linkedListLibraryMock.addNodeMock.sendTransactionAsync(
         subjectAddedValue,
         { gas: DEFAULT_GAS}
       );
@@ -170,14 +170,14 @@ contract('LinkedListLibrary', accounts => {
     beforeEach(async () => {
       initialValue = ether(150);
       dataSizeLimit = biggerDataLimit || new BigNumber(2);
-      await linkedListLibraryMock.initialize.sendTransactionAsync(
+      await linkedListLibraryMock.initializeMock.sendTransactionAsync(
         dataSizeLimit,
         initialValue,
         { gas: DEFAULT_GAS}
       );
 
       addedValue = ether(160);
-      await linkedListLibraryMock.addNode.sendTransactionAsync(
+      await linkedListLibraryMock.addNodeMock.sendTransactionAsync(
         addedValue,
         { gas: DEFAULT_GAS}
       );
@@ -186,7 +186,7 @@ contract('LinkedListLibrary', accounts => {
     });
 
     async function subject(): Promise<string> {
-      return linkedListLibraryMock.updateNode.sendTransactionAsync(
+      return linkedListLibraryMock.updateNodeMock.sendTransactionAsync(
         subjectUpdatedValue,
         { gas: DEFAULT_GAS}
       );
@@ -253,7 +253,7 @@ contract('LinkedListLibrary', accounts => {
     beforeEach(async () => {
       initialValue = ether(150);
       dataSizeLimit = new BigNumber(2);
-      await linkedListLibraryMock.initialize.sendTransactionAsync(
+      await linkedListLibraryMock.initializeMock.sendTransactionAsync(
         dataSizeLimit,
         initialValue,
         { gas: DEFAULT_GAS}
@@ -263,7 +263,7 @@ contract('LinkedListLibrary', accounts => {
     });
 
     async function subject(): Promise<string> {
-      return linkedListLibraryMock.editList.sendTransactionAsync(
+      return linkedListLibraryMock.editListMock.sendTransactionAsync(
         subjectUpdatedValue,
         { gas: DEFAULT_GAS}
       );
@@ -305,7 +305,7 @@ contract('LinkedListLibrary', accounts => {
     describe('when updating existing node', async () => {
       beforeEach(async () => {
         addedValue = ether(160);
-        await linkedListLibraryMock.addNode.sendTransactionAsync(
+        await linkedListLibraryMock.addNodeMock.sendTransactionAsync(
           addedValue
         );
       });
@@ -339,7 +339,7 @@ contract('LinkedListLibrary', accounts => {
     beforeEach(async () => {
       initialValue = ether(150);
       dataSizeLimit = new BigNumber(5);
-      await linkedListLibraryMock.initialize.sendTransactionAsync(
+      await linkedListLibraryMock.initializeMock.sendTransactionAsync(
         dataSizeLimit,
         initialValue,
         { gas: DEFAULT_GAS}
@@ -353,7 +353,7 @@ contract('LinkedListLibrary', accounts => {
         ether(173),
       ];
       const editListPromises = _.map(addedValues, value =>
-        linkedListLibraryMock.editList.sendTransactionAsync(
+        linkedListLibraryMock.editListMock.sendTransactionAsync(
           value,
           { gas: DEFAULT_GAS}
         ),
@@ -364,7 +364,7 @@ contract('LinkedListLibrary', accounts => {
     });
 
     async function subject(): Promise<BigNumber[]> {
-      return linkedListLibraryMock.readList.callAsync(
+      return linkedListLibraryMock.readListMock.callAsync(
         subjectDataPoints,
         { gas: DEFAULT_GAS}
       );

@@ -26,7 +26,7 @@ import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
  *
  * Library for creating and altering uni-directional circularly linked lists, optimized for sequential updating
  */
-library LinkedListLibrary {
+contract LinkedListLibrary {
 
     using SafeMath for uint256;
 

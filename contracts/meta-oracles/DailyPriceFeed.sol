@@ -28,9 +28,10 @@ import { LinkedListLibrary } from "./lib/LinkedListLibrary.sol";
  *
  * Contract used to store daily price data from an off-chain oracle
  */
-contract DailyPriceFeed {
-
-    using LinkedListLibrary for LinkedListLibrary.LinkedList;
+contract DailyPriceFeed is
+    LinkedListLibrary
+{
+    // using LinkedListLibrary for LinkedListLibrary.LinkedList;
     using SafeMath for uint256;
 
     /* ============ Constants ============ */
@@ -74,7 +75,8 @@ contract DailyPriceFeed {
         uint256[] memory initialValues = createInitialValues(_seededValues);
 
         // Define upper data size limit for linked list and input initial value
-        dailyPriceData.initialize(
+        initialize(
+            dailyPriceData,
             DAYS_IN_DATASET,
             initialValues[0]
         );
@@ -82,7 +84,10 @@ contract DailyPriceFeed {
         // Cycle through input values array (skipping first value used to initialize LinkedList)
         // and add to dailyPriceData
         for (uint256 i = 1; i < initialValues.length; i++) {
-            dailyPriceData.editList(initialValues[i]);
+            editList(
+                dailyPriceData,
+                initialValues[i]
+            );
         }
 
         // Set last updated timestamp
@@ -108,7 +113,10 @@ contract DailyPriceFeed {
         uint256 newValue = uint256(medianizerInstance.read());
 
         // Update linkedList with new price
-        dailyPriceData.editList(newValue);
+        editList(
+            dailyPriceData,
+            newValue
+        );
 
         // Update the timestamp to current block timestamp
         lastUpdatedAt = block.timestamp;
@@ -134,7 +142,10 @@ contract DailyPriceFeed {
             "DailyPriceFeed: Querying more data than available"
         );
 
-        return dailyPriceData.readList(_dataDays);
+        return readList(
+            dailyPriceData,
+            _dataDays
+        );
     }
 
 
