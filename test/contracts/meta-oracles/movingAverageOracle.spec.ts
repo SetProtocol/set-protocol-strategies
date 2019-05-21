@@ -16,6 +16,7 @@ import {
   DailyPriceFeedContract,
   MovingAverageOracleContract,
 } from '@utils/contracts';
+import { ZERO } from '@utils/constants';
 import { getWeb3 } from '@utils/web3Helper';
 
 import { OracleWrapper } from '@utils/wrappers/oracleWrapper';
@@ -53,24 +54,28 @@ contract('MovingAverageOracle', accounts => {
       initialEthPrice,
       SetTestUtils.generateTimestamp(1000),
     );
-
-    const feedDataDescription = '200DailyETHPrice';
-    dailyPriceFeed = await oracleWrapper.deployDailyPriceFeedAsync(
-      ethMedianizer.address,
-      feedDataDescription
-    );
   });
 
   afterEach(async () => {
     blockchain.revertAsync();
   });
 
-  describe.only('#constructor', async () => {
+  describe('#constructor', async () => {
+    let seededValues: BigNumber[];
+
     let subjectPriceFeedAddress: Address;
     let subjectDataPoints: BigNumber;
     let subjectDataDescription: string;
 
     beforeEach(async () => {
+      const feedDataDescription = '200DailyETHPrice';
+      seededValues = [];
+      dailyPriceFeed = await oracleWrapper.deployDailyPriceFeedAsync(
+        ethMedianizer.address,
+        feedDataDescription,
+        seededValues,
+      );
+
       subjectPriceFeedAddress = dailyPriceFeed.address;
       subjectDataPoints = new BigNumber(20);
       subjectDataDescription = 'ETH20dayMA';
@@ -106,6 +111,47 @@ contract('MovingAverageOracle', accounts => {
       const actualDataDescription = await movingAverageOracle.dataDescription.callAsync();
 
       expect(actualDataDescription).to.equal(subjectDataDescription);
+    });
+  });
+
+  describe('#read', async () => {
+    let updatedValues: BigNumber[];
+
+    beforeEach(async () => {
+      const feedDataDescription = '200DailyETHPrice';
+      const seededValues = [];
+      dailyPriceFeed = await oracleWrapper.deployDailyPriceFeedAsync(
+        ethMedianizer.address,
+        feedDataDescription,
+        seededValues,
+      );
+
+      updatedValues = await oracleWrapper.batchUpdateDailyPriceFeedAsync(
+        dailyPriceFeed,
+        ethMedianizer,
+        19
+      );
+
+      const dataPoints = new BigNumber(20);
+      const dataDescription = 'ETH20dayMA';
+      movingAverageOracle = await oracleWrapper.deployMovingAverageOracleAsync(
+        dailyPriceFeed.address,
+        dataPoints,
+        dataDescription
+      );
+    });
+
+    async function subject(): Promise<string> {
+      return movingAverageOracle.read.callAsync();
+    }
+
+    it('returns the correct moving average', async () => {
+      const actualMovingAverage = await subject();
+
+      updatedValues.push(initialEthPrice);
+      const expectedMovingAverage = updatedValues.reduce((a, b) => a.add(b), ZERO).div(updatedValues.length);
+      console.log(parseInt(actualMovingAverage), expectedMovingAverage);
+      expect(actualMovingAverage).to.be.bignumber.equal(expectedMovingAverage);
     });
   });
 });

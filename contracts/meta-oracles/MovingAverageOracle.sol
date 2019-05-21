@@ -64,13 +64,25 @@ contract MovingAverageOracle {
         dataDescription = _dataDescription;
     }
 
-    // function read()
-    //     public
-    //     returns (uint256)
-    // {
-    //     // Get data from price feed
-    //     uint256[] dataArray = priceFeedInterface.read(dataPoints);
+    /*
+     * Get moving average over defined amount of data points by querying price feed and
+     * averaging returned data.
+     */
+    function read()
+        public
+        view
+        returns (bytes32)
+    {
+        // Get data from price feed
+        uint256[] memory dataArray = priceFeedInterface.read(dataPoints);
 
-        
-    // }
+        // Sum data retrieved from daily price feed
+        uint256 dataSumTotal = 0;
+        for (uint256 i = 0; i < dataArray.length; i++) {
+            dataSumTotal = dataSumTotal.add(dataArray[i]);
+        }
+
+        // Return average price
+        return bytes32(dataSumTotal.div(dataPoints));
+    }
 }
