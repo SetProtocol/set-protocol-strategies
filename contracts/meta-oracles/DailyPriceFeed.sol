@@ -31,7 +31,6 @@ import { LinkedListLibrary } from "./lib/LinkedListLibrary.sol";
 contract DailyPriceFeed is
     LinkedListLibrary
 {
-    // using LinkedListLibrary for LinkedListLibrary.LinkedList;
     using SafeMath for uint256;
 
     /* ============ Constants ============ */
@@ -75,7 +74,7 @@ contract DailyPriceFeed is
         uint256[] memory initialValues = createInitialValues(_seededValues);
 
         // Define upper data size limit for linked list and input initial value
-        initialize(
+        LinkedListLibrary.initialize(
             dailyPriceData,
             DAYS_IN_DATASET,
             initialValues[0]
@@ -84,7 +83,7 @@ contract DailyPriceFeed is
         // Cycle through input values array (skipping first value used to initialize LinkedList)
         // and add to dailyPriceData
         for (uint256 i = 1; i < initialValues.length; i++) {
-            editList(
+            LinkedListLibrary.editList(
                 dailyPriceData,
                 initialValues[i]
             );
@@ -113,7 +112,7 @@ contract DailyPriceFeed is
         uint256 newValue = uint256(medianizerInstance.read());
 
         // Update linkedList with new price
-        editList(
+        LinkedListLibrary.editList(
             dailyPriceData,
             newValue
         );
@@ -136,13 +135,7 @@ contract DailyPriceFeed is
         view
         returns (uint256[] memory)
     {
-        // Make sure query isn't for more data than collected
-        require(
-            _dataDays <= dailyPriceData.dataArray.length,
-            "DailyPriceFeed: Querying more data than available"
-        );
-
-        return readList(
+        return LinkedListLibrary.readList(
             dailyPriceData,
             _dataDays
         );

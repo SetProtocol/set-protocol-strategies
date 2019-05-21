@@ -376,5 +376,15 @@ contract('LinkedListLibrary', accounts => {
 
       expect(JSON.stringify(actualOutputArray)).to.equal(JSON.stringify(expectedOutputArray));
     });
+
+    describe('when attempting to read more data than exists', async () => {
+      beforeEach(async () => {
+        subjectDataPoints = new BigNumber(10);
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
   });
 });

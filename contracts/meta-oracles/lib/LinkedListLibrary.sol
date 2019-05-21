@@ -156,6 +156,12 @@ contract LinkedListLibrary {
         view
         returns (uint256[] memory)
     {
+        // Make sure query isn't for more data than collected
+        require(
+            _dataPoints <= _self.dataArray.length,
+            "LinkedListLibrary: Querying more data than available"
+        );
+
         // Instantiate output array in memory
         uint256[] memory outputArray = new uint256[](_dataPoints);
 
