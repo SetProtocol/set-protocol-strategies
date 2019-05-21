@@ -268,7 +268,7 @@ contract('DailyPriceDataBank', accounts => {
     });
   });
 
-  describe.only('#changeMedianizer', async () => {
+  describe('#changeMedianizer', async () => {
     let ethPrice: BigNumber;
 
     let subjectNewMedianizer: Address;
