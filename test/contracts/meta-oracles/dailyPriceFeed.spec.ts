@@ -34,6 +34,8 @@ const { SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
 contract('DailyPriceDataBank', accounts => {
   const [
     deployerAccount,
+    medianizerAccount,
+    nonOwnerAccount,
   ] = accounts;
 
   let ethMedianizer: MedianContract;
@@ -258,6 +260,62 @@ contract('DailyPriceDataBank', accounts => {
     describe('when querying more data than available', async () => {
       beforeEach(async () => {
         subjectDataDays = new BigNumber(22);
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+  });
+
+  describe.only('#changeMedianizer', async () => {
+    let ethPrice: BigNumber;
+
+    let subjectNewMedianizer: Address;
+    let subjectCaller: Address;
+
+    beforeEach(async () => {
+      ethPrice = ether(150);
+      await oracleWrapper.updateMedianizerPriceAsync(
+        ethMedianizer,
+        ethPrice,
+        SetTestUtils.generateTimestamp(1000),
+      );
+
+      const medianizerAddress = ethMedianizer.address;
+      const dataDescription = '200DailyETHPrice';
+      const seededValues = [];
+      dailyPriceFeed = await oracleWrapper.deployDailyPriceFeedAsync(
+        medianizerAddress,
+        dataDescription,
+        seededValues,
+      );
+
+      subjectNewMedianizer = medianizerAccount;
+      subjectCaller = deployerAccount;
+    });
+
+    async function subject(): Promise<string> {
+      return dailyPriceFeed.changeMedianizer.sendTransactionAsync(
+        subjectNewMedianizer,
+        {
+          from: subjectCaller,
+          gas: DEFAULT_GAS,
+        }
+      );
+    }
+
+    it('updates the medianizer address', async () => {
+      await subject();
+
+      const actualMedianizerAddress = await dailyPriceFeed.medianizerAddress.callAsync();
+
+      expect(actualMedianizerAddress).to.equal(subjectNewMedianizer);
+    });
+
+    describe('when non owner calls', async () => {
+      beforeEach(async () => {
+        subjectCaller = nonOwnerAccount;
       });
 
       it('should revert', async () => {

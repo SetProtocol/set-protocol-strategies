@@ -17,6 +17,7 @@
 pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
+import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { IMedian } from "../external/DappHub/interfaces/IMedian.sol";
 import { LinkedListLibrary } from "./lib/LinkedListLibrary.sol";
@@ -29,6 +30,7 @@ import { LinkedListLibrary } from "./lib/LinkedListLibrary.sol";
  * Contract used to store daily price data from an off-chain oracle
  */
 contract DailyPriceFeed is
+    Ownable,
     LinkedListLibrary
 {
     using SafeMath for uint256;
@@ -139,6 +141,22 @@ contract DailyPriceFeed is
             dailyPriceData,
             _dataDays
         );
+    }
+
+    /*
+     * Change medianizer in case current one fails or is deprecated. Only contract
+     * owner is allowed to change.
+     *
+     * @param  _newMedianizerAddress       Address of new medianizer to pull data from
+     */
+    function changeMedianizer(
+        address _newMedianizerAddress
+    )
+        external
+        onlyOwner
+    {
+        medianizerAddress = _newMedianizerAddress;
+        medianizerInstance = IMedian(_newMedianizerAddress);
     }
 
 
