@@ -142,6 +142,12 @@ library LinkedListLibrary {
         _self.lastUpdatedIndex = updateNodeIndex;
     }
 
+    /*
+     * Read list from the lastUpdatedIndex back the passed amount of data points.
+     *
+     * @param  _self                        LinkedList to operate on 
+     * @param  _dataPoints                  Number of data points to return
+     */
     function readList(
         LinkedList storage _self,
         uint256 _dataPoints

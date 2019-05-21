@@ -89,6 +89,8 @@ contract DailyPriceFeed {
         lastUpdatedAt = block.timestamp;
     }
 
+    /* ============ External ============ */
+
     /*
      * Updates linked list with newest data point by querying medianizer. Can only be called
      * every 24 hours.
@@ -134,6 +136,9 @@ contract DailyPriceFeed {
 
         return dailyPriceData.readList(_dataDays);
     }
+
+
+    /* ============ Private ============ */
 
     /*
      * Create initialValues array from _seededValues and the current medianizer price.
