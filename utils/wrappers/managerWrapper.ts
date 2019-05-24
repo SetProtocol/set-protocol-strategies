@@ -2,12 +2,14 @@ import * as _ from 'lodash';
 import * as setProtocolUtils from 'set-protocol-utils';
 import { Address } from 'set-protocol-utils';
 
-import { SetTokenContract } from 'set-protocol-contracts';
+import { SetTokenContract, MedianContract } from 'set-protocol-contracts';
 
 import {
   BTCETHRebalancingManagerContract,
   BTCDaiRebalancingManagerContract,
   ETHDaiRebalancingManagerContract,
+  ETHTwentyDayMACOManagerContract,
+  MovingAverageOracleContract,
 } from '../contracts';
 import { BigNumber } from 'bignumber.js';
 
@@ -21,6 +23,7 @@ const web3 = getWeb3();
 const BTCETHRebalancingManager = artifacts.require('BTCETHRebalancingManager');
 const BTCDaiRebalancingManager = artifacts.require('BTCDaiRebalancingManager');
 const ETHDaiRebalancingManager = artifacts.require('ETHDaiRebalancingManager');
+const ETHTwentyDayMACOManager = artifacts.require('ETHTwentyDayMACOManager');
 
 const { SetProtocolUtils: SetUtils } = setProtocolUtils;
 const {
@@ -38,7 +41,7 @@ export class ManagerWrapper {
     this._tokenOwnerAddress = tokenOwnerAddress;
   }
 
-  /* ============ Rebalancing Token Manager ============ */
+  /* ============ Rebalancing Token Manager Deployment ============ */
 
   public async deployBTCETHRebalancingManagerAsync(
     coreAddress: Address,
@@ -133,6 +136,56 @@ export class ManagerWrapper {
       new web3.eth.Contract(truffleRebalacingTokenManager.abi, truffleRebalacingTokenManager.address),
       { from, gas: DEFAULT_GAS },
     );
+  }
+
+  public async deployETHTwentyDayMACOManagerAsync(
+    coreAddress: Address,
+    movingAveragePriceFeedAddress: Address,
+    daiAddress: Address,
+    stableCollateralAddress: Address,
+    riskCollateralAddress: Address,
+    setTokenFactoryAddress: Address,
+    auctionLibrary: Address,
+    auctionTimeToPivot: BigNumber = new BigNumber(100000),
+    riskOn: boolean,
+    from: Address = this._tokenOwnerAddress
+  ): Promise<ETHTwentyDayMACOManagerContract> {
+    const truffleRebalacingTokenManager = await ETHTwentyDayMACOManager.new(
+      coreAddress,
+      movingAveragePriceFeedAddress,
+      daiAddress,
+      stableCollateralAddress,
+      riskCollateralAddress,
+      setTokenFactoryAddress,
+      auctionLibrary,
+      auctionTimeToPivot,
+      riskOn,
+      { from },
+    );
+
+    return new ETHTwentyDayMACOManagerContract(
+      new web3.eth.Contract(truffleRebalacingTokenManager.abi, truffleRebalacingTokenManager.address),
+      { from, gas: DEFAULT_GAS },
+    );
+  }
+
+  /* ============ Helper Functions ============ */
+
+  public async getMACOInitialAllocationAsync(
+    stableCollateral: SetTokenContract,
+    riskCollateral: SetTokenContract,
+    spotPriceOracle: MedianContract,
+    movingAverageOracle: MovingAverageOracleContract,
+    dataDays: BigNumber,
+  ): Promise<[boolean, Address]> {
+    const spotPrice = parseInt(await spotPriceOracle.read.callAsync());
+    const maPrice = parseInt(await movingAverageOracle.read.callAsync(dataDays));
+
+    if (spotPrice > maPrice) {
+      return [true, riskCollateral.address];
+    } else {
+      return [false, stableCollateral.address];
+    }
   }
 
   public getExpectedBtcEthNextSetParameters(
