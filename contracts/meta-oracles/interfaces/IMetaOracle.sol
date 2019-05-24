@@ -16,31 +16,33 @@
 
 pragma solidity 0.5.7;
 
+
 /**
- * @title IDailyPriceFeed
+ * @title IMetaOracle
  * @author Set Protocol
  *
- * Interface for interacting with DailyPriceFeed contract
+ * Interface for operating with any MetaOracle (moving average, bollinger, etc.)
  */
-interface IDailyPriceFeed {
+interface IMetaOracle {
 
-    /*
-     * Query linked list for specified days of data. Will revert if number of days
-     * passed exceeds amount of days collected.
+    /**
+     * Returns the queried data from a meta oracle.
      *
-     * @param  _dataDays            Number of dats of data being queried
+     * @return  Current price of asset represented in hex as bytes32
      */
     function read(
         uint256 _dataDays
     )
         external
         view
-        returns (uint256[] memory);
+        returns (bytes32);
 
     /*
-     * Get the source medianizer address for Price Feed.
-     */
-    function medianizerAddress()
+     * Get the medianizer source for the price feed the Meta Oracle uses.
+     *
+     * @returns                  Address of source medianizer of Price Feed
+     */    
+    function getSourceMedianizer()
         external
         view
         returns (address);

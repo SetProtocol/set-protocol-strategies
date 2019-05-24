@@ -147,4 +147,33 @@ contract('MovingAverageOracle', accounts => {
       expect(actualMovingAverage).to.be.bignumber.equal(expectedMovingAverage);
     });
   });
+
+  describe('#getSourceMedianizer', async () => {
+
+    beforeEach(async () => {
+      const feedDataDescription = '200DailyETHPrice';
+      const seededValues = [];
+      dailyPriceFeed = await oracleWrapper.deployDailyPriceFeedAsync(
+        ethMedianizer.address,
+        feedDataDescription,
+        seededValues,
+      );
+
+      const dataDescription = 'ETH20dayMA';
+      movingAverageOracle = await oracleWrapper.deployMovingAverageOracleAsync(
+        dailyPriceFeed.address,
+        dataDescription
+      );
+    });
+
+    async function subject(): Promise<string> {
+      return movingAverageOracle.getSourceMedianizer.callAsync();
+    }
+
+    it('returns the correct source medianizer address', async () => {
+      const actualSourceMedianizer = await subject();
+
+      expect(actualSourceMedianizer).to.be.bignumber.equal(ethMedianizer.address);
+    });
+  });
 });

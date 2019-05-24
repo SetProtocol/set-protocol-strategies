@@ -86,4 +86,17 @@ contract MovingAverageOracle {
         // Return average price
         return bytes32(dataSumTotal.div(_dataPoints));
     }
+
+    /*
+     * Get the medianizer source for the price feed the Meta Oracle uses.
+     *
+     * @returns                  Address of source medianizer of Price Feed
+     */    
+    function getSourceMedianizer()
+        external
+        view
+        returns (address)
+    {
+        return priceFeedInterface.medianizerAddress();
+    }
 }
