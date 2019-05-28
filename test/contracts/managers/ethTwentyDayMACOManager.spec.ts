@@ -265,7 +265,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
     });
   });
 
-  describe.only('#propose', async () => {
+  describe('#propose', async () => {
     let subjectRebalancingSetToken: Address;
     let subjectTimeFastForward: BigNumber;
     let subjectCaller: Address;
