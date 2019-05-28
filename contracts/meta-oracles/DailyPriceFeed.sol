@@ -110,6 +110,9 @@ contract DailyPriceFeed is
             "DailyPriceFeed: Not enough time passed between updates"
         );
 
+        // Update the timestamp to current block timestamp; Prevents re-entrancy
+        lastUpdatedAt = block.timestamp;
+
         // Get current price
         uint256 newValue = uint256(medianizerInstance.read());
 
@@ -118,9 +121,6 @@ contract DailyPriceFeed is
             dailyPriceData,
             newValue
         );
-
-        // Update the timestamp to current block timestamp
-        lastUpdatedAt = block.timestamp;
     }
 
     /*

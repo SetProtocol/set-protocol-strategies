@@ -70,7 +70,7 @@ contract MovingAverageOracle {
     function read(
         uint256 _dataPoints    
     )
-        public
+        external
         view
         returns (bytes32)
     {
