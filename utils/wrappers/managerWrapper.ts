@@ -142,6 +142,7 @@ export class ManagerWrapper {
     coreAddress: Address,
     movingAveragePriceFeedAddress: Address,
     daiAddress: Address,
+    ethAddress: Address,
     stableCollateralAddress: Address,
     riskCollateralAddress: Address,
     setTokenFactoryAddress: Address,
@@ -154,6 +155,7 @@ export class ManagerWrapper {
       coreAddress,
       movingAveragePriceFeedAddress,
       daiAddress,
+      ethAddress,
       stableCollateralAddress,
       riskCollateralAddress,
       setTokenFactoryAddress,
@@ -238,6 +240,46 @@ export class ManagerWrapper {
     };
   }
 
+  public async getExpectedMACONewCollateralParametersAsync(
+    stableCollateral: SetTokenContract,
+    riskCollateral: SetTokenContract,
+    spotPriceOracle: MedianContract,
+    riskOn: boolean,
+  ): Promise<any> {
+    let units: BigNumber[];
+
+    const CALCULATION_PRECISION = new BigNumber(100);
+    const naturalUnit: BigNumber = new BigNumber(100);
+    const currentEthPrice = new BigNumber(await spotPriceOracle.read.callAsync());
+    const currentDaiPrice = new BigNumber(10 ** 18);
+
+    if (riskOn) {
+      const riskUnits = await riskCollateral.getUnits.callAsync();
+      const riskNaturalUnit = await riskCollateral.naturalUnit.callAsync();
+
+      const newUnits = currentEthPrice
+                        .mul(riskUnits[0])
+                        .mul(CALCULATION_PRECISION)
+                        .div(riskNaturalUnit)
+                        .div(currentDaiPrice);
+      units = [newUnits];
+    } else {
+      const stableUnits = await stableCollateral.getUnits.callAsync();
+      const stableNaturalUnit = await stableCollateral.naturalUnit.callAsync();
+
+      const newUnits = currentDaiPrice
+                        .mul(stableUnits[0])
+                        .mul(CALCULATION_PRECISION)
+                        .div(stableNaturalUnit)
+                        .div(currentEthPrice);
+      units = [newUnits];
+    }
+    return {
+      units,
+      naturalUnit,
+    };
+  }
+
   public async getExpectedGeneralAuctionParameters(
     tokenOnePrice: BigNumber,
     tokenTwoPrice: BigNumber,
@@ -286,6 +328,46 @@ export class ManagerWrapper {
 
     const thirtyMinutePeriods = auctionTimeToPivot.div(THIRTY_MINUTES_IN_SECONDS).round(0, 3);
     const halfPriceRange = thirtyMinutePeriods.mul(onePercentSlippage).div(2).round(0, 3);
+
+    const auctionStartPrice = fairValue.sub(halfPriceRange);
+    const auctionPivotPrice = fairValue.add(halfPriceRange);
+
+    return {
+      auctionStartPrice,
+      auctionPivotPrice,
+    };
+  }
+
+  public async getExpectedMACOAuctionParametersAsync(
+    currentSetToken: SetTokenContract,
+    nextSetToken: SetTokenContract,
+    riskOn: boolean,
+    ethPrice: BigNumber,
+    timeIncrement: BigNumber,
+    auctionTimeToPivot: BigNumber,
+  ): Promise<any> {
+    let nextSetDollarAmount: BigNumber;
+    let currentSetDollarAmount: BigNumber;
+
+    const nextSetUnits = await nextSetToken.getUnits.callAsync();
+    const nextSetNaturalUnit = await nextSetToken.naturalUnit.callAsync();
+
+    const currentSetUnits = await currentSetToken.getUnits.callAsync();
+    const currentSetNaturalUnit = await currentSetToken.naturalUnit.callAsync();
+
+    if (riskOn) {
+      nextSetDollarAmount = nextSetUnits[0].mul(new BigNumber(10 ** 18)).div(nextSetNaturalUnit);
+      currentSetDollarAmount = ethPrice.mul(currentSetUnits[0]).div(currentSetNaturalUnit);
+    } else {
+      currentSetDollarAmount = currentSetUnits[0].mul(new BigNumber(10 ** 18)).div(currentSetNaturalUnit);
+      nextSetDollarAmount = ethPrice.mul(nextSetUnits[0]).div(nextSetNaturalUnit);
+    }
+
+    const fairValue = nextSetDollarAmount.div(currentSetDollarAmount).mul(1000).round(0, 3);
+    const onePercentSlippage = fairValue.div(100).round(0, 3);
+
+    const timeIncrements = auctionTimeToPivot.div(timeIncrement).round(0, 3);
+    const halfPriceRange = timeIncrements.mul(onePercentSlippage).div(2).round(0, 3);
 
     const auctionStartPrice = fairValue.sub(halfPriceRange);
     const auctionPivotPrice = fairValue.add(halfPriceRange);

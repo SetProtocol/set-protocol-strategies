@@ -31,8 +31,10 @@ import {
   ETHTwentyDayMACOManagerContract,
 } from '@utils/contracts';
 import { ONE_DAY_IN_SECONDS, DEFAULT_GAS } from '@utils/constants';
+import { extractNewSetTokenAddressFromLogs } from '@utils/contract_logs/core';
 import { expectRevertError } from '@utils/tokenAssertions';
 import { getWeb3 } from '@utils/web3Helper';
+import { LogManagerProposal } from '@utils/contract_logs/ethDaiRebalancingManager';
 
 import { ERC20Wrapper } from '@utils/wrappers/erc20Wrapper';
 import { ManagerWrapper } from '@utils/wrappers/managerWrapper';
@@ -42,9 +44,11 @@ import { ProtocolWrapper } from '@utils/wrappers/protocolWrapper';
 BigNumberSetup.configure();
 ChaiSetup.configure();
 const web3 = getWeb3();
+const ETHTwentyDayMACOManager = artifacts.require('ETHTwentyDayMACOManager');
 const { expect } = chai;
 const blockchain = new Blockchain(web3);
 const { SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
+const setTestUtils = new SetTestUtils(web3);
 
 contract('ETHTwentyDayMACOManager', accounts => {
   const [
@@ -78,10 +82,12 @@ contract('ETHTwentyDayMACOManager', accounts => {
 
   before(async () => {
     ABIDecoder.addABI(Core.abi);
+    ABIDecoder.addABI(ETHTwentyDayMACOManager.abi);
   });
 
   after(async () => {
     ABIDecoder.removeABI(Core.abi);
+    ABIDecoder.removeABI(ETHTwentyDayMACOManager.abi);
   });
 
   beforeEach(async () => {
@@ -150,6 +156,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
     let subjectCoreAddress: Address;
     let subjectMovingAveragePriceFeed: Address;
     let subjectDaiAddress: Address;
+    let subjectEthAddress: Address;
     let subjectStableCollateralAddress: Address;
     let subjectRiskCollateralAddress: Address;
     let subjectSetTokenFactoryAddress: Address;
@@ -161,6 +168,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
       subjectCoreAddress = core.address;
       subjectMovingAveragePriceFeed = movingAverageOracle.address;
       subjectDaiAddress = daiMock.address;
+      subjectEthAddress = wrappedETH.address;
       subjectStableCollateralAddress = stableCollateral.address;
       subjectRiskCollateralAddress = riskCollateral.address;
       subjectSetTokenFactoryAddress = factory.address;
@@ -174,6 +182,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
         subjectCoreAddress,
         subjectMovingAveragePriceFeed,
         subjectDaiAddress,
+        subjectEthAddress,
         subjectStableCollateralAddress,
         subjectRiskCollateralAddress,
         subjectSetTokenFactoryAddress,
@@ -263,10 +272,12 @@ contract('ETHTwentyDayMACOManager', accounts => {
 
     let updatedValues: BigNumber[];
     let lastPrice: BigNumber;
+    let proposalPeriod: BigNumber;
+    let auctionTimeToPivot: BigNumber;
 
     before(async () => {
       updatedValues = _.map(new Array(19), function(el, i) {return ether(150 + i); });
-      lastPrice = new BigNumber(140);
+      lastPrice = ether(140);
     });
 
     beforeEach(async () => {
@@ -277,7 +288,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
         updatedValues
       );
 
-      const auctionTimeToPivot = ONE_DAY_IN_SECONDS.div(6);
+      auctionTimeToPivot = ONE_DAY_IN_SECONDS.div(4);
       const [riskOn, initialAllocationAddress] = await managerWrapper.getMACOInitialAllocationAsync(
         stableCollateral,
         riskCollateral,
@@ -290,6 +301,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
         core.address,
         movingAverageOracle.address,
         daiMock.address,
+        wrappedETH.address,
         stableCollateral.address,
         riskCollateral.address,
         factory.address,
@@ -298,7 +310,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
         riskOn,
       );
 
-      const proposalPeriod = ONE_DAY_IN_SECONDS;
+      proposalPeriod = ONE_DAY_IN_SECONDS;
       rebalancingSetToken = await protocolWrapper.createDefaultRebalancingSetTokenAsync(
         core,
         rebalancingFactory.address,
@@ -329,19 +341,436 @@ contract('ETHTwentyDayMACOManager', accounts => {
 
     describe('when propose is called from the Default state', async () => {
       describe('and allocating from risk asset to stable asset', async () => {
-        it('updates new set token to the correct naturalUnit', async () => {
+        it('updates to the next set correctly', async () => {
           await subject();
+
+          const actualNextSet = await rebalancingSetToken.nextSet.callAsync();
+          expect(actualNextSet).to.equal(stableCollateral.address);
+        });
+
+        it('updates to the new auction library correctly', async () => {
+          await subject();
+
+          const newAuctionLibrary = await rebalancingSetToken.auctionLibrary.callAsync();
+          expect(newAuctionLibrary).to.equal(linearAuctionPriceCurve.address);
+        });
+
+        it('updates the time to pivot correctly', async () => {
+          await subject();
+
+          const auctionPriceParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
+          const newAuctionTimeToPivot = auctionPriceParameters[1];
+          expect(newAuctionTimeToPivot).to.be.bignumber.equal(auctionTimeToPivot);
+        });
+
+        it('updates the auction start price correctly', async () => {
+          await subject();
+
+          const timeIncrement = new BigNumber(600);
+          const auctionPriceParameters = await managerWrapper.getExpectedMACOAuctionParametersAsync(
+            riskCollateral,
+            stableCollateral,
+            true,
+            lastPrice,
+            timeIncrement,
+            auctionTimeToPivot
+          );
+
+          const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
+          const newAuctionStartPrice = newAuctionParameters[2];
+
+          expect(newAuctionStartPrice).to.be.bignumber.equal(auctionPriceParameters['auctionStartPrice']);
+        });
+
+        it('updates the auction pivot price correctly', async () => {
+          await subject();
+
+          const timeIncrement = new BigNumber(600);
+          const auctionPriceParameters = await managerWrapper.getExpectedMACOAuctionParametersAsync(
+            riskCollateral,
+            stableCollateral,
+            true,
+            lastPrice,
+            timeIncrement,
+            auctionTimeToPivot
+          );
+
+          const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
+          const newAuctionPivotPrice = newAuctionParameters[3];
+
+          expect(newAuctionPivotPrice).to.be.bignumber.equal(auctionPriceParameters['auctionPivotPrice']);
+        });
+
+        it('emits correct LogProposal event', async () => {
+          const txHash = await subject();
+
+          const formattedLogs = await setTestUtils.getLogsFromTxHash(txHash);
+          const expectedLogs = LogManagerProposal(
+            lastPrice,
+            ethTwentyDayMACOManager.address
+          );
+
+          await SetTestUtils.assertLogEquivalence(formattedLogs, expectedLogs);
+        });
+
+        describe('but stable collateral is 5x valuable than risk collateral', async () => {
+          before(async () => {
+            lastPrice = ether(20);
+          });
+
+          it('should set new stable collateral address', async () => {
+            const txHash = await subject();
+
+            const logs = await setTestUtils.getLogsFromTxHash(txHash);
+            const expectedSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
+
+            const actualStableCollateralAddress = await ethTwentyDayMACOManager.stableCollateralAddress.callAsync();
+            expect(actualStableCollateralAddress).to.equal(expectedSetAddress);
+          });
+
+          it('updates new stable collateral to the correct naturalUnit', async () => {
+            await subject();
+
+            const nextSetAddress = await rebalancingSetToken.nextSet.callAsync();
+            const nextSet = await protocolWrapper.getSetTokenAsync(nextSetAddress);
+            const nextSetNaturalUnit = await nextSet.naturalUnit.callAsync();
+
+            const expectedNextSetParams = await managerWrapper.getExpectedMACONewCollateralParametersAsync(
+              stableCollateral,
+              riskCollateral,
+              ethMedianizer,
+              true
+            );
+            expect(nextSetNaturalUnit).to.be.bignumber.equal(expectedNextSetParams['naturalUnit']);
+          });
+
+          it('updates new stable collateral to the correct units', async () => {
+            await subject();
+
+            const nextSetAddress = await rebalancingSetToken.nextSet.callAsync();
+            const nextSet = await protocolWrapper.getSetTokenAsync(nextSetAddress);
+            const nextSetUnits = await nextSet.getUnits.callAsync();
+
+            const expectedNextSetParams = await managerWrapper.getExpectedMACONewCollateralParametersAsync(
+              stableCollateral,
+              riskCollateral,
+              ethMedianizer,
+              true
+            );
+            expect(JSON.stringify(nextSetUnits)).to.be.eql(JSON.stringify(expectedNextSetParams['units']));
+          });
+
+          it('updates new stable collateral to the correct components', async () => {
+            await subject();
+
+            const nextSetAddress = await rebalancingSetToken.nextSet.callAsync();
+            const nextSet = await protocolWrapper.getSetTokenAsync(nextSetAddress);
+            const nextSetComponents = await nextSet.getComponents.callAsync();
+
+            const expectedNextSetComponents = [daiMock.address];
+            expect(JSON.stringify(nextSetComponents)).to.be.eql(JSON.stringify(expectedNextSetComponents));
+          });
+
+          it('updates the auction start price correctly', async () => {
+            const txHash = await subject();
+
+            const logs = await setTestUtils.getLogsFromTxHash(txHash);
+            const newSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
+            const newSet = await protocolWrapper.getSetTokenAsync(newSetAddress);
+
+            const timeIncrement = new BigNumber(600);
+            const auctionPriceParameters = await managerWrapper.getExpectedMACOAuctionParametersAsync(
+              riskCollateral,
+              newSet,
+              true,
+              lastPrice,
+              timeIncrement,
+              auctionTimeToPivot
+            );
+
+            const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
+            const newAuctionStartPrice = newAuctionParameters[2];
+
+            expect(newAuctionStartPrice).to.be.bignumber.equal(auctionPriceParameters['auctionStartPrice']);
+          });
+
+          it('updates the auction pivot price correctly', async () => {
+            const txHash = await subject();
+
+            const logs = await setTestUtils.getLogsFromTxHash(txHash);
+            const newSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
+            const newSet = await protocolWrapper.getSetTokenAsync(newSetAddress);
+
+            const timeIncrement = new BigNumber(600);
+            const auctionPriceParameters = await managerWrapper.getExpectedMACOAuctionParametersAsync(
+              riskCollateral,
+              newSet,
+              true,
+              lastPrice,
+              timeIncrement,
+              auctionTimeToPivot
+            );
+
+            const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
+            const newAuctionPivotPrice = newAuctionParameters[3];
+
+            expect(newAuctionPivotPrice).to.be.bignumber.equal(auctionPriceParameters['auctionPivotPrice']);
+          });
         });
 
         describe('but price has not dipped below MA', async () => {
           before(async () => {
-            lastPrice = new BigNumber(170);
+            lastPrice = ether(170);
           });
 
           it('should revert', async () => {
             await expectRevertError(subject());
           });
         });
+
+        describe('but the passed rebalancing set address was not created by Core', async () => {
+          beforeEach(async () => {
+            const unTrackedSetToken = await protocolWrapper.createDefaultRebalancingSetTokenAsync(
+              core,
+              rebalancingFactory.address,
+              ethTwentyDayMACOManager.address,
+              riskCollateral.address,
+              proposalPeriod,
+            );
+
+            await core.disableSet.sendTransactionAsync(
+              unTrackedSetToken.address,
+              { from: deployerAccount, gas: DEFAULT_GAS },
+            );
+
+            subjectRebalancingSetToken = unTrackedSetToken.address;
+          });
+
+          it('should revert', async () => {
+            await expectRevertError(subject());
+          });
+        });
+
+        describe('but the rebalance interval has not elapsed', async () => {
+          beforeEach(async () => {
+            subjectTimeFastForward = ONE_DAY_IN_SECONDS.sub(10);
+          });
+
+          it('should revert', async () => {
+            await expectRevertError(subject());
+          });
+        });
+      });
+      describe('and allocating from stable asset to risk asset', async () => {
+        before(async () => {
+          updatedValues = _.map(new Array(19), function(el, i) {return ether(170 - i); });
+          lastPrice = ether(170);
+        });
+
+        it('updates to the next set correctly', async () => {
+          await subject();
+
+          const actualNextSet = await rebalancingSetToken.nextSet.callAsync();
+          expect(actualNextSet).to.equal(riskCollateral.address);
+        });
+
+        it('updates to the new auction library correctly', async () => {
+          await subject();
+
+          const newAuctionLibrary = await rebalancingSetToken.auctionLibrary.callAsync();
+          expect(newAuctionLibrary).to.equal(linearAuctionPriceCurve.address);
+        });
+
+        it('updates the time to pivot correctly', async () => {
+          await subject();
+
+          const auctionPriceParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
+          const newAuctionTimeToPivot = auctionPriceParameters[1];
+          expect(newAuctionTimeToPivot).to.be.bignumber.equal(auctionTimeToPivot);
+        });
+
+        it('updates the auction start price correctly', async () => {
+          await subject();
+
+          const timeIncrement = new BigNumber(600);
+          const auctionPriceParameters = await managerWrapper.getExpectedMACOAuctionParametersAsync(
+            stableCollateral,
+            riskCollateral,
+            false,
+            lastPrice,
+            timeIncrement,
+            auctionTimeToPivot
+          );
+
+          const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
+          const newAuctionStartPrice = newAuctionParameters[2];
+
+          expect(newAuctionStartPrice).to.be.bignumber.equal(auctionPriceParameters['auctionStartPrice']);
+        });
+
+        it('updates the auction pivot price correctly', async () => {
+          await subject();
+
+          const timeIncrement = new BigNumber(600);
+          const auctionPriceParameters = await managerWrapper.getExpectedMACOAuctionParametersAsync(
+            stableCollateral,
+            riskCollateral,
+            false,
+            lastPrice,
+            timeIncrement,
+            auctionTimeToPivot
+          );
+
+          const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
+          const newAuctionPivotPrice = newAuctionParameters[3];
+
+          expect(newAuctionPivotPrice).to.be.bignumber.equal(auctionPriceParameters['auctionPivotPrice']);
+        });
+
+        it('emits correct LogProposal event', async () => {
+          const txHash = await subject();
+
+          const formattedLogs = await setTestUtils.getLogsFromTxHash(txHash);
+          const expectedLogs = LogManagerProposal(
+            lastPrice,
+            ethTwentyDayMACOManager.address
+          );
+
+          await SetTestUtils.assertLogEquivalence(formattedLogs, expectedLogs);
+        });
+
+        describe('but risk collateral is 5x valuable than stable collateral', async () => {
+          before(async () => {
+            lastPrice = ether(500);
+          });
+
+          it('should set new risk collateral address', async () => {
+            const txHash = await subject();
+
+            const logs = await setTestUtils.getLogsFromTxHash(txHash);
+            const expectedSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
+
+            const actualRiskCollateralAddress = await ethTwentyDayMACOManager.riskCollateralAddress.callAsync();
+            expect(actualRiskCollateralAddress).to.equal(expectedSetAddress);
+          });
+
+          it('updates new risk collateral to the correct naturalUnit', async () => {
+            await subject();
+
+            const newSetAddress = await rebalancingSetToken.nextSet.callAsync();
+            const newSet = await protocolWrapper.getSetTokenAsync(newSetAddress);
+            const newSetNaturalUnit = await newSet.naturalUnit.callAsync();
+
+            const expectedNextSetParams = await managerWrapper.getExpectedMACONewCollateralParametersAsync(
+              stableCollateral,
+              newSet,
+              ethMedianizer,
+              false
+            );
+            expect(newSetNaturalUnit).to.be.bignumber.equal(expectedNextSetParams['naturalUnit']);
+          });
+
+          it('updates new risk collateral to the correct units', async () => {
+            await subject();
+
+            const newSetAddress = await rebalancingSetToken.nextSet.callAsync();
+            const newSet = await protocolWrapper.getSetTokenAsync(newSetAddress);
+            const newSetUnits = await newSet.getUnits.callAsync();
+
+            const expectedNextSetParams = await managerWrapper.getExpectedMACONewCollateralParametersAsync(
+              stableCollateral,
+              newSet,
+              ethMedianizer,
+              false
+            );
+            expect(JSON.stringify(newSetUnits)).to.be.eql(JSON.stringify(expectedNextSetParams['units']));
+          });
+
+          it('updates new risk collateral to the correct components', async () => {
+            await subject();
+
+            const nextSetAddress = await rebalancingSetToken.nextSet.callAsync();
+            const nextSet = await protocolWrapper.getSetTokenAsync(nextSetAddress);
+            const nextSetComponents = await nextSet.getComponents.callAsync();
+
+            const expectedNextSetComponents = [wrappedETH.address];
+            expect(JSON.stringify(nextSetComponents)).to.be.eql(JSON.stringify(expectedNextSetComponents));
+          });
+
+          it('updates the auction start price correctly', async () => {
+            const txHash = await subject();
+
+            const logs = await setTestUtils.getLogsFromTxHash(txHash);
+            const newSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
+            const newSet = await protocolWrapper.getSetTokenAsync(newSetAddress);
+
+            const timeIncrement = new BigNumber(600);
+            const auctionPriceParameters = await managerWrapper.getExpectedMACOAuctionParametersAsync(
+              stableCollateral,
+              newSet,
+              false,
+              lastPrice,
+              timeIncrement,
+              auctionTimeToPivot
+            );
+
+            const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
+            const newAuctionStartPrice = newAuctionParameters[2];
+
+            expect(newAuctionStartPrice).to.be.bignumber.equal(auctionPriceParameters['auctionStartPrice']);
+          });
+
+          it('updates the auction pivot price correctly', async () => {
+            const txHash = await subject();
+
+            const logs = await setTestUtils.getLogsFromTxHash(txHash);
+            const newSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
+            const newSet = await protocolWrapper.getSetTokenAsync(newSetAddress);
+
+            const timeIncrement = new BigNumber(600);
+            const auctionPriceParameters = await managerWrapper.getExpectedMACOAuctionParametersAsync(
+              stableCollateral,
+              newSet,
+              false,
+              lastPrice,
+              timeIncrement,
+              auctionTimeToPivot
+            );
+
+            const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
+            const newAuctionPivotPrice = newAuctionParameters[3];
+
+            expect(newAuctionPivotPrice).to.be.bignumber.equal(auctionPriceParameters['auctionPivotPrice']);
+          });
+        });
+
+        describe('but price has not dipped below MA', async () => {
+          before(async () => {
+            lastPrice = ether(150);
+          });
+
+          it('should revert', async () => {
+            await expectRevertError(subject());
+          });
+        });
+      });
+    });
+
+    describe('when propose is called from the Default state', async () => {
+      let timeJump: BigNumber;
+
+      beforeEach(async () => {
+        await blockchain.increaseTimeAsync(subjectTimeFastForward);
+        await ethTwentyDayMACOManager.propose.sendTransactionAsync(
+          subjectRebalancingSetToken,
+        );
+
+        timeJump = new BigNumber(1000);
+        await blockchain.increaseTimeAsync(timeJump);
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
       });
     });
   });
