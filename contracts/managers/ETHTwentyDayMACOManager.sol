@@ -18,6 +18,7 @@ pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import { CommonMath } from "set-protocol-contracts/contracts/lib/CommonMath.sol";
 import { ICore } from "set-protocol-contracts/contracts/core/interfaces/ICore.sol";
 import { IRebalancingSetToken } from "set-protocol-contracts/contracts/core/interfaces/IRebalancingSetToken.sol";
 import { ISetToken } from "set-protocol-contracts/contracts/core/interfaces/ISetToken.sol";
@@ -46,6 +47,7 @@ contract ETHTwentyDayMACOManager {
     uint256 constant TEN_MINUTES_IN_SECONDS = 600;
     uint256 constant CALCULATION_PRECISION = 100;
     uint256 constant VALUE_TO_CENTS_CONVERSION = 10 ** 16;
+    uint256 constant SIX_HOURS_IN_SECONDS = 21600;
 
     // Equal to $1 
     uint256 constant DAI_PRICE = 10 ** 18;
@@ -65,6 +67,9 @@ contract ETHTwentyDayMACOManager {
 
     uint256 public auctionTimeToPivot;
     bool public riskOn;
+
+    uint256 public proposalTimestamp;
+    bool public proposeInitiated;
 
     /* ============ Events ============ */
 
@@ -112,16 +117,20 @@ contract ETHTwentyDayMACOManager {
 
         auctionTimeToPivot = _auctionTimeToPivot;
         riskOn = _riskOn;
+
+        proposalTimestamp = CommonMath.maxUInt256();
+        proposeInitiated = false;
     }
 
     /* ============ External ============ */
 
     /*
-     * When allowed on RebalancingSetToken, anyone can call for a new rebalance proposal
+     * When allowed on RebalancingSetToken, anyone can call for a new rebalance proposal. The Sets off a six
+     * hour period where the signal con be confirmed before moving ahead with rebalance.
      *
      * @param  _rebalancingSetTokenAddress     The address of Rebalancing Set Token to propose new allocation
      */
-    function propose(
+    function initialPropose(
         address _rebalancingSetTokenAddress
     )
         external
@@ -129,12 +138,17 @@ contract ETHTwentyDayMACOManager {
         // Make sure the rebalancingSetToken is tracked by Core
         require(
             ICore(coreAddress).validSets(_rebalancingSetTokenAddress),
-            "ETHTwentyDayMACOManager.propose: Invalid or disabled SetToken address"
+            "ETHTwentyDayMACOManager.initialPropose: Invalid or disabled SetToken address"
+        );
+
+        // Make sure propose in manager hasn't already been initiated
+        require(
+            !proposeInitiated,
+            "ETHTwentyDayMACOManager.initialPropose: Proposal cycle already initiated"
         );
         
-        // Create interface to interact with RebalancingSetToken
+        // Create interface to interact with RebalancingSetToken and enough time has passed for proposal
         IRebalancingSetToken rebalancingSetInterface = IRebalancingSetToken(_rebalancingSetTokenAddress);
-
         ManagerLibrary.validateManagerPropose(rebalancingSetInterface);
 
         // Get raw eth price feed being used by moving average oracle
@@ -144,49 +158,125 @@ contract ETHTwentyDayMACOManager {
         uint256 ethPrice = ManagerLibrary.queryPriceData(ethPriceFeed);
         uint256 movingAveragePrice = uint256(IMetaOracle(movingAveragePriceFeed).read(MOVING_AVERAGE_DAYS));
 
-        // If price trigger has been met, get next Set allocation. Create new set if price difference is too
-        // great to run good auction. Return nextSet address and dollar value of current and next set
-        (
-            address nextSetAddress,
-            uint256 nextSetDollarValue,
-            uint256 currentSetDollarValue
-        ) = determineNewAllocation(
-            ethPrice,
-            movingAveragePrice
+        // Make sure the rebalancingSetToken is tracked by Core
+        require(
+            checkPriceTriggerMet(ethPrice, movingAveragePrice),
+            "ETHTwentyDayMACOManager.initialPropose: Price requirements not met for proposal"
+        );        
+
+        proposalTimestamp = block.timestamp;
+        proposeInitiated = true;
+    }
+
+    /*
+     * After initial propose is called, confirm the signal has been met and determine parameters for the rebalance
+     *
+     * @param  _rebalancingSetTokenAddress     The address of Rebalancing Set Token to propose new allocation
+     */
+    function confirmPropose(
+        address _rebalancingSetTokenAddress
+    )
+        external
+    {
+        // Make sure enough time has passed to initiate proposal on Rebalancing Set Token
+        require(
+            block.timestamp >= proposalTimestamp.add(SIX_HOURS_IN_SECONDS),
+            "ETHTwentyDayMACOManager.confirmPropose: 6 hours must pass from initial propose"
         );
 
-        (
-            uint256 auctionStartPrice,
-            uint256 auctionPivotPrice
-        ) = calculateAuctionPriceParameters(
-            currentSetDollarValue,
-            nextSetDollarValue,
-            TEN_MINUTES_IN_SECONDS,
-            AUCTION_LIB_PRICE_DIVISOR,
-            auctionTimeToPivot
-        );
+        // Get raw eth price feed being used by moving average oracle
+        address ethPriceFeed = IMetaOracle(movingAveragePriceFeed).getSourceMedianizer();
 
-        // Propose new allocation to Rebalancing Set Token
-        rebalancingSetInterface.propose(
-            nextSetAddress,
-            auctionLibrary,
-            auctionTimeToPivot,
-            auctionStartPrice,
-            auctionPivotPrice
-        );
+        // Get current eth price and moving average data
+        uint256 ethPrice = ManagerLibrary.queryPriceData(ethPriceFeed);
+        uint256 movingAveragePrice = uint256(IMetaOracle(movingAveragePriceFeed).read(MOVING_AVERAGE_DAYS));
 
-        emit LogManagerProposal(
-            ethPrice
-        );
+        if (checkPriceTriggerMet(ethPrice, movingAveragePrice)) {
+            // If price trigger has been met, get next Set allocation. Create new set if price difference is too
+            // great to run good auction. Return nextSet address and dollar value of current and next set
+            (
+                address nextSetAddress,
+                uint256 nextSetDollarValue,
+                uint256 currentSetDollarValue
+            ) = determineNewAllocation(
+                ethPrice,
+                movingAveragePrice
+            );
+
+            (
+                uint256 auctionStartPrice,
+                uint256 auctionPivotPrice
+            ) = calculateAuctionPriceParameters(
+                currentSetDollarValue,
+                nextSetDollarValue,
+                TEN_MINUTES_IN_SECONDS,
+                AUCTION_LIB_PRICE_DIVISOR,
+                auctionTimeToPivot
+            );
+
+            // Create interface to interact with RebalancingSetToken
+            IRebalancingSetToken rebalancingSetInterface = IRebalancingSetToken(_rebalancingSetTokenAddress);
+
+            // Propose new allocation to Rebalancing Set Token
+            rebalancingSetInterface.propose(
+                nextSetAddress,
+                auctionLibrary,
+                auctionTimeToPivot,
+                auctionStartPrice,
+                auctionPivotPrice
+            );
+
+            // Update riskOn parameter
+            updateRiskOn();
+
+            emit LogManagerProposal(
+                ethPrice
+            );
+        }
+
+        // Set proposal timestamp to max uint so that next call to confirmPropose reverts unless propose
+        // called first
+        proposalTimestamp = CommonMath.maxUInt256();
+        proposeInitiated = false;
     }
 
     /* ============ Internal ============ */
 
     /*
+     * Check to make sure that the necessary price changes have occured to allow a rebalance.
+     *
+     * @param  _ethPrice                Current Ethereum price as found on oracle
+     * @param  _movingAveragePrice      Current 20 day MA price from Meta Oracle
+     */
+    function checkPriceTriggerMet(
+        uint256 _ethPrice,
+        uint256 _movingAveragePrice
+    )
+        internal
+        returns (bool)
+    {
+        if (riskOn) {
+            // If currently holding ETH (riskOn) check to see if price is below 20 day MA, otherwise revert.
+            if (_movingAveragePrice > _ethPrice) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            // If currently holding Dai (!riskOn) check to see if price is above 20 day MA, otherwise revert.
+            if (_ethPrice > _movingAveragePrice) {
+                return true;
+            } else {
+                return false;
+            }
+        }        
+    }
+
+    /*
+     * Check to make sure that the necessary price changes have occured to allow a rebalance.
      * Determine the next allocation to rebalance into. If the dollar value of the two collateral sets is more
      * than 5x different from each other then create a new collateral set. If currently riskOn then a new
-     * stable collateral set is created, if !riskOn then a new risk collateral set is created. Also check to make
-     * sure that the necessary price changes have occured to allow a rebalance.
+     * stable collateral set is created, if !riskOn then a new risk collateral set is created.
      *
      * @param  _ethPrice                Current Ethereum price as found on oracle
      * @param  _movingAveragePrice      Current 20 day MA price from Meta Oracle
@@ -198,6 +288,8 @@ contract ETHTwentyDayMACOManager {
         internal
         returns (address, uint256, uint256)
     {
+        checkPriceTriggerMet(_ethPrice, _movingAveragePrice);
+
         // Check to see if new collateral must be created in order to keep collateral price ratio in line.
         // If not just return the dollar value of current collateral sets
         (
@@ -210,12 +302,6 @@ contract ETHTwentyDayMACOManager {
         uint256 nextSetDollarValue;
 
         if (riskOn) {
-            // If currently holding ETH (riskOn) check to see if price is below 20 day MA, otherwise revert.
-            require(
-                _movingAveragePrice > _ethPrice,
-                "ETHTwentyDayMACOManager.propose: ETH price must be below 20 day MA."
-            );
-
             // Next set will be the stable collateral set
             nextSetAddress = stableCollateralAddress;
             nextSetDollarValue = stableCollateralDollarValue;
@@ -223,12 +309,6 @@ contract ETHTwentyDayMACOManager {
             // Current set value value of risk collateral
             currentSetDollarValue = riskCollateralDollarValue;
         } else {
-            // If currently holding Dai (!riskOn) check to see if price is above 20 day MA, otherwise revert.
-            require(
-                _ethPrice > _movingAveragePrice,
-                "ETHTwentyDayMACOManager.propose: ETH price must be greater than 20 day MA."   
-            );
-
             // Next set will be the stable collateral set
             nextSetAddress = riskCollateralAddress;
             nextSetDollarValue = riskCollateralDollarValue;
@@ -452,5 +532,20 @@ contract ETHTwentyDayMACOManager {
         return nextSetUnits;      
     }
 
+    /*
+     * Update state to indicate whether strategy is risk on with new rebalance or risk off.
+     *
+     */
+    function updateRiskOn()
+        internal
+    {
+        // If currently riskOn then change riskOn to false to indicate after rebalance strategy is risk off.
+        // And vice versa.
+        if (riskOn) {
+            riskOn = false;
+        } else {
+            riskOn = true;
+        }
+    }
 }
 

@@ -30,7 +30,7 @@ import {
   MovingAverageOracleContract,
   ETHTwentyDayMACOManagerContract,
 } from '@utils/contracts';
-import { ONE_DAY_IN_SECONDS, DEFAULT_GAS } from '@utils/constants';
+import { ONE_DAY_IN_SECONDS, DEFAULT_GAS, UNLIMITED_ALLOWANCE_IN_BASE_UNITS } from '@utils/constants';
 import { extractNewSetTokenAddressFromLogs } from '@utils/contract_logs/core';
 import { expectRevertError } from '@utils/tokenAssertions';
 import { getWeb3 } from '@utils/web3Helper';
@@ -265,7 +265,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
     });
   });
 
-  describe('#propose', async () => {
+  describe('#initialPropose', async () => {
     let subjectRebalancingSetToken: Address;
     let subjectTimeFastForward: BigNumber;
     let subjectCaller: Address;
@@ -333,7 +333,231 @@ contract('ETHTwentyDayMACOManager', accounts => {
 
     async function subject(): Promise<string> {
       await blockchain.increaseTimeAsync(subjectTimeFastForward);
-      return ethTwentyDayMACOManager.propose.sendTransactionAsync(
+      return ethTwentyDayMACOManager.initialPropose.sendTransactionAsync(
+        subjectRebalancingSetToken,
+        { from: subjectCaller, gas: DEFAULT_GAS}
+      );
+    }
+
+    describe('when propose is called from the Default state', async () => {
+      describe('and allocating from risk asset to stable asset', async () => {
+        it('sets the proposalTimestamp correctly', async () => {
+          await subject();
+
+          const block = await web3.eth.getBlock('latest');
+          const expectedTimestamp = new BigNumber(block.timestamp);
+
+          const actualTimestamp = await ethTwentyDayMACOManager.proposalTimestamp.callAsync();
+          expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
+        });
+
+        it('indicates propose has been initiated on manager', async () => {
+          await subject();
+
+          const actualProposeInitiated = await ethTwentyDayMACOManager.proposeInitiated.callAsync();
+          expect(actualProposeInitiated).to.equal(true);
+        });
+
+        describe('but price has not dipped below MA', async () => {
+          before(async () => {
+            lastPrice = ether(170);
+          });
+
+          after(async () => {
+            lastPrice = ether(140);
+          });
+
+          it('should revert', async () => {
+            await expectRevertError(subject());
+          });
+        });
+
+        describe('but the passed rebalancing set address was not created by Core', async () => {
+          beforeEach(async () => {
+            const unTrackedSetToken = await protocolWrapper.createDefaultRebalancingSetTokenAsync(
+              core,
+              rebalancingFactory.address,
+              ethTwentyDayMACOManager.address,
+              riskCollateral.address,
+              proposalPeriod,
+            );
+
+            await core.disableSet.sendTransactionAsync(
+              unTrackedSetToken.address,
+              { from: deployerAccount, gas: DEFAULT_GAS },
+            );
+
+            subjectRebalancingSetToken = unTrackedSetToken.address;
+          });
+
+          it('should revert', async () => {
+            await expectRevertError(subject());
+          });
+        });
+
+        describe('when the propose cycle has already been initiated on the manager', async () => {
+          beforeEach(async () => {
+            await blockchain.increaseTimeAsync(subjectTimeFastForward);
+            await ethTwentyDayMACOManager.initialPropose.sendTransactionAsync(
+              subjectRebalancingSetToken,
+            );
+          });
+
+          it('should revert', async () => {
+            await expectRevertError(subject());
+          });
+        });
+
+        describe('but the rebalance interval has not elapsed', async () => {
+          beforeEach(async () => {
+            subjectTimeFastForward = ONE_DAY_IN_SECONDS.sub(10);
+          });
+
+          it('should revert', async () => {
+            await expectRevertError(subject());
+          });
+        });
+      });
+
+      describe('and allocating from stable asset to risk asset', async () => {
+        before(async () => {
+          updatedValues = _.map(new Array(19), function(el, i) {return ether(170 - i); });
+          lastPrice = ether(170);
+        });
+
+        it('sets the proposalTimestamp correctly', async () => {
+          await subject();
+
+          const block = await web3.eth.getBlock('latest');
+          const expectedTimestamp = new BigNumber(block.timestamp);
+
+          const actualTimestamp = await ethTwentyDayMACOManager.proposalTimestamp.callAsync();
+          expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
+        });
+
+        it('indicates propose has been initiated on manager', async () => {
+          await subject();
+
+          const actualProposeInitiated = await ethTwentyDayMACOManager.proposeInitiated.callAsync();
+          expect(actualProposeInitiated).to.equal(true);
+        });
+
+        describe('but price has not dipped below MA', async () => {
+          before(async () => {
+            lastPrice = ether(150);
+          });
+
+          after(async () => {
+            lastPrice = ether(170);
+          });
+
+          it('should revert', async () => {
+            await expectRevertError(subject());
+          });
+        });
+      });
+    });
+
+    describe('when propose is called and rebalancing set token is in Proposal state', async () => {
+      beforeEach(async () => {
+        await blockchain.increaseTimeAsync(subjectTimeFastForward);
+        await ethTwentyDayMACOManager.initialPropose.sendTransactionAsync(
+          subjectRebalancingSetToken,
+        );
+
+        await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS.div(4));
+        await ethTwentyDayMACOManager.confirmPropose.sendTransactionAsync(
+          subjectRebalancingSetToken,
+        );
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+  });
+
+  describe('#confirmPropose', async () => {
+    let subjectRebalancingSetToken: Address;
+    let subjectTimeFastForward: BigNumber;
+    let subjectCaller: Address;
+
+    let updatedValues: BigNumber[];
+    let triggerPrice: BigNumber;
+    let lastPrice: BigNumber;
+    let proposalPeriod: BigNumber;
+    let auctionTimeToPivot: BigNumber;
+
+    before(async () => {
+      updatedValues = _.map(new Array(19), function(el, i) {return ether(150 + i); });
+      triggerPrice = ether(140);
+      lastPrice = triggerPrice;
+    });
+
+    beforeEach(async () => {
+      await oracleWrapper.batchUpdateDailyPriceFeedAsync(
+        dailyPriceFeed,
+        ethMedianizer,
+        20,
+        updatedValues
+      );
+
+      auctionTimeToPivot = ONE_DAY_IN_SECONDS.div(4);
+      const [riskOn, initialAllocationAddress] = await managerWrapper.getMACOInitialAllocationAsync(
+        stableCollateral,
+        riskCollateral,
+        ethMedianizer,
+        movingAverageOracle,
+        new BigNumber(20)
+      );
+
+      ethTwentyDayMACOManager = await managerWrapper.deployETHTwentyDayMACOManagerAsync(
+        core.address,
+        movingAverageOracle.address,
+        daiMock.address,
+        wrappedETH.address,
+        stableCollateral.address,
+        riskCollateral.address,
+        factory.address,
+        linearAuctionPriceCurve.address,
+        auctionTimeToPivot,
+        riskOn,
+      );
+
+      proposalPeriod = ONE_DAY_IN_SECONDS;
+      rebalancingSetToken = await protocolWrapper.createDefaultRebalancingSetTokenAsync(
+        core,
+        rebalancingFactory.address,
+        ethTwentyDayMACOManager.address,
+        initialAllocationAddress,
+        proposalPeriod
+      );
+
+      const triggerBlockInfo = await web3.eth.getBlock('latest');
+      await oracleWrapper.updateMedianizerPriceAsync(
+        ethMedianizer,
+        triggerPrice,
+        new BigNumber(triggerBlockInfo.timestamp + 1),
+      );
+
+      subjectRebalancingSetToken = rebalancingSetToken.address;
+      await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS.add(1));
+      await ethTwentyDayMACOManager.initialPropose.sendTransactionAsync(subjectRebalancingSetToken);
+
+      const lastBlockInfo = await web3.eth.getBlock('latest');
+      await oracleWrapper.updateMedianizerPriceAsync(
+        ethMedianizer,
+        lastPrice,
+        new BigNumber(lastBlockInfo.timestamp + 1),
+      );
+
+      subjectTimeFastForward = ONE_DAY_IN_SECONDS.add(1);
+      subjectCaller = deployerAccount;
+    });
+
+    async function subject(): Promise<string> {
+      await blockchain.increaseTimeAsync(subjectTimeFastForward);
+      return ethTwentyDayMACOManager.confirmPropose.sendTransactionAsync(
         subjectRebalancingSetToken,
         { from: subjectCaller, gas: DEFAULT_GAS}
       );
@@ -401,6 +625,30 @@ contract('ETHTwentyDayMACOManager', accounts => {
           expect(newAuctionPivotPrice).to.be.bignumber.equal(auctionPriceParameters['auctionPivotPrice']);
         });
 
+        it('updates the proposal timestamp to max UInt', async () => {
+          await subject();
+
+          const actualTimestamp = await ethTwentyDayMACOManager.proposalTimestamp.callAsync();
+
+          expect(actualTimestamp).to.be.bignumber.equal(UNLIMITED_ALLOWANCE_IN_BASE_UNITS);
+        });
+
+        it('updates proposeInitiated to false', async () => {
+          await subject();
+
+          const actualProposeInitiated = await ethTwentyDayMACOManager.proposeInitiated.callAsync();
+
+          expect(actualProposeInitiated).to.equal(false);
+        });
+
+        it('updates riskOn to false', async () => {
+          await subject();
+
+          const actualRiskOn = await ethTwentyDayMACOManager.riskOn.callAsync();
+
+          expect(actualRiskOn).to.equal(false);
+        });
+
         it('emits correct LogProposal event', async () => {
           const txHash = await subject();
 
@@ -415,7 +663,8 @@ contract('ETHTwentyDayMACOManager', accounts => {
 
         describe('but stable collateral is 5x valuable than risk collateral', async () => {
           before(async () => {
-            lastPrice = ether(20);
+            triggerPrice = ether(20);
+            lastPrice = triggerPrice;
           });
 
           it('should set new stable collateral address', async () => {
@@ -516,44 +765,66 @@ contract('ETHTwentyDayMACOManager', accounts => {
 
             expect(newAuctionPivotPrice).to.be.bignumber.equal(auctionPriceParameters['auctionPivotPrice']);
           });
+
+          it('updates the proposal timestamp to max UInt', async () => {
+            await subject();
+
+            const actualTimestamp = await ethTwentyDayMACOManager.proposalTimestamp.callAsync();
+
+            expect(actualTimestamp).to.be.bignumber.equal(UNLIMITED_ALLOWANCE_IN_BASE_UNITS);
+          });
+
+          it('updates proposeInitiated to false', async () => {
+            await subject();
+
+            const actualProposeInitiated = await ethTwentyDayMACOManager.proposeInitiated.callAsync();
+
+            expect(actualProposeInitiated).to.equal(false);
+          });
+
+          it('updates riskOn to false', async () => {
+            await subject();
+
+            const actualRiskOn = await ethTwentyDayMACOManager.riskOn.callAsync();
+
+            expect(actualRiskOn).to.equal(false);
+          });
         });
 
         describe('but price has not dipped below MA', async () => {
           before(async () => {
+            triggerPrice = ether(140);
             lastPrice = ether(170);
           });
 
-          it('should revert', async () => {
-            await expectRevertError(subject());
+          it('updates the proposal timestamp to max UInt', async () => {
+            await subject();
+
+            const actualTimestamp = await ethTwentyDayMACOManager.proposalTimestamp.callAsync();
+
+            expect(actualTimestamp).to.be.bignumber.equal(UNLIMITED_ALLOWANCE_IN_BASE_UNITS);
+          });
+
+          it('updates proposeInitiated to false', async () => {
+            await subject();
+
+            const actualProposeInitiated = await ethTwentyDayMACOManager.proposeInitiated.callAsync();
+
+            expect(actualProposeInitiated).to.equal(false);
+          });
+
+          it('riskOn is not updated', async () => {
+            await subject();
+
+            const actualRiskOn = await ethTwentyDayMACOManager.riskOn.callAsync();
+
+            expect(actualRiskOn).to.equal(true);
           });
         });
 
-        describe('but the passed rebalancing set address was not created by Core', async () => {
+        describe('but not enough time has passed from initial propose', async () => {
           beforeEach(async () => {
-            const unTrackedSetToken = await protocolWrapper.createDefaultRebalancingSetTokenAsync(
-              core,
-              rebalancingFactory.address,
-              ethTwentyDayMACOManager.address,
-              riskCollateral.address,
-              proposalPeriod,
-            );
-
-            await core.disableSet.sendTransactionAsync(
-              unTrackedSetToken.address,
-              { from: deployerAccount, gas: DEFAULT_GAS },
-            );
-
-            subjectRebalancingSetToken = unTrackedSetToken.address;
-          });
-
-          it('should revert', async () => {
-            await expectRevertError(subject());
-          });
-        });
-
-        describe('but the rebalance interval has not elapsed', async () => {
-          beforeEach(async () => {
-            subjectTimeFastForward = ONE_DAY_IN_SECONDS.sub(10);
+            subjectTimeFastForward = new BigNumber(ONE_DAY_IN_SECONDS.div(4).sub(2));
           });
 
           it('should revert', async () => {
@@ -561,10 +832,12 @@ contract('ETHTwentyDayMACOManager', accounts => {
           });
         });
       });
+
       describe('and allocating from stable asset to risk asset', async () => {
         before(async () => {
           updatedValues = _.map(new Array(19), function(el, i) {return ether(170 - i); });
-          lastPrice = ether(170);
+          triggerPrice = ether(170);
+          lastPrice = triggerPrice;
         });
 
         it('updates to the next set correctly', async () => {
@@ -627,6 +900,30 @@ contract('ETHTwentyDayMACOManager', accounts => {
           expect(newAuctionPivotPrice).to.be.bignumber.equal(auctionPriceParameters['auctionPivotPrice']);
         });
 
+        it('updates the proposal timestamp to max UInt', async () => {
+          await subject();
+
+          const actualTimestamp = await ethTwentyDayMACOManager.proposalTimestamp.callAsync();
+
+          expect(actualTimestamp).to.be.bignumber.equal(UNLIMITED_ALLOWANCE_IN_BASE_UNITS);
+        });
+
+        it('updates proposeInitiated to false', async () => {
+          await subject();
+
+          const actualProposeInitiated = await ethTwentyDayMACOManager.proposeInitiated.callAsync();
+
+          expect(actualProposeInitiated).to.equal(false);
+        });
+
+        it('updates riskOn to true', async () => {
+          await subject();
+
+          const actualRiskOn = await ethTwentyDayMACOManager.riskOn.callAsync();
+
+          expect(actualRiskOn).to.equal(true);
+        });
+
         it('emits correct LogProposal event', async () => {
           const txHash = await subject();
 
@@ -641,7 +938,8 @@ contract('ETHTwentyDayMACOManager', accounts => {
 
         describe('but risk collateral is 5x valuable than stable collateral', async () => {
           before(async () => {
-            lastPrice = ether(500);
+            triggerPrice = ether(500);
+            lastPrice = triggerPrice;
           });
 
           it('should set new risk collateral address', async () => {
@@ -742,35 +1040,62 @@ contract('ETHTwentyDayMACOManager', accounts => {
 
             expect(newAuctionPivotPrice).to.be.bignumber.equal(auctionPriceParameters['auctionPivotPrice']);
           });
+
+          it('updates the proposal timestamp to max UInt', async () => {
+            await subject();
+
+            const actualTimestamp = await ethTwentyDayMACOManager.proposalTimestamp.callAsync();
+
+            expect(actualTimestamp).to.be.bignumber.equal(UNLIMITED_ALLOWANCE_IN_BASE_UNITS);
+          });
+
+          it('updates proposeInitiated to false', async () => {
+            await subject();
+
+            const actualProposeInitiated = await ethTwentyDayMACOManager.proposeInitiated.callAsync();
+
+            expect(actualProposeInitiated).to.equal(false);
+          });
+
+          it('updates riskOn to true', async () => {
+            await subject();
+
+            const actualRiskOn = await ethTwentyDayMACOManager.riskOn.callAsync();
+
+            expect(actualRiskOn).to.equal(true);
+          });
         });
 
-        describe('but price has not dipped below MA', async () => {
+        describe('but price has not gone above MA', async () => {
           before(async () => {
+            triggerPrice = ether(170);
             lastPrice = ether(150);
           });
 
-          it('should revert', async () => {
-            await expectRevertError(subject());
+          it('updates the proposal timestamp to max UInt', async () => {
+            await subject();
+
+            const actualTimestamp = await ethTwentyDayMACOManager.proposalTimestamp.callAsync();
+
+            expect(actualTimestamp).to.be.bignumber.equal(UNLIMITED_ALLOWANCE_IN_BASE_UNITS);
+          });
+
+          it('updates proposeInitiated to false', async () => {
+            await subject();
+
+            const actualProposeInitiated = await ethTwentyDayMACOManager.proposeInitiated.callAsync();
+
+            expect(actualProposeInitiated).to.equal(false);
+          });
+
+          it('riskOn is not updated', async () => {
+            await subject();
+
+            const actualRiskOn = await ethTwentyDayMACOManager.riskOn.callAsync();
+
+            expect(actualRiskOn).to.equal(false);
           });
         });
-      });
-    });
-
-    describe('when propose is called from the Proposal state', async () => {
-      let timeJump: BigNumber;
-
-      beforeEach(async () => {
-        await blockchain.increaseTimeAsync(subjectTimeFastForward);
-        await ethTwentyDayMACOManager.propose.sendTransactionAsync(
-          subjectRebalancingSetToken,
-        );
-
-        timeJump = new BigNumber(1000);
-        await blockchain.increaseTimeAsync(timeJump);
-      });
-
-      it('should revert', async () => {
-        await expectRevertError(subject());
       });
     });
   });
