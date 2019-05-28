@@ -756,7 +756,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
       });
     });
 
-    describe('when propose is called from the Default state', async () => {
+    describe('when propose is called from the Proposal state', async () => {
       let timeJump: BigNumber;
 
       beforeEach(async () => {
