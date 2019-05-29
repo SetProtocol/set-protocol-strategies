@@ -25,7 +25,7 @@ import { SetTokenLibrary } from "set-protocol-contracts/contracts/core/lib/SetTo
 
 import { IMedian } from "../external/DappHub/interfaces/IMedian.sol";
 import { IMetaOracle } from "../meta-oracles/interfaces/IMetaOracle.sol";
-import { ManagerLibrary } from "./lib/ManagerLibrary.sol";
+import { FlexibleTimingManagerLibrary } from "./lib/FlexibleTimingManagerLibrary.sol";
 
 
 /**
@@ -146,19 +146,17 @@ contract ETHTwentyDayMACOManager {
         // Make sure propose in manager hasn't already been initiated
         require(
             block.timestamp > proposalTimestamp.add(TWELVE_HOURS_IN_SECONDS),
-            "ETHTwentyDayMACOManager.initialPropose: 12 hours must pass before new propsal initiated"
+            "ETHTwentyDayMACOManager.initialPropose: 12 hours must pass before new proposal initiated"
         );
         
-        // Create interface to interact with RebalancingSetToken and enough time has passed for proposal
-        IRebalancingSetToken rebalancingSetInterface = IRebalancingSetToken(_rebalancingSetTokenAddress);
-        ManagerLibrary.validateManagerPropose(rebalancingSetInterface);
-
-        // Get raw eth price feed being used by moving average oracle
-        address ethPriceFeed = IMetaOracle(movingAveragePriceFeed).getSourceMedianizer();
-
-        // Get current eth price and moving average data
-        uint256 ethPrice = ManagerLibrary.queryPriceData(ethPriceFeed);
-        uint256 movingAveragePrice = uint256(IMetaOracle(movingAveragePriceFeed).read(MOVING_AVERAGE_DAYS));
+        // Create interface to interact with RebalancingSetToken and check enough time has passed for proposal
+        FlexibleTimingManagerLibrary.validateManagerPropose(IRebalancingSetToken(_rebalancingSetTokenAddress));
+        
+        // Get price data from oracles
+        (
+            uint256 ethPrice,
+            uint256 movingAveragePrice
+        ) = getPriceData();
 
         // Make sure price trigger has been reached
         checkPriceTriggerMet(ethPrice, movingAveragePrice);      
@@ -183,12 +181,11 @@ contract ETHTwentyDayMACOManager {
             "ETHTwentyDayMACOManager.confirmPropose: 6 hours must pass from initial propose"
         );
 
-        // Get raw eth price feed being used by moving average oracle
-        address ethPriceFeed = IMetaOracle(movingAveragePriceFeed).getSourceMedianizer();
-
-        // Get current eth price and moving average data
-        uint256 ethPrice = ManagerLibrary.queryPriceData(ethPriceFeed);
-        uint256 movingAveragePrice = uint256(IMetaOracle(movingAveragePriceFeed).read(MOVING_AVERAGE_DAYS));
+        // Get price data from oracles
+        (
+            uint256 ethPrice,
+            uint256 movingAveragePrice
+        ) = getPriceData();
 
         // Make sure price trigger has been reached
         checkPriceTriggerMet(ethPrice, movingAveragePrice);          
@@ -208,7 +205,7 @@ contract ETHTwentyDayMACOManager {
         (
             uint256 auctionStartPrice,
             uint256 auctionPivotPrice
-        ) = calculateAuctionPriceParameters(
+        ) = FlexibleTimingManagerLibrary.calculateAuctionPriceParameters(
             currentSetDollarValue,
             nextSetDollarValue,
             TEN_MINUTES_IN_SECONDS,
@@ -216,11 +213,8 @@ contract ETHTwentyDayMACOManager {
             auctionTimeToPivot
         );
 
-        // Create interface to interact with RebalancingSetToken
-        IRebalancingSetToken rebalancingSetInterface = IRebalancingSetToken(_rebalancingSetTokenAddress);
-
         // Propose new allocation to Rebalancing Set Token
-        rebalancingSetInterface.propose(
+        IRebalancingSetToken(_rebalancingSetTokenAddress).propose(
             nextSetAddress,
             auctionLibrary,
             auctionTimeToPivot,
@@ -229,7 +223,7 @@ contract ETHTwentyDayMACOManager {
         );
 
         // Update riskOn parameter
-        riskOn = riskOn ? false : true;
+        riskOn = !riskOn;
 
         emit LogManagerProposal(
             ethPrice,
@@ -238,6 +232,27 @@ contract ETHTwentyDayMACOManager {
     }
 
     /* ============ Internal ============ */
+
+    /*
+     * Get the ETH and moving average prices from respective oracles
+     *
+     * @return uint256              USD Price of ETH
+     * @return uint256              20 day moving average USD Price of ETH
+     */
+    function getPriceData()
+        internal
+        view
+        returns(uint256, uint256)
+    {
+        // Get raw eth price feed being used by moving average oracle
+        address ethPriceFeed = IMetaOracle(movingAveragePriceFeed).getSourceMedianizer();
+
+        // Get current eth price and moving average data
+        uint256 ethPrice = FlexibleTimingManagerLibrary.queryPriceData(ethPriceFeed);
+        uint256 movingAveragePrice = uint256(IMetaOracle(movingAveragePriceFeed).read(MOVING_AVERAGE_DAYS));
+
+        return (ethPrice, movingAveragePrice);        
+    }
 
     /*
      * Check to make sure that the necessary price changes have occured to allow a rebalance.
@@ -318,49 +333,6 @@ contract ETHTwentyDayMACOManager {
     }
 
     /*
-     * Calculates the auction price parameters, targetting 1% slippage every 10 minutes. Fair value
-     * placed in middle of price range.
-     *
-     * @param  _currentSetDollarAmount      The 18 decimal value of one currenSet
-     * @param  _nextSetDollarAmount         The 18 decimal value of one nextSet
-     * @param  _timeIncrement               Amount of time to explore 1% of fair value price change
-     * @param  _auctionLibraryPriceDivisor  The auction library price divisor
-     * @param  _auctionTimeToPivot          The auction time to pivot
-     * @return uint256                      The auctionStartPrice for rebalance auction
-     * @return uint256                      The auctionPivotPrice for rebalance auction
-     */
-    function calculateAuctionPriceParameters(
-        uint256 _currentSetDollarAmount,
-        uint256 _nextSetDollarAmount,
-        uint256 _timeIncrement,
-        uint256 _auctionLibraryPriceDivisor,
-        uint256 _auctionTimeToPivot
-    )
-        internal
-        view
-        returns (uint256, uint256)
-    {
-        // Determine fair value of nextSet/currentSet and put in terms of auction library price divisor
-        uint256 fairValue = _nextSetDollarAmount.mul(_auctionLibraryPriceDivisor).div(_currentSetDollarAmount);
-        // Calculate how much one percent slippage from fair value is
-        uint256 onePercentSlippage = fairValue.div(100);
-
-        // Calculate how many time increments are in auctionTimeToPivot
-        uint256 timeIncrements = _auctionTimeToPivot.div(_timeIncrement);
-        // Since we are targeting a 1% slippage every time increment the price range is defined as
-        // the price of a 1% move multiplied by the amount of time increments in the auctionTimeToPivot
-        // This value is then divided by two to get half the price range
-        uint256 halfPriceRange = timeIncrements.mul(onePercentSlippage).div(2);
-
-        // Auction start price is fair value minus half price range to center the auction at fair value
-        uint256 auctionStartPrice = fairValue.sub(halfPriceRange);
-        // Auction pivot price is fair value plus half price range to center the auction at fair value
-        uint256 auctionPivotPrice = fairValue.add(halfPriceRange);
-
-        return (auctionStartPrice, auctionPivotPrice);
-    }
-
-    /*
      * Check to see if a new collateral set needs to be created. If the dollar value of the two collateral sets is more
      * than 5x different from each other then create a new collateral set.
      *
@@ -383,13 +355,13 @@ contract ETHTwentyDayMACOManager {
         );
 
         // Value both Sets
-        uint256 stableCollateralDollarValue = ManagerLibrary.calculateTokenAllocationAmountUSD(
+        uint256 stableCollateralDollarValue = FlexibleTimingManagerLibrary.calculateTokenAllocationAmountUSD(
             DAI_PRICE,
             stableCollateralDetails.naturalUnit,
             stableCollateralDetails.units[0],
             DAI_DECIMALS
         );
-        uint256 riskCollateralDollarValue = ManagerLibrary.calculateTokenAllocationAmountUSD(
+        uint256 riskCollateralDollarValue = FlexibleTimingManagerLibrary.calculateTokenAllocationAmountUSD(
             _ethPrice,
             riskCollateralDetails.naturalUnit,
             riskCollateralDetails.units[0],
@@ -463,7 +435,7 @@ contract ETHTwentyDayMACOManager {
                 ""
             );
             // Calculate dollar value of new stable collateral
-            stableCollateralDollarValue = ManagerLibrary.calculateTokenAllocationAmountUSD(
+            stableCollateralDollarValue = FlexibleTimingManagerLibrary.calculateTokenAllocationAmountUSD(
                 DAI_PRICE,
                 CALCULATION_PRECISION,
                 nextSetUnits[0],
@@ -493,7 +465,7 @@ contract ETHTwentyDayMACOManager {
             );
 
             // Calculate dollar value of new risk collateral
-            riskCollateralDollarValue = ManagerLibrary.calculateTokenAllocationAmountUSD(
+            riskCollateralDollarValue = FlexibleTimingManagerLibrary.calculateTokenAllocationAmountUSD(
                 _ethPrice,
                 CALCULATION_PRECISION,
                 nextSetUnits[0],
