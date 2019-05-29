@@ -90,6 +90,8 @@ contract ETHTwentyDayMACOManager {
      * @param  _setTokenFactory             The address of the SetTokenFactory
      * @param  _auctionLibrary              The address of auction price curve to use in rebalance
      * @param  _auctionTimeToPivot          The amount of time until pivot reached in rebalance
+     * @param  _riskOn                      Indicate is initial allocation is collateralized by risky
+     *                                      asset (true) or stable asset (false)
      */
     constructor(
         address _coreAddress,
@@ -247,6 +249,7 @@ contract ETHTwentyDayMACOManager {
      *
      * @param  _ethPrice                Current Ethereum price as found on oracle
      * @param  _movingAveragePrice      Current 20 day MA price from Meta Oracle
+     * @return boolean                  Boolean indicating if price conditions for rebalance met
      */
     function checkPriceTriggerMet(
         uint256 _ethPrice,
@@ -280,6 +283,9 @@ contract ETHTwentyDayMACOManager {
      *
      * @param  _ethPrice                Current Ethereum price as found on oracle
      * @param  _movingAveragePrice      Current 20 day MA price from Meta Oracle
+     * @return address                  The address of the proposed nextSet
+     * @return uint256                  The USD value of next Set
+     * @return uint256                  The USD value of current Set
      */
     function determineNewAllocation(
         uint256 _ethPrice,
@@ -368,6 +374,8 @@ contract ETHTwentyDayMACOManager {
      * than 5x different from each other then create a new collateral set.
      *
      * @param  _ethPrice                Current Ethereum price as found on oracle
+     * @return uint256                          The USD value of stable collateral
+     * @return uint256                          The USD value of risk collateral
      */
     function checkForNewAllocation(
         uint256 _ethPrice
@@ -426,6 +434,8 @@ contract ETHTwentyDayMACOManager {
      * @param  _riskCollateralValue             Value of current risk collateral set in USD
      * @param  _stableCollateralDetails         Set details of current stable collateral set
      * @param  _riskCollateralDetails           Set details of current risk collateral set
+     * @return uint256                          The USD value of stable collateral
+     * @return uint256                          The USD value of risk collateral
      */
     function determineNewCollateralParameters(
         uint256 _ethPrice,
@@ -511,6 +521,7 @@ contract ETHTwentyDayMACOManager {
      * @param  _oldCollateralPrice              Price of asset currently collateralizing set
      * @param  _newCollateralPrice              Price of asset to be rebalanced into
      * @param  _currentCollateralDetails        Details of Set currently collateralizing rebalancing Set
+     * @return uint256[]                        Units array for new collateral set
      */
     function getNewCollateralSetUnits(
         uint256 _oldCollateralPrice,
