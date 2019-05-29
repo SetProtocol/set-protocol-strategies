@@ -74,7 +74,8 @@ contract ETHTwentyDayMACOManager {
     /* ============ Events ============ */
 
     event LogManagerProposal(
-        uint256 ethPrice
+        uint256 ethPrice,
+        uint256 movingAveragePrice
     );
 
     /*
@@ -160,7 +161,7 @@ contract ETHTwentyDayMACOManager {
         uint256 ethPrice = ManagerLibrary.queryPriceData(ethPriceFeed);
         uint256 movingAveragePrice = uint256(IMetaOracle(movingAveragePriceFeed).read(MOVING_AVERAGE_DAYS));
 
-        // Make sure the rebalancingSetToken is tracked by Core
+        // Make sure price trigger has been reached
         require(
             checkPriceTriggerMet(ethPrice, movingAveragePrice),
             "ETHTwentyDayMACOManager.initialPropose: Price requirements not met for proposal"
@@ -229,10 +230,11 @@ contract ETHTwentyDayMACOManager {
             );
 
             // Update riskOn parameter
-            updateRiskOn();
+            riskOn = riskOn ? false : true;
 
             emit LogManagerProposal(
-                ethPrice
+                ethPrice,
+                movingAveragePrice
             );
         }
 
@@ -294,8 +296,6 @@ contract ETHTwentyDayMACOManager {
         internal
         returns (address, uint256, uint256)
     {
-        checkPriceTriggerMet(_ethPrice, _movingAveragePrice);
-
         // Check to see if new collateral must be created in order to keep collateral price ratio in line.
         // If not just return the dollar value of current collateral sets
         (
@@ -327,8 +327,8 @@ contract ETHTwentyDayMACOManager {
     }
 
     /*
-     * Calculates the auction price parameters, utilizing targetting 1% slippage every 30 minutes
-     * and auctions beginning +50% and -50% relative to fair value.
+     * Calculates the auction price parameters, targetting 1% slippage every 10 minutes. Fair value
+     * placed in middle of price range.
      *
      * @param  _currentSetDollarAmount      The 18 decimal value of one currenSet
      * @param  _nextSetDollarAmount         The 18 decimal value of one nextSet
@@ -541,22 +541,6 @@ contract ETHTwentyDayMACOManager {
             .div(_currentCollateralDetails.naturalUnit)
             .div(_newCollateralPrice);
         return nextSetUnits;      
-    }
-
-    /*
-     * Update state to indicate whether strategy is risk on with new rebalance or risk off.
-     *
-     */
-    function updateRiskOn()
-        internal
-    {
-        // If currently riskOn then change riskOn to false to indicate after rebalance strategy is risk off.
-        // And vice versa.
-        if (riskOn) {
-            riskOn = false;
-        } else {
-            riskOn = true;
-        }
     }
 }
 

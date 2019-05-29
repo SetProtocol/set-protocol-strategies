@@ -34,7 +34,7 @@ import { ONE_DAY_IN_SECONDS, DEFAULT_GAS, UNLIMITED_ALLOWANCE_IN_BASE_UNITS } fr
 import { extractNewSetTokenAddressFromLogs } from '@utils/contract_logs/core';
 import { expectRevertError } from '@utils/tokenAssertions';
 import { getWeb3 } from '@utils/web3Helper';
-import { LogManagerProposal } from '@utils/contract_logs/ethDaiRebalancingManager';
+import { LogManagerProposal } from '@utils/contract_logs/ethTwentyDayMACOManager';
 
 import { ERC20Wrapper } from '@utils/wrappers/erc20Wrapper';
 import { ManagerWrapper } from '@utils/wrappers/managerWrapper';
@@ -652,9 +652,11 @@ contract('ETHTwentyDayMACOManager', accounts => {
         it('emits correct LogProposal event', async () => {
           const txHash = await subject();
 
+          const movingAveragePrice = new BigNumber(await movingAverageOracle.read.callAsync(new BigNumber(20)));
           const formattedLogs = await setTestUtils.getLogsFromTxHash(txHash);
           const expectedLogs = LogManagerProposal(
             lastPrice,
+            movingAveragePrice,
             ethTwentyDayMACOManager.address
           );
 
@@ -927,9 +929,11 @@ contract('ETHTwentyDayMACOManager', accounts => {
         it('emits correct LogProposal event', async () => {
           const txHash = await subject();
 
+          const movingAveragePrice = new BigNumber(await movingAverageOracle.read.callAsync(new BigNumber(20)));
           const formattedLogs = await setTestUtils.getLogsFromTxHash(txHash);
           const expectedLogs = LogManagerProposal(
             lastPrice,
+            movingAveragePrice,
             ethTwentyDayMACOManager.address
           );
 
