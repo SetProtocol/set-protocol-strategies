@@ -18,7 +18,6 @@ pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import { CommonMath } from "set-protocol-contracts/contracts/lib/CommonMath.sol";
 import { ICore } from "set-protocol-contracts/contracts/core/interfaces/ICore.sol";
 import { IRebalancingSetToken } from "set-protocol-contracts/contracts/core/interfaces/IRebalancingSetToken.sol";
 import { ISetToken } from "set-protocol-contracts/contracts/core/interfaces/ISetToken.sol";
@@ -44,10 +43,14 @@ contract ETHTwentyDayMACOManager {
     /* ============ Constants ============ */
     uint256 constant MOVING_AVERAGE_DAYS = 20;
     uint256 constant AUCTION_LIB_PRICE_DIVISOR = 1000;
-    uint256 constant TEN_MINUTES_IN_SECONDS = 600;
     uint256 constant CALCULATION_PRECISION = 100;
-    uint256 constant VALUE_TO_CENTS_CONVERSION = 10 ** 16;
+
+    uint256 constant COLLATERAL_SET_PRICE_DIFF_LOWER_BOUND = 20;
+    uint256 constant COLLATERAL_SET_PRICE_DIFF_UPPER_BOUND = 500;
+
+    uint256 constant TEN_MINUTES_IN_SECONDS = 600;
     uint256 constant SIX_HOURS_IN_SECONDS = 21600;
+    uint256 constant TWELVE_HOURS_IN_SECONDS = 43200;
 
     // Equal to $1 
     uint256 constant DAI_PRICE = 10 ** 18;
@@ -69,7 +72,6 @@ contract ETHTwentyDayMACOManager {
     bool public riskOn;
 
     uint256 public proposalTimestamp;
-    bool public proposeInitiated;
 
     /* ============ Events ============ */
 
@@ -120,9 +122,6 @@ contract ETHTwentyDayMACOManager {
 
         auctionTimeToPivot = _auctionTimeToPivot;
         riskOn = _riskOn;
-
-        proposalTimestamp = CommonMath.maxUInt256();
-        proposeInitiated = false;
     }
 
     /* ============ External ============ */
@@ -146,8 +145,8 @@ contract ETHTwentyDayMACOManager {
 
         // Make sure propose in manager hasn't already been initiated
         require(
-            !proposeInitiated,
-            "ETHTwentyDayMACOManager.initialPropose: Proposal cycle already initiated"
+            block.timestamp > proposalTimestamp.add(TWELVE_HOURS_IN_SECONDS),
+            "ETHTwentyDayMACOManager.initialPropose: 12 hours must pass before new propsal initiated"
         );
         
         // Create interface to interact with RebalancingSetToken and enough time has passed for proposal
@@ -162,13 +161,9 @@ contract ETHTwentyDayMACOManager {
         uint256 movingAveragePrice = uint256(IMetaOracle(movingAveragePriceFeed).read(MOVING_AVERAGE_DAYS));
 
         // Make sure price trigger has been reached
-        require(
-            checkPriceTriggerMet(ethPrice, movingAveragePrice),
-            "ETHTwentyDayMACOManager.initialPropose: Price requirements not met for proposal"
-        );        
+        checkPriceTriggerMet(ethPrice, movingAveragePrice);      
 
         proposalTimestamp = block.timestamp;
-        proposeInitiated = true;
     }
 
     /*
@@ -183,7 +178,8 @@ contract ETHTwentyDayMACOManager {
     {
         // Make sure enough time has passed to initiate proposal on Rebalancing Set Token
         require(
-            block.timestamp >= proposalTimestamp.add(SIX_HOURS_IN_SECONDS),
+            block.timestamp >= proposalTimestamp.add(SIX_HOURS_IN_SECONDS) &&
+            block.timestamp <= proposalTimestamp.add(TWELVE_HOURS_IN_SECONDS),
             "ETHTwentyDayMACOManager.confirmPropose: 6 hours must pass from initial propose"
         );
 
@@ -194,54 +190,51 @@ contract ETHTwentyDayMACOManager {
         uint256 ethPrice = ManagerLibrary.queryPriceData(ethPriceFeed);
         uint256 movingAveragePrice = uint256(IMetaOracle(movingAveragePriceFeed).read(MOVING_AVERAGE_DAYS));
 
-        if (checkPriceTriggerMet(ethPrice, movingAveragePrice)) {
-            // If price trigger has been met, get next Set allocation. Create new set if price difference is too
-            // great to run good auction. Return nextSet address and dollar value of current and next set
-            (
-                address nextSetAddress,
-                uint256 nextSetDollarValue,
-                uint256 currentSetDollarValue
-            ) = determineNewAllocation(
-                ethPrice,
-                movingAveragePrice
-            );
+        // Make sure price trigger has been reached
+        checkPriceTriggerMet(ethPrice, movingAveragePrice);          
 
-            (
-                uint256 auctionStartPrice,
-                uint256 auctionPivotPrice
-            ) = calculateAuctionPriceParameters(
-                currentSetDollarValue,
-                nextSetDollarValue,
-                TEN_MINUTES_IN_SECONDS,
-                AUCTION_LIB_PRICE_DIVISOR,
-                auctionTimeToPivot
-            );
+        // If price trigger has been met, get next Set allocation. Create new set if price difference is too
+        // great to run good auction. Return nextSet address and dollar value of current and next set
+        (
+            address nextSetAddress,
+            uint256 nextSetDollarValue,
+            uint256 currentSetDollarValue
+        ) = determineNewAllocation(
+            ethPrice,
+            movingAveragePrice
+        );
 
-            // Create interface to interact with RebalancingSetToken
-            IRebalancingSetToken rebalancingSetInterface = IRebalancingSetToken(_rebalancingSetTokenAddress);
+        // Calculate the price parameters for auction
+        (
+            uint256 auctionStartPrice,
+            uint256 auctionPivotPrice
+        ) = calculateAuctionPriceParameters(
+            currentSetDollarValue,
+            nextSetDollarValue,
+            TEN_MINUTES_IN_SECONDS,
+            AUCTION_LIB_PRICE_DIVISOR,
+            auctionTimeToPivot
+        );
 
-            // Propose new allocation to Rebalancing Set Token
-            rebalancingSetInterface.propose(
-                nextSetAddress,
-                auctionLibrary,
-                auctionTimeToPivot,
-                auctionStartPrice,
-                auctionPivotPrice
-            );
+        // Create interface to interact with RebalancingSetToken
+        IRebalancingSetToken rebalancingSetInterface = IRebalancingSetToken(_rebalancingSetTokenAddress);
 
-            // Update riskOn parameter
-            riskOn = riskOn ? false : true;
+        // Propose new allocation to Rebalancing Set Token
+        rebalancingSetInterface.propose(
+            nextSetAddress,
+            auctionLibrary,
+            auctionTimeToPivot,
+            auctionStartPrice,
+            auctionPivotPrice
+        );
 
-            emit LogManagerProposal(
-                ethPrice,
-                movingAveragePrice
-            );
-        }
+        // Update riskOn parameter
+        riskOn = riskOn ? false : true;
 
-        // Set proposal timestamp to max uint so that next call to confirmPropose reverts unless propose
-        // called first
-        proposalTimestamp = CommonMath.maxUInt256();
-        proposeInitiated = false;
+        emit LogManagerProposal(
+            ethPrice,
+            movingAveragePrice
+        );
     }
 
     /* ============ Internal ============ */
@@ -262,18 +255,16 @@ contract ETHTwentyDayMACOManager {
     {
         if (riskOn) {
             // If currently holding ETH (riskOn) check to see if price is below 20 day MA, otherwise revert.
-            if (_movingAveragePrice > _ethPrice) {
-                return true;
-            } else {
-                return false;
-            }
+            require(
+                _movingAveragePrice > _ethPrice,
+                "ETHTwentyDayMACOManager.initialPropose: ETH Price must be below moving average price"
+            );
         } else {
             // If currently holding Dai (!riskOn) check to see if price is above 20 day MA, otherwise revert.
-            if (_ethPrice > _movingAveragePrice) {
-                return true;
-            } else {
-                return false;
-            }
+            require(
+                _movingAveragePrice < _ethPrice,
+                "ETHTwentyDayMACOManager.initialPropose: ETH Price must be above moving average price"
+            );
         }        
     }
 
@@ -411,7 +402,7 @@ contract ETHTwentyDayMACOManager {
             .div(stableCollateralDollarValue);
         
         // If value of one Set is 5 times greater than the other, create a new collateral Set
-        if (fairValue <= 20 || fairValue >= 500) {
+        if (fairValue <= COLLATERAL_SET_PRICE_DIFF_LOWER_BOUND || fairValue >= COLLATERAL_SET_PRICE_DIFF_UPPER_BOUND) {
             //Determine the new collateral parameters
             return determineNewCollateralParameters(
                 _ethPrice,
