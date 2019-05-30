@@ -94,13 +94,14 @@ contract LinkedListLibrary {
     )
         internal
     {
+        uint256 newNodeIndex = _self.lastUpdatedIndex.add(1);
+
         require(
-            _self.lastUpdatedIndex.add(1) < _self.dataSizeLimit,
+            newNodeIndex < _self.dataSizeLimit,
             "LinkedListLibrary: Attempting to add node that exceeds data size limit"
         );
 
         // Add links of new node
-        uint256 newNodeIndex = _self.lastUpdatedIndex.add(1);
         _self.links[newNodeIndex] = _self.lastUpdatedIndex;
 
         // Add node value

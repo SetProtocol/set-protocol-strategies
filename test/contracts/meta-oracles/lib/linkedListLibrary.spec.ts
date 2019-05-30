@@ -352,13 +352,13 @@ contract('LinkedListLibrary', accounts => {
         ether(162),
         ether(173),
       ];
-      const editListPromises = _.map(addedValues, value =>
-        linkedListLibraryMock.editListMock.sendTransactionAsync(
-          value,
+
+      for (let i = 0; i < addedValues.length; i++) {
+        await linkedListLibraryMock.editListMock.sendTransactionAsync(
+          addedValues[i],
           { gas: DEFAULT_GAS}
-        ),
-      );
-      await Promise.all(editListPromises);
+        );
+      }
 
       subjectDataPoints = new BigNumber(4);
     });
