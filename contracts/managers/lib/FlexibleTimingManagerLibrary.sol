@@ -25,10 +25,10 @@ import { IMedian } from "../../external/DappHub/interfaces/IMedian.sol";
 
 
 /**
- * @title ManagerLibrary
+ * @title FlexibleTimingManagerLibrary
  * @author Set Protocol
  *
- * The ManagerLibrary contains functions for helping Managers create proposals
+ * The FlexibleTimingManagerLibrary contains functions for helping Managers create proposals
  *
  */
 library FlexibleTimingManagerLibrary {

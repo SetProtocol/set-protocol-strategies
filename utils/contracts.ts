@@ -5,6 +5,7 @@ import { ETHDaiRebalancingManagerContract } from '../types/generated/e_t_h_dai_r
 import { ETHTwentyDayMACOManagerContract } from '../types/generated/e_t_h_twenty_day_m_a_c_o_manager';
 import { DailyPriceFeedContract } from '../types/generated/daily_price_feed';
 import { FeedFactoryContract } from '../types/generated/feed_factory';
+import { FlexibleTimingManagerLibraryMockContract } from '../types/generated/flexible_timing_manager_library_mock';
 import { LinkedListLibraryMockContract } from '../types/generated/linked_list_library_mock';
 import { ManagerLibraryMockContract } from '../types/generated/manager_library_mock';
 import { MovingAverageOracleContract } from '../types/generated/moving_average_oracle';
@@ -17,6 +18,7 @@ export {
   ETHTwentyDayMACOManagerContract,
   DailyPriceFeedContract,
   FeedFactoryContract,
+  FlexibleTimingManagerLibraryMockContract,
   LinkedListLibraryMockContract,
   ManagerLibraryMockContract,
   MovingAverageOracleContract,
