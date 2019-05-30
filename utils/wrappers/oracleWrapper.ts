@@ -216,9 +216,13 @@ export class OracleWrapper {
     dailyPriceFeed: DailyPriceFeedContract,
     medianizer: MedianContract,
     daysOfData: number,
+    priceArray: BigNumber[] = undefined,
     from: Address = this._contractOwnerAddress
   ): Promise<BigNumber[]> {
-    const priceArray = Array.from({length: daysOfData}, () => ether(Math.floor(Math.random() * 1000) + 100));
+
+    if (!priceArray) {
+      priceArray = Array.from({length: daysOfData}, () => ether(Math.floor(Math.random() * 100) + 100));
+    }
 
     const ONE_DAY_IN_MINUTES = 1440;
     let i: number;

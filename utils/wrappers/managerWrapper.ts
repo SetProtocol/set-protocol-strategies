@@ -2,12 +2,14 @@ import * as _ from 'lodash';
 import * as setProtocolUtils from 'set-protocol-utils';
 import { Address } from 'set-protocol-utils';
 
-import { SetTokenContract } from 'set-protocol-contracts';
+import { SetTokenContract, MedianContract } from 'set-protocol-contracts';
 
 import {
   BTCETHRebalancingManagerContract,
   BTCDaiRebalancingManagerContract,
   ETHDaiRebalancingManagerContract,
+  ETHTwentyDayMACOManagerContract,
+  MovingAverageOracleContract,
 } from '../contracts';
 import { BigNumber } from 'bignumber.js';
 
@@ -21,6 +23,7 @@ const web3 = getWeb3();
 const BTCETHRebalancingManager = artifacts.require('BTCETHRebalancingManager');
 const BTCDaiRebalancingManager = artifacts.require('BTCDaiRebalancingManager');
 const ETHDaiRebalancingManager = artifacts.require('ETHDaiRebalancingManager');
+const ETHTwentyDayMACOManager = artifacts.require('ETHTwentyDayMACOManager');
 
 const { SetProtocolUtils: SetUtils } = setProtocolUtils;
 const {
@@ -38,7 +41,7 @@ export class ManagerWrapper {
     this._tokenOwnerAddress = tokenOwnerAddress;
   }
 
-  /* ============ Rebalancing Token Manager ============ */
+  /* ============ Rebalancing Token Manager Deployment ============ */
 
   public async deployBTCETHRebalancingManagerAsync(
     coreAddress: Address,
@@ -135,6 +138,58 @@ export class ManagerWrapper {
     );
   }
 
+  public async deployETHTwentyDayMACOManagerAsync(
+    coreAddress: Address,
+    movingAveragePriceFeedAddress: Address,
+    daiAddress: Address,
+    ethAddress: Address,
+    stableCollateralAddress: Address,
+    riskCollateralAddress: Address,
+    setTokenFactoryAddress: Address,
+    auctionLibrary: Address,
+    auctionTimeToPivot: BigNumber = new BigNumber(100000),
+    riskOn: boolean,
+    from: Address = this._tokenOwnerAddress
+  ): Promise<ETHTwentyDayMACOManagerContract> {
+    const truffleRebalacingTokenManager = await ETHTwentyDayMACOManager.new(
+      coreAddress,
+      movingAveragePriceFeedAddress,
+      daiAddress,
+      ethAddress,
+      stableCollateralAddress,
+      riskCollateralAddress,
+      setTokenFactoryAddress,
+      auctionLibrary,
+      auctionTimeToPivot,
+      riskOn,
+      { from },
+    );
+
+    return new ETHTwentyDayMACOManagerContract(
+      new web3.eth.Contract(truffleRebalacingTokenManager.abi, truffleRebalacingTokenManager.address),
+      { from, gas: DEFAULT_GAS },
+    );
+  }
+
+  /* ============ Helper Functions ============ */
+
+  public async getMACOInitialAllocationAsync(
+    stableCollateral: SetTokenContract,
+    riskCollateral: SetTokenContract,
+    spotPriceOracle: MedianContract,
+    movingAverageOracle: MovingAverageOracleContract,
+    dataDays: BigNumber,
+  ): Promise<[boolean, Address]> {
+    const spotPrice = parseInt(await spotPriceOracle.read.callAsync());
+    const maPrice = parseInt(await movingAverageOracle.read.callAsync(dataDays));
+
+    if (spotPrice > maPrice) {
+      return [true, riskCollateral.address];
+    } else {
+      return [false, stableCollateral.address];
+    }
+  }
+
   public getExpectedBtcEthNextSetParameters(
     btcPrice: BigNumber,
     ethPrice: BigNumber,
@@ -179,6 +234,46 @@ export class ManagerWrapper {
       units = [pricePrecision.mul(decimalDifference).mul(tokenOneMultiplier), tokenTwoUnits.mul(tokenTwoMultiplier)];
     }
 
+    return {
+      units,
+      naturalUnit,
+    };
+  }
+
+  public async getExpectedMACONewCollateralParametersAsync(
+    stableCollateral: SetTokenContract,
+    riskCollateral: SetTokenContract,
+    spotPriceOracle: MedianContract,
+    riskOn: boolean,
+  ): Promise<any> {
+    let units: BigNumber[];
+
+    const CALCULATION_PRECISION = new BigNumber(100);
+    const naturalUnit: BigNumber = new BigNumber(100);
+    const currentEthPrice = new BigNumber(await spotPriceOracle.read.callAsync());
+    const currentDaiPrice = new BigNumber(10 ** 18);
+
+    if (riskOn) {
+      const riskUnits = await riskCollateral.getUnits.callAsync();
+      const riskNaturalUnit = await riskCollateral.naturalUnit.callAsync();
+
+      const newUnits = currentEthPrice
+                        .mul(riskUnits[0])
+                        .mul(CALCULATION_PRECISION)
+                        .div(riskNaturalUnit)
+                        .div(currentDaiPrice);
+      units = [newUnits];
+    } else {
+      const stableUnits = await stableCollateral.getUnits.callAsync();
+      const stableNaturalUnit = await stableCollateral.naturalUnit.callAsync();
+
+      const newUnits = currentDaiPrice
+                        .mul(stableUnits[0])
+                        .mul(CALCULATION_PRECISION)
+                        .div(stableNaturalUnit)
+                        .div(currentEthPrice);
+      units = [newUnits];
+    }
     return {
       units,
       naturalUnit,
@@ -233,6 +328,46 @@ export class ManagerWrapper {
 
     const thirtyMinutePeriods = auctionTimeToPivot.div(THIRTY_MINUTES_IN_SECONDS).round(0, 3);
     const halfPriceRange = thirtyMinutePeriods.mul(onePercentSlippage).div(2).round(0, 3);
+
+    const auctionStartPrice = fairValue.sub(halfPriceRange);
+    const auctionPivotPrice = fairValue.add(halfPriceRange);
+
+    return {
+      auctionStartPrice,
+      auctionPivotPrice,
+    };
+  }
+
+  public async getExpectedMACOAuctionParametersAsync(
+    currentSetToken: SetTokenContract,
+    nextSetToken: SetTokenContract,
+    riskOn: boolean,
+    ethPrice: BigNumber,
+    timeIncrement: BigNumber,
+    auctionTimeToPivot: BigNumber,
+  ): Promise<any> {
+    let nextSetDollarAmount: BigNumber;
+    let currentSetDollarAmount: BigNumber;
+
+    const nextSetUnits = await nextSetToken.getUnits.callAsync();
+    const nextSetNaturalUnit = await nextSetToken.naturalUnit.callAsync();
+
+    const currentSetUnits = await currentSetToken.getUnits.callAsync();
+    const currentSetNaturalUnit = await currentSetToken.naturalUnit.callAsync();
+
+    if (riskOn) {
+      nextSetDollarAmount = nextSetUnits[0].mul(new BigNumber(10 ** 18)).div(nextSetNaturalUnit);
+      currentSetDollarAmount = ethPrice.mul(currentSetUnits[0]).div(currentSetNaturalUnit);
+    } else {
+      currentSetDollarAmount = currentSetUnits[0].mul(new BigNumber(10 ** 18)).div(currentSetNaturalUnit);
+      nextSetDollarAmount = ethPrice.mul(nextSetUnits[0]).div(nextSetNaturalUnit);
+    }
+
+    const fairValue = nextSetDollarAmount.div(currentSetDollarAmount).mul(1000).round(0, 3);
+    const onePercentSlippage = fairValue.div(100).round(0, 3);
+
+    const timeIncrements = auctionTimeToPivot.div(timeIncrement).round(0, 3);
+    const halfPriceRange = timeIncrements.mul(onePercentSlippage).div(2).round(0, 3);
 
     const auctionStartPrice = fairValue.sub(halfPriceRange);
     const auctionPivotPrice = fairValue.add(halfPriceRange);

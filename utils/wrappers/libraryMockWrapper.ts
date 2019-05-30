@@ -1,5 +1,6 @@
 import { Address } from 'set-protocol-utils';
 import {
+  FlexibleTimingManagerLibraryMockContract,
   LinkedListLibraryMockContract,
   ManagerLibraryMockContract,
 } from '../contracts';
@@ -10,6 +11,7 @@ import {
 const web3 = getWeb3();
 const LinkedListLibraryMock = artifacts.require('LinkedListLibraryMock');
 const ManagerLibraryMock = artifacts.require('ManagerLibraryMock');
+const FlexibleTimingManagerLibraryMock = artifacts.require('FlexibleTimingManagerLibraryMock');
 
 
 export class LibraryMockWrapper {
@@ -29,6 +31,19 @@ export class LibraryMockWrapper {
     );
 
     return new ManagerLibraryMockContract(
+      new web3.eth.Contract(managerLibraryMockContract.abi, managerLibraryMockContract.address),
+      { from },
+    );
+  }
+
+  public async deployFlexibleTimingManagerLibraryMockAsync(
+    from: Address = this._contractOwnerAddress
+  ): Promise<FlexibleTimingManagerLibraryMockContract> {
+    const managerLibraryMockContract = await FlexibleTimingManagerLibraryMock.new(
+      { from },
+    );
+
+    return new FlexibleTimingManagerLibraryMockContract(
       new web3.eth.Contract(managerLibraryMockContract.abi, managerLibraryMockContract.address),
       { from },
     );
