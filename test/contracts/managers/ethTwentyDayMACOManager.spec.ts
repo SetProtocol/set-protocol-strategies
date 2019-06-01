@@ -265,8 +265,114 @@ contract('ETHTwentyDayMACOManager', accounts => {
     });
   });
 
-  describe('#initialPropose', async () => {
+  describe('#initialize', async () => {
     let subjectRebalancingSetToken: Address;
+    let subjectCaller: Address;
+
+    let updatedValues: BigNumber[];
+    let proposalPeriod: BigNumber;
+    let auctionTimeToPivot: BigNumber;
+
+    before(async () => {
+      updatedValues = _.map(new Array(19), function(el, i) {return ether(150 + i); });
+    });
+
+    beforeEach(async () => {
+      await oracleWrapper.batchUpdateDailyPriceFeedAsync(
+        dailyPriceFeed,
+        ethMedianizer,
+        20,
+        updatedValues
+      );
+
+      auctionTimeToPivot = ONE_DAY_IN_SECONDS.div(4);
+      const [riskOn, initialAllocationAddress] = await managerWrapper.getMACOInitialAllocationAsync(
+        stableCollateral,
+        riskCollateral,
+        ethMedianizer,
+        movingAverageOracle,
+        new BigNumber(20)
+      );
+
+      ethTwentyDayMACOManager = await managerWrapper.deployETHTwentyDayMACOManagerAsync(
+        core.address,
+        movingAverageOracle.address,
+        daiMock.address,
+        wrappedETH.address,
+        stableCollateral.address,
+        riskCollateral.address,
+        factory.address,
+        linearAuctionPriceCurve.address,
+        auctionTimeToPivot,
+        riskOn,
+      );
+
+      proposalPeriod = ONE_DAY_IN_SECONDS;
+      rebalancingSetToken = await protocolWrapper.createDefaultRebalancingSetTokenAsync(
+        core,
+        rebalancingFactory.address,
+        ethTwentyDayMACOManager.address,
+        initialAllocationAddress,
+        proposalPeriod
+      );
+
+      subjectRebalancingSetToken = rebalancingSetToken.address;
+      subjectCaller = deployerAccount;
+    });
+
+    async function subject(): Promise<string> {
+      return ethTwentyDayMACOManager.initialize.sendTransactionAsync(
+        subjectRebalancingSetToken,
+        { from: subjectCaller, gas: DEFAULT_GAS}
+      );
+    }
+
+    it('sets the rebalancing set token address', async () => {
+      await subject();
+
+      const rebalancingSetTokenAddress = await ethTwentyDayMACOManager.rebalancingSetTokenAddress.callAsync();
+
+      expect(rebalancingSetTokenAddress).to.equal(subjectRebalancingSetToken);
+    });
+
+    describe('when the rebalancing set address has already been set', async () => {
+      beforeEach(async () => {
+        await ethTwentyDayMACOManager.initialize.sendTransactionAsync(
+          subjectRebalancingSetToken,
+          { from: subjectCaller, gas: DEFAULT_GAS}
+        );
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('but the passed rebalancing set address was not created by Core', async () => {
+      beforeEach(async () => {
+        const unTrackedSetToken = await protocolWrapper.createDefaultRebalancingSetTokenAsync(
+          core,
+          rebalancingFactory.address,
+          ethTwentyDayMACOManager.address,
+          riskCollateral.address,
+          proposalPeriod,
+        );
+
+        await core.disableSet.sendTransactionAsync(
+          unTrackedSetToken.address,
+          { from: deployerAccount, gas: DEFAULT_GAS },
+        );
+
+        subjectRebalancingSetToken = unTrackedSetToken.address;
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+  });
+
+  describe('#initialPropose', async () => {
     let subjectTimeFastForward: BigNumber;
     let subjectCaller: Address;
 
@@ -319,6 +425,11 @@ contract('ETHTwentyDayMACOManager', accounts => {
         proposalPeriod
       );
 
+      await ethTwentyDayMACOManager.initialize.sendTransactionAsync(
+        rebalancingSetToken.address,
+        { from: subjectCaller, gas: DEFAULT_GAS}
+      );
+
       const blockInfo = await web3.eth.getBlock('latest');
       await oracleWrapper.updateMedianizerPriceAsync(
         ethMedianizer,
@@ -326,7 +437,6 @@ contract('ETHTwentyDayMACOManager', accounts => {
         new BigNumber(blockInfo.timestamp + 1),
       );
 
-      subjectRebalancingSetToken = rebalancingSetToken.address;
       subjectTimeFastForward = ONE_DAY_IN_SECONDS.add(1);
       subjectCaller = deployerAccount;
     });
@@ -334,7 +444,6 @@ contract('ETHTwentyDayMACOManager', accounts => {
     async function subject(): Promise<string> {
       await blockchain.increaseTimeAsync(subjectTimeFastForward);
       return ethTwentyDayMACOManager.initialPropose.sendTransactionAsync(
-        subjectRebalancingSetToken,
         { from: subjectCaller, gas: DEFAULT_GAS}
       );
     }
@@ -365,36 +474,11 @@ contract('ETHTwentyDayMACOManager', accounts => {
           });
         });
 
-        describe('but the passed rebalancing set address was not created by Core', async () => {
-          beforeEach(async () => {
-            const unTrackedSetToken = await protocolWrapper.createDefaultRebalancingSetTokenAsync(
-              core,
-              rebalancingFactory.address,
-              ethTwentyDayMACOManager.address,
-              riskCollateral.address,
-              proposalPeriod,
-            );
-
-            await core.disableSet.sendTransactionAsync(
-              unTrackedSetToken.address,
-              { from: deployerAccount, gas: DEFAULT_GAS },
-            );
-
-            subjectRebalancingSetToken = unTrackedSetToken.address;
-          });
-
-          it('should revert', async () => {
-            await expectRevertError(subject());
-          });
-        });
-
         describe('when 12 hours has not passed from an initial proposal', async () => {
           beforeEach(async () => {
             const timeFastForward = ONE_DAY_IN_SECONDS;
             await blockchain.increaseTimeAsync(timeFastForward);
-            await ethTwentyDayMACOManager.initialPropose.sendTransactionAsync(
-              subjectRebalancingSetToken,
-            );
+            await ethTwentyDayMACOManager.initialPropose.sendTransactionAsync();
             subjectTimeFastForward = ONE_DAY_IN_SECONDS.div(4);
           });
 
@@ -449,14 +533,10 @@ contract('ETHTwentyDayMACOManager', accounts => {
     describe('when propose is called and rebalancing set token is in Proposal state', async () => {
       beforeEach(async () => {
         await blockchain.increaseTimeAsync(subjectTimeFastForward);
-        await ethTwentyDayMACOManager.initialPropose.sendTransactionAsync(
-          subjectRebalancingSetToken,
-        );
+        await ethTwentyDayMACOManager.initialPropose.sendTransactionAsync();
 
         await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS.div(4));
-        await ethTwentyDayMACOManager.confirmPropose.sendTransactionAsync(
-          subjectRebalancingSetToken,
-        );
+        await ethTwentyDayMACOManager.confirmPropose.sendTransactionAsync();
       });
 
       it('should revert', async () => {
@@ -466,7 +546,6 @@ contract('ETHTwentyDayMACOManager', accounts => {
   });
 
   describe('#confirmPropose', async () => {
-    let subjectRebalancingSetToken: Address;
     let subjectTimeFastForward: BigNumber;
     let subjectCaller: Address;
 
@@ -521,6 +600,11 @@ contract('ETHTwentyDayMACOManager', accounts => {
         proposalPeriod
       );
 
+      await ethTwentyDayMACOManager.initialize.sendTransactionAsync(
+        rebalancingSetToken.address,
+        { from: subjectCaller, gas: DEFAULT_GAS}
+      );
+
       const triggerBlockInfo = await web3.eth.getBlock('latest');
       await oracleWrapper.updateMedianizerPriceAsync(
         ethMedianizer,
@@ -528,9 +612,8 @@ contract('ETHTwentyDayMACOManager', accounts => {
         new BigNumber(triggerBlockInfo.timestamp + 1),
       );
 
-      subjectRebalancingSetToken = rebalancingSetToken.address;
       await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS.add(1));
-      await ethTwentyDayMACOManager.initialPropose.sendTransactionAsync(subjectRebalancingSetToken);
+      await ethTwentyDayMACOManager.initialPropose.sendTransactionAsync();
 
       const lastBlockInfo = await web3.eth.getBlock('latest');
       await oracleWrapper.updateMedianizerPriceAsync(
@@ -546,7 +629,6 @@ contract('ETHTwentyDayMACOManager', accounts => {
     async function subject(): Promise<string> {
       await blockchain.increaseTimeAsync(subjectTimeFastForward);
       return ethTwentyDayMACOManager.confirmPropose.sendTransactionAsync(
-        subjectRebalancingSetToken,
         { from: subjectCaller, gas: DEFAULT_GAS}
       );
     }
