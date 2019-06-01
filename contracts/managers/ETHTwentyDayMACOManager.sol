@@ -58,6 +58,7 @@ contract ETHTwentyDayMACOManager {
     uint256 constant ETH_DECIMALS = 18;
 
     /* ============ State Variables ============ */
+    address public contractDeployer;
     address public rebalancingSetTokenAddress;
     address public coreAddress;
     address public movingAveragePriceFeed;
@@ -111,6 +112,7 @@ contract ETHTwentyDayMACOManager {
     )
         public
     {
+        contractDeployer = msg.sender;
         coreAddress = _coreAddress;
         movingAveragePriceFeed = _movingAveragePriceFeed;
         setTokenFactory = _setTokenFactory;
@@ -129,7 +131,7 @@ contract ETHTwentyDayMACOManager {
      * This function sets the Rebalancing Set Token address that the manager is associated with.
      * Since, the rebalancing set token must first specify the address of the manager before deployment,
      * we cannot know what the rebalancing set token is in advance. This function is only meant to be called 
-     * once during initialization.
+     * once during initialization by the contract deployer.
      *
      * @param  _rebalancingSetTokenAddress       The address of the rebalancing Set token
      */
@@ -138,6 +140,11 @@ contract ETHTwentyDayMACOManager {
     )
         external
     {
+        require(
+            msg.sender == contractDeployer,
+            "ETHTwentyDayMACOManager.initialize: Only the contract deployer can initialize"
+        );
+
         require(
             rebalancingSetTokenAddress == address(0),
             "ETHTwentyDayMACOManager.initialize: Rebalancing SetToken Address must be empty"

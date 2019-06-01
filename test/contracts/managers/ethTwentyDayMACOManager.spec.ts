@@ -53,6 +53,7 @@ const setTestUtils = new SetTestUtils(web3);
 contract('ETHTwentyDayMACOManager', accounts => {
   const [
     deployerAccount,
+    notDeployerAccount,
   ] = accounts;
 
   let rebalancingSetToken: RebalancingSetTokenContract;
@@ -341,6 +342,16 @@ contract('ETHTwentyDayMACOManager', accounts => {
           subjectRebalancingSetToken,
           { from: subjectCaller, gas: DEFAULT_GAS}
         );
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('but caller is not the contract deployer', async () => {
+      beforeEach(async () => {
+        subjectCaller = notDeployerAccount;
       });
 
       it('should revert', async () => {
