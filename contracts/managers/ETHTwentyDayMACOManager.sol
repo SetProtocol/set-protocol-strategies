@@ -58,6 +58,8 @@ contract ETHTwentyDayMACOManager {
     uint256 constant ETH_DECIMALS = 18;
 
     /* ============ State Variables ============ */
+    address public contractDeployer;
+    address public rebalancingSetTokenAddress;
     address public coreAddress;
     address public movingAveragePriceFeed;
     address public setTokenFactory;
@@ -110,6 +112,7 @@ contract ETHTwentyDayMACOManager {
     )
         public
     {
+        contractDeployer = msg.sender;
         coreAddress = _coreAddress;
         movingAveragePriceFeed = _movingAveragePriceFeed;
         setTokenFactory = _setTokenFactory;
@@ -124,25 +127,48 @@ contract ETHTwentyDayMACOManager {
         riskOn = _riskOn;
     }
 
+    /*
+     * This function sets the Rebalancing Set Token address that the manager is associated with.
+     * Since, the rebalancing set token must first specify the address of the manager before deployment,
+     * we cannot know what the rebalancing set token is in advance. This function is only meant to be called 
+     * once during initialization by the contract deployer.
+     *
+     * @param  _rebalancingSetTokenAddress       The address of the rebalancing Set token
+     */
+    function initialize(
+        address _rebalancingSetTokenAddress
+    )
+        external
+    {
+        require(
+            msg.sender == contractDeployer,
+            "ETHTwentyDayMACOManager.initialize: Only the contract deployer can initialize"
+        );
+
+        require(
+            rebalancingSetTokenAddress == address(0),
+            "ETHTwentyDayMACOManager.initialize: Rebalancing SetToken Address must be empty"
+        );
+
+        // Make sure the rebalancingSetToken is tracked by Core
+        require(
+            ICore(coreAddress).validSets(_rebalancingSetTokenAddress),
+            "ETHTwentyDayMACOManager.initialize: Invalid or disabled SetToken address"
+        );
+
+        rebalancingSetTokenAddress = _rebalancingSetTokenAddress;
+    }
+
     /* ============ External ============ */
 
     /*
      * When allowed on RebalancingSetToken, anyone can call for a new rebalance proposal. The Sets off a six
      * hour period where the signal con be confirmed before moving ahead with rebalance.
      *
-     * @param  _rebalancingSetTokenAddress     The address of Rebalancing Set Token to propose new allocation
      */
-    function initialPropose(
-        address _rebalancingSetTokenAddress
-    )
+    function initialPropose()
         external
     {
-        // Make sure the rebalancingSetToken is tracked by Core
-        require(
-            ICore(coreAddress).validSets(_rebalancingSetTokenAddress),
-            "ETHTwentyDayMACOManager.initialPropose: Invalid or disabled SetToken address"
-        );
-
         // Make sure propose in manager hasn't already been initiated
         require(
             block.timestamp > proposalTimestamp.add(TWELVE_HOURS_IN_SECONDS),
@@ -150,7 +176,7 @@ contract ETHTwentyDayMACOManager {
         );
         
         // Create interface to interact with RebalancingSetToken and check enough time has passed for proposal
-        FlexibleTimingManagerLibrary.validateManagerPropose(IRebalancingSetToken(_rebalancingSetTokenAddress));
+        FlexibleTimingManagerLibrary.validateManagerPropose(IRebalancingSetToken(rebalancingSetTokenAddress));
         
         // Get price data from oracles
         (
@@ -167,11 +193,8 @@ contract ETHTwentyDayMACOManager {
     /*
      * After initial propose is called, confirm the signal has been met and determine parameters for the rebalance
      *
-     * @param  _rebalancingSetTokenAddress     The address of Rebalancing Set Token to propose new allocation
      */
-    function confirmPropose(
-        address _rebalancingSetTokenAddress
-    )
+    function confirmPropose()
         external
     {
         // Make sure enough time has passed to initiate proposal on Rebalancing Set Token
@@ -214,7 +237,7 @@ contract ETHTwentyDayMACOManager {
         );
 
         // Propose new allocation to Rebalancing Set Token
-        IRebalancingSetToken(_rebalancingSetTokenAddress).propose(
+        IRebalancingSetToken(rebalancingSetTokenAddress).propose(
             nextSetAddress,
             auctionLibrary,
             auctionTimeToPivot,
