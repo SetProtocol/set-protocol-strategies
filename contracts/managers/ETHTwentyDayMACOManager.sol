@@ -178,7 +178,7 @@ contract ETHTwentyDayMACOManager {
         require(
             block.timestamp >= proposalTimestamp.add(SIX_HOURS_IN_SECONDS) &&
             block.timestamp <= proposalTimestamp.add(TWELVE_HOURS_IN_SECONDS),
-            "ETHTwentyDayMACOManager.confirmPropose: 6 hours must pass from initial propose"
+            "ETHTwentyDayMACOManager.confirmPropose: Confirming signal must be 6-12 hours from initial propose"
         );
 
         // Get price data from oracles
@@ -266,7 +266,6 @@ contract ETHTwentyDayMACOManager {
         uint256 _movingAveragePrice
     )
         internal
-        returns (bool)
     {
         if (riskOn) {
             // If currently holding ETH (riskOn) check to see if price is below 20 day MA, otherwise revert.
@@ -309,25 +308,9 @@ contract ETHTwentyDayMACOManager {
             uint256 riskCollateralDollarValue
         ) = checkForNewAllocation(_ethPrice);
 
-        address nextSetAddress;
-        uint256 currentSetDollarValue;
-        uint256 nextSetDollarValue;
-
-        if (riskOn) {
-            // Next set will be the stable collateral set
-            nextSetAddress = stableCollateralAddress;
-            nextSetDollarValue = stableCollateralDollarValue;
-
-            // Current set value value of risk collateral
-            currentSetDollarValue = riskCollateralDollarValue;
-        } else {
-            // Next set will be the stable collateral set
-            nextSetAddress = riskCollateralAddress;
-            nextSetDollarValue = riskCollateralDollarValue;
-
-            // Value of current set will be the value of stable collateral
-            currentSetDollarValue = stableCollateralDollarValue;
-        }
+        address nextSetAddress = riskOn ? stableCollateralAddress : riskCollateralAddress;
+        uint256 currentSetDollarValue = riskOn ? riskCollateralDollarValue : stableCollateralDollarValue;
+        uint256 nextSetDollarValue = riskOn ? stableCollateralDollarValue : riskCollateralDollarValue;
 
         return (nextSetAddress, nextSetDollarValue, currentSetDollarValue);
     }
