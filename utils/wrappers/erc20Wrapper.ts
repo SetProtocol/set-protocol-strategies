@@ -139,7 +139,7 @@ export class ERC20Wrapper {
 
     return new USDCMockContract(
       new web3.eth.Contract(truffleMockToken.abi, truffleMockToken.address),
-      { from: this._senderAccountAddress },
+      { from: this._senderAccountAddress, gas: DEFAULT_GAS },
     );
   }
 }

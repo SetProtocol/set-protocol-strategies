@@ -247,7 +247,7 @@ export class ProtocolWrapper {
   ): Promise<void> {
     await whiteList.addAddress.sendTransactionAsync(
       address,
-      { from },
+      { from, gas: DEFAULT_GAS },
     );
   }
 }
