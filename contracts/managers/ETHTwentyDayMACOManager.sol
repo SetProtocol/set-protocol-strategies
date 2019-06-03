@@ -34,7 +34,7 @@ import { FlexibleTimingManagerLibrary } from "./lib/FlexibleTimingManagerLibrary
  *
  * Rebalancing Manager contract for implementing the Moving Average (MA) Crossover
  * Strategy between ETH 20-day MA and the spot price of ETH. When the spot price
- * dips below the 20-day MA ETH is sold for Dai and vice versa when the spot price
+ * dips below the 20-day MA ETH is sold for USDC and vice versa when the spot price
  * exceeds the 20-day MA.
  */
 contract ETHTwentyDayMACOManager {
@@ -65,7 +65,7 @@ contract ETHTwentyDayMACOManager {
     address public setTokenFactory;
     address public auctionLibrary;
 
-    address public daiAddress;
+    address public usdcAddress;
     address public ethAddress;
     address public stableCollateralAddress;
     address public riskCollateralAddress;
@@ -87,9 +87,9 @@ contract ETHTwentyDayMACOManager {
      *
      * @param  _coreAddress                 The address of the Core contract
      * @param  _movingAveragePriceFeed      The address of MA price feed
-     * @param  _daiAddress                  The address of the Dai contract
+     * @param  _usdcAddress                 The address of the USDC contract
      * @param  _stableCollateralAddress     The address stable collateral 
-     *                                      (made of Dai wrapped in a Set Token)
+     *                                      (made of USDC wrapped in a Set Token)
      * @param  _riskCollateralAddress       The address risk collateral 
      *                                      (made of ETH wrapped in a Set Token)
      * @param  _setTokenFactory             The address of the SetTokenFactory
@@ -101,7 +101,7 @@ contract ETHTwentyDayMACOManager {
     constructor(
         address _coreAddress,
         address _movingAveragePriceFeed,
-        address _daiAddress,
+        address _usdcAddress,
         address _ethAddress,
         address _stableCollateralAddress,
         address _riskCollateralAddress,
@@ -118,7 +118,7 @@ contract ETHTwentyDayMACOManager {
         setTokenFactory = _setTokenFactory;
         auctionLibrary = _auctionLibrary;
 
-        daiAddress = _daiAddress;
+        usdcAddress = _usdcAddress;
         ethAddress = _ethAddress;
         stableCollateralAddress = _stableCollateralAddress;
         riskCollateralAddress = _riskCollateralAddress;
@@ -297,7 +297,7 @@ contract ETHTwentyDayMACOManager {
                 "ETHTwentyDayMACOManager.initialPropose: ETH Price must be below moving average price"
             );
         } else {
-            // If currently holding Dai (!riskOn) check to see if price is above 20 day MA, otherwise revert.
+            // If currently holding USDC (!riskOn) check to see if price is above 20 day MA, otherwise revert.
             require(
                 _movingAveragePrice < _ethPrice,
                 "ETHTwentyDayMACOManager.initialPropose: ETH Price must be above moving average price"
@@ -422,7 +422,7 @@ contract ETHTwentyDayMACOManager {
         if (riskOn) {
             // Create static components and units array
             address[] memory nextSetComponents = new address[](1);
-            nextSetComponents[0] = daiAddress;
+            nextSetComponents[0] = usdcAddress;
             uint256[] memory nextSetUnits = getNewCollateralSetUnits(
                 _riskCollateralValue,
                 USDC_PRICE,
@@ -437,8 +437,8 @@ contract ETHTwentyDayMACOManager {
                 nextSetComponents,
                 nextSetUnits,
                 _stableCollateralDetails.naturalUnit,
-                bytes32("DAIETH"),
-                bytes32("DAIETH"),
+                bytes32("USDCETH"),
+                bytes32("USDCETH"),
                 ""
             );
             // Calculate dollar value of new stable collateral
@@ -467,8 +467,8 @@ contract ETHTwentyDayMACOManager {
                 nextSetComponents,
                 nextSetUnits,
                 _riskCollateralDetails.naturalUnit,
-                bytes32("DAI"),
-                bytes32("DAI"),
+                bytes32("USDC"),
+                bytes32("USDC"),
                 ""
             );
 
