@@ -408,6 +408,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
     let lastPrice: BigNumber;
     let proposalPeriod: BigNumber;
     let auctionTimeToPivot: BigNumber;
+    let misalignedRiskOn: boolean = undefined;
 
     before(async () => {
       updatedValues = _.map(new Array(19), function(el, i) {return ether(150 + i); });
@@ -432,6 +433,13 @@ contract('ETHTwentyDayMACOManager', accounts => {
         new BigNumber(20)
       );
 
+      let passedRiskOn: boolean;
+      if (misalignedRiskOn != undefined) {
+        passedRiskOn = misalignedRiskOn;
+      } else {
+        passedRiskOn = riskOn;
+      }
+
       ethTwentyDayMACOManager = await managerWrapper.deployETHTwentyDayMACOManagerAsync(
         core.address,
         movingAverageOracle.address,
@@ -442,7 +450,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
         factory.address,
         linearAuctionPriceCurve.address,
         auctionTimeToPivot,
-        riskOn,
+        passedRiskOn,
       );
 
       proposalPeriod = ONE_DAY_IN_SECONDS;
@@ -487,6 +495,36 @@ contract('ETHTwentyDayMACOManager', accounts => {
 
           const actualTimestamp = await ethTwentyDayMACOManager.proposalTimestamp.callAsync();
           expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
+        });
+
+        describe('but riskOn parameter has become misaligned due to failed rebalance', async () => {
+          before(async () => {
+            misalignedRiskOn = false;
+          });
+
+          after(async () => {
+            misalignedRiskOn = undefined;
+          });
+
+          it('riskOn parameter is flipped', async () => {
+            const preCallRiskOn = await ethTwentyDayMACOManager.riskOn.callAsync();
+            expect(preCallRiskOn).to.equal(false);
+
+            await subject();
+
+            const postCallRiskOn = await ethTwentyDayMACOManager.riskOn.callAsync();
+            expect(postCallRiskOn).to.equal(true);
+          });
+
+          it('sets the proposalTimestamp correctly', async () => {
+            await subject();
+
+            const block = await web3.eth.getBlock('latest');
+            const expectedTimestamp = new BigNumber(block.timestamp);
+
+            const actualTimestamp = await ethTwentyDayMACOManager.proposalTimestamp.callAsync();
+            expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
+          });
         });
 
         describe('but price has not dipped below MA', async () => {
@@ -541,6 +579,36 @@ contract('ETHTwentyDayMACOManager', accounts => {
 
           const actualTimestamp = await ethTwentyDayMACOManager.proposalTimestamp.callAsync();
           expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
+        });
+
+        describe('but riskOn parameter has become misaligned due to failed rebalance', async () => {
+          before(async () => {
+            misalignedRiskOn = true;
+          });
+
+          after(async () => {
+            misalignedRiskOn = undefined;
+          });
+
+          it('riskOn parameter is flipped', async () => {
+            const preCallRiskOn = await ethTwentyDayMACOManager.riskOn.callAsync();
+            expect(preCallRiskOn).to.equal(true);
+
+            await subject();
+
+            const postCallRiskOn = await ethTwentyDayMACOManager.riskOn.callAsync();
+            expect(postCallRiskOn).to.equal(false);
+          });
+
+          it('sets the proposalTimestamp correctly', async () => {
+            await subject();
+
+            const block = await web3.eth.getBlock('latest');
+            const expectedTimestamp = new BigNumber(block.timestamp);
+
+            const actualTimestamp = await ethTwentyDayMACOManager.proposalTimestamp.callAsync();
+            expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
+          });
         });
 
         describe('but price has not dipped below MA', async () => {

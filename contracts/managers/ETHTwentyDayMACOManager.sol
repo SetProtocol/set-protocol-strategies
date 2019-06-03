@@ -174,6 +174,10 @@ contract ETHTwentyDayMACOManager {
             block.timestamp > proposalTimestamp.add(TWELVE_HOURS_IN_SECONDS),
             "ETHTwentyDayMACOManager.initialPropose: 12 hours must pass before new proposal initiated"
         );
+
+        // Checks to make sure that collateral used aligns with riskOn parameter in case a rebalance is aborted
+        // after proposal goes through.
+        confirmLastRebalance();
         
         // Create interface to interact with RebalancingSetToken and check enough time has passed for proposal
         FlexibleTimingManagerLibrary.validateManagerPropose(IRebalancingSetToken(rebalancingSetTokenAddress));
@@ -255,6 +259,21 @@ contract ETHTwentyDayMACOManager {
     }
 
     /* ============ Internal ============ */
+
+    /*
+     * Make sure that riskOn parameter is aligned with the expected collateral underlying the rebalancing set.
+     * Done in case an auction fails and resets back to the original collateral, this failed rebalance would
+     * not show up on the manager and would indicate the wrong position.
+     *
+     */
+    function confirmLastRebalance()
+        internal
+    {
+        address[] memory currentCollateralComponents = ISetToken(rebalancingSetTokenAddress).getComponents();
+
+        bool isRiskCollateral = (currentCollateralComponents[0] == riskCollateralAddress);
+        riskOn = isRiskCollateral ? true : false;
+    }
 
     /*
      * Get the ETH and moving average prices from respective oracles
