@@ -215,6 +215,7 @@ export class OracleWrapper {
   public async batchUpdateDailyPriceFeedAsync(
     dailyPriceFeed: DailyPriceFeedContract,
     medianizer: MedianContract,
+    initialTimeOffset: number,
     daysOfData: number,
     priceArray: BigNumber[] = undefined,
     from: Address = this._contractOwnerAddress
@@ -231,7 +232,7 @@ export class OracleWrapper {
         dailyPriceFeed,
         medianizer,
         priceArray[i],
-        ONE_DAY_IN_MINUTES * (i + 1)
+        initialTimeOffset + ONE_DAY_IN_MINUTES * (i + 1)
       );
     }
 

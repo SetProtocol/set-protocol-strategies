@@ -21,7 +21,7 @@ const web3 = getWeb3();
 const blockchain = new Blockchain(web3);
 const { expect } = chai;
 
-contract('ManagerLibraryMock', accounts => {
+contract('FlexibleTimingManagerLibraryMock', accounts => {
   const [
     contractDeployer,
   ] = accounts;
@@ -65,8 +65,7 @@ contract('ManagerLibraryMock', accounts => {
     it('should return the correct set token dollar amount', async () => {
       const tokenDollarValue = await subject();
 
-      const VALUE_TO_CENTS_CONVERSION = new BigNumber(10 ** 16);
-      const expectedDollarValue = ether(300).div(VALUE_TO_CENTS_CONVERSION);
+      const expectedDollarValue = ether(300);
 
       expect(tokenDollarValue).to.bignumber.equal(expectedDollarValue);
     });

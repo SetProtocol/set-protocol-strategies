@@ -9,11 +9,19 @@ import {
 } from 'set-protocol-contracts';
 
 import {
+  USDCMockContract,
+} from '../contracts';
+
+import {
+  DEFAULT_GAS,
+  DEPLOYED_TOKEN_QUANTITY,
   UNLIMITED_ALLOWANCE_IN_BASE_UNITS,
 } from '../constants';
 import {
   getWeb3,
 } from '../web3Helper';
+
+const USDCMock = artifacts.require('USDCMock');
 
 const web3 = getWeb3();
 
@@ -35,7 +43,7 @@ export class ERC20Wrapper {
   }
 
   public async approveTransfersAsync(
-    tokens: (StandardTokenMockContract | WethMockContract)[],
+    tokens: (StandardTokenMockContract | WethMockContract | USDCMockContract)[],
     to: Address,
     from: Address = this._senderAccountAddress,
   ) {
@@ -115,5 +123,23 @@ export class ERC20Wrapper {
     );
 
     return tokenPromises;
+  }
+
+  public async deployUSDCTokenAsync(
+    initialAccount: Address,
+    initialTokenAmount: BigNumber = DEPLOYED_TOKEN_QUANTITY,
+  ): Promise<USDCMockContract> {
+    const truffleMockToken = await USDCMock.new(
+      initialAccount,
+      initialTokenAmount,
+      'Mock Token',
+      'MOCK',
+      { from: this._senderAccountAddress, gas: DEFAULT_GAS },
+    );
+
+    return new USDCMockContract(
+      new web3.eth.Contract(truffleMockToken.abi, truffleMockToken.address),
+      { from: this._senderAccountAddress, gas: DEFAULT_GAS },
+    );
   }
 }

@@ -168,7 +168,7 @@ library FlexibleTimingManagerLibrary {
      * @param  _naturalUnit         The naturalUnit of the set being component belongs to
      * @param  _unit                The unit of the component in the set
      * @param  _tokenDecimals       The component token's decimal value
-     * @return uint256              The USD value of the component's allocation in the Set (in cents)
+     * @return uint256              The USD value of the component's allocation in the Set
      */
     function calculateTokenAllocationAmountUSD(
         uint256 _tokenPrice,
@@ -181,17 +181,15 @@ library FlexibleTimingManagerLibrary {
         returns (uint256)
     {
         uint256 SET_TOKEN_DECIMALS = 18;
-        uint256 VALUE_TO_CENTS_CONVERSION = 10 ** 16;
 
         // Calculate the amount of component base units are in one full set token
         uint256 componentUnitsInFullToken = _unit
             .mul(10 ** SET_TOKEN_DECIMALS)
             .div(_naturalUnit);
         
-        // Return value of component token in one full set token, divide by 10 ** 16 to turn tokenPrice into cents
+        // Return value of component token in one full set token
         return _tokenPrice
             .mul(componentUnitsInFullToken)
-            .div(10 ** _tokenDecimals)
-            .div(VALUE_TO_CENTS_CONVERSION);
+            .div(10 ** _tokenDecimals);
     }
 }
