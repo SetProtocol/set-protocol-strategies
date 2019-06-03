@@ -90,6 +90,8 @@ contract('ETHTwentyDayMACOManager', accounts => {
   const managerWrapper = new ManagerWrapper(deployerAccount);
   const oracleWrapper = new OracleWrapper(deployerAccount);
 
+  const SEVEN_DAYS_IN_MINUTES = 7 * 1440;
+
   before(async () => {
     ABIDecoder.addABI(Core.abi);
     ABIDecoder.addABI(ETHTwentyDayMACOManager.abi);
@@ -293,7 +295,6 @@ contract('ETHTwentyDayMACOManager', accounts => {
     });
 
     beforeEach(async () => {
-      const SEVEN_DAYS_IN_MINUTES = 7 * 1440;
       await oracleWrapper.batchUpdateDailyPriceFeedAsync(
         dailyPriceFeed,
         ethMedianizer,
@@ -414,7 +415,6 @@ contract('ETHTwentyDayMACOManager', accounts => {
     });
 
     beforeEach(async () => {
-      const SEVEN_DAYS_IN_MINUTES = 7 * 1440;
       await oracleWrapper.batchUpdateDailyPriceFeedAsync(
         dailyPriceFeed,
         ethMedianizer,
@@ -594,6 +594,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
       await oracleWrapper.batchUpdateDailyPriceFeedAsync(
         dailyPriceFeed,
         ethMedianizer,
+        SEVEN_DAYS_IN_MINUTES,
         20,
         updatedValues
       );
@@ -610,7 +611,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
       ethTwentyDayMACOManager = await managerWrapper.deployETHTwentyDayMACOManagerAsync(
         core.address,
         movingAverageOracle.address,
-        daiMock.address,
+        usdcMock.address,
         wrappedETH.address,
         stableCollateral.address,
         riskCollateral.address,
