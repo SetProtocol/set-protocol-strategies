@@ -170,7 +170,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
   describe('#constructor', async () => {
     let subjectCoreAddress: Address;
     let subjectMovingAveragePriceFeed: Address;
-    let subjectDaiAddress: Address;
+    let subjectUSDCAddress: Address;
     let subjectEthAddress: Address;
     let subjectStableCollateralAddress: Address;
     let subjectRiskCollateralAddress: Address;
@@ -182,7 +182,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
     beforeEach(async () => {
       subjectCoreAddress = core.address;
       subjectMovingAveragePriceFeed = movingAverageOracle.address;
-      subjectDaiAddress = usdcMock.address;
+      subjectUSDCAddress = usdcMock.address;
       subjectEthAddress = wrappedETH.address;
       subjectStableCollateralAddress = stableCollateral.address;
       subjectRiskCollateralAddress = riskCollateral.address;
@@ -196,7 +196,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
       return managerWrapper.deployETHTwentyDayMACOManagerAsync(
         subjectCoreAddress,
         subjectMovingAveragePriceFeed,
-        subjectDaiAddress,
+        subjectUSDCAddress,
         subjectEthAddress,
         subjectStableCollateralAddress,
         subjectRiskCollateralAddress,
@@ -223,12 +223,12 @@ contract('ETHTwentyDayMACOManager', accounts => {
       expect(actualMovingAveragePriceFeedAddress).to.equal(subjectMovingAveragePriceFeed);
     });
 
-    it('sets the correct dai address', async () => {
+    it('sets the correct usdc address', async () => {
       ethTwentyDayMACOManager = await subject();
 
-      const actualDaiAddress = await ethTwentyDayMACOManager.daiAddress.callAsync();
+      const actualUSDCAddress = await ethTwentyDayMACOManager.usdcAddress.callAsync();
 
-      expect(actualDaiAddress).to.equal(subjectDaiAddress);
+      expect(actualUSDCAddress).to.equal(subjectUSDCAddress);
     });
 
     it('sets the correct stable collateral address', async () => {
