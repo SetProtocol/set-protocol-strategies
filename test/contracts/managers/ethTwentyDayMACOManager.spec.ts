@@ -21,16 +21,24 @@ import {
   RebalancingSetTokenFactoryContract,
   SetTokenContract,
   SetTokenFactoryContract,
-  StandardTokenMockContract,
   TransferProxyContract,
   WethMockContract,
+  WhiteListContract,
 } from 'set-protocol-contracts';
 import {
   DailyPriceFeedContract,
-  MovingAverageOracleContract,
   ETHTwentyDayMACOManagerContract,
+  MovingAverageOracleContract,
+  USDCMockContract,
 } from '@utils/contracts';
-import { ONE_DAY_IN_SECONDS, DEFAULT_GAS } from '@utils/constants';
+import {
+  DEFAULT_GAS,
+  ETH_DECIMALS,
+  ONE_DAY_IN_SECONDS,
+  RISK_COLLATERAL_NATURAL_UNIT,
+  STABLE_COLLATERAL_NATURAL_UNIT,
+  USDC_DECIMALS,
+} from '@utils/constants';
 import { extractNewSetTokenAddressFromLogs } from '@utils/contract_logs/core';
 import { expectRevertError } from '@utils/tokenAssertions';
 import { getWeb3 } from '@utils/web3Helper';
@@ -63,8 +71,9 @@ contract('ETHTwentyDayMACOManager', accounts => {
   let factory: SetTokenFactoryContract;
   let rebalancingFactory: RebalancingSetTokenFactoryContract;
   let linearAuctionPriceCurve: LinearAuctionPriceCurveContract;
+  let whiteList: WhiteListContract;
   let ethMedianizer: MedianContract;
-  let daiMock: StandardTokenMockContract;
+  let usdcMock: USDCMockContract;
   let wrappedETH: WethMockContract;
 
   let dailyPriceFeed: DailyPriceFeedContract;
@@ -100,6 +109,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
     factory = await protocolWrapper.getDeployedSetTokenFactoryAsync();
     rebalancingFactory = await protocolWrapper.getDeployedRebalancingSetTokenFactoryAsync();
     linearAuctionPriceCurve = await protocolWrapper.getDeployedLinearAuctionPriceCurveAsync();
+    whiteList = await protocolWrapper.getDeployedWhiteList();
 
     ethMedianizer = await protocolWrapper.getDeployedWETHMedianizerAsync();
     await oracleWrapper.addPriceFeedOwnerToMedianizer(ethMedianizer, deployerAccount);
@@ -111,10 +121,14 @@ contract('ETHTwentyDayMACOManager', accounts => {
       SetTestUtils.generateTimestamp(1000),
     );
 
-    daiMock = await protocolWrapper.getDeployedDAIAsync();
+    usdcMock = await erc20Wrapper.deployUSDCTokenAsync(deployerAccount);
+    await protocolWrapper.addTokenToWhiteList(usdcMock.address, whiteList);
+    await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS.mul(7));
+    await protocolWrapper.addTokenToWhiteList(usdcMock.address, whiteList);
+
     wrappedETH = await protocolWrapper.getDeployedWETHAsync();
     await erc20Wrapper.approveTransfersAsync(
-      [daiMock, wrappedETH],
+      [usdcMock, wrappedETH],
       transferProxy.address
     );
 
@@ -135,17 +149,17 @@ contract('ETHTwentyDayMACOManager', accounts => {
     stableCollateral = await protocolWrapper.createSetTokenAsync(
       core,
       factory.address,
-      [daiMock.address],
+      [usdcMock.address],
       [new BigNumber(100)],
-      new BigNumber(1),
+      STABLE_COLLATERAL_NATURAL_UNIT,
     );
 
     riskCollateral = await protocolWrapper.createSetTokenAsync(
       core,
       factory.address,
       [wrappedETH.address],
-      [new BigNumber(1)],
-      new BigNumber(1),
+      [new BigNumber(100)],
+      RISK_COLLATERAL_NATURAL_UNIT,
     );
   });
 
@@ -168,7 +182,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
     beforeEach(async () => {
       subjectCoreAddress = core.address;
       subjectMovingAveragePriceFeed = movingAverageOracle.address;
-      subjectDaiAddress = daiMock.address;
+      subjectDaiAddress = usdcMock.address;
       subjectEthAddress = wrappedETH.address;
       subjectStableCollateralAddress = stableCollateral.address;
       subjectRiskCollateralAddress = riskCollateral.address;
@@ -279,9 +293,11 @@ contract('ETHTwentyDayMACOManager', accounts => {
     });
 
     beforeEach(async () => {
+      const SEVEN_DAYS_IN_MINUTES = 7 * 1440;
       await oracleWrapper.batchUpdateDailyPriceFeedAsync(
         dailyPriceFeed,
         ethMedianizer,
+        SEVEN_DAYS_IN_MINUTES,
         20,
         updatedValues
       );
@@ -298,7 +314,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
       ethTwentyDayMACOManager = await managerWrapper.deployETHTwentyDayMACOManagerAsync(
         core.address,
         movingAverageOracle.address,
-        daiMock.address,
+        usdcMock.address,
         wrappedETH.address,
         stableCollateral.address,
         riskCollateral.address,
@@ -398,9 +414,11 @@ contract('ETHTwentyDayMACOManager', accounts => {
     });
 
     beforeEach(async () => {
+      const SEVEN_DAYS_IN_MINUTES = 7 * 1440;
       await oracleWrapper.batchUpdateDailyPriceFeedAsync(
         dailyPriceFeed,
         ethMedianizer,
+        SEVEN_DAYS_IN_MINUTES,
         20,
         updatedValues
       );
@@ -417,7 +435,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
       ethTwentyDayMACOManager = await managerWrapper.deployETHTwentyDayMACOManagerAsync(
         core.address,
         movingAverageOracle.address,
-        daiMock.address,
+        usdcMock.address,
         wrappedETH.address,
         stableCollateral.address,
         riskCollateral.address,
@@ -755,6 +773,8 @@ contract('ETHTwentyDayMACOManager', accounts => {
               stableCollateral,
               riskCollateral,
               ethMedianizer,
+              USDC_DECIMALS,
+              ETH_DECIMALS,
               true
             );
             expect(nextSetNaturalUnit).to.be.bignumber.equal(expectedNextSetParams['naturalUnit']);
@@ -771,6 +791,8 @@ contract('ETHTwentyDayMACOManager', accounts => {
               stableCollateral,
               riskCollateral,
               ethMedianizer,
+              USDC_DECIMALS,
+              ETH_DECIMALS,
               true
             );
             expect(JSON.stringify(nextSetUnits)).to.be.eql(JSON.stringify(expectedNextSetParams['units']));
@@ -783,7 +805,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
             const nextSet = await protocolWrapper.getSetTokenAsync(nextSetAddress);
             const nextSetComponents = await nextSet.getComponents.callAsync();
 
-            const expectedNextSetComponents = [daiMock.address];
+            const expectedNextSetComponents = [usdcMock.address];
             expect(JSON.stringify(nextSetComponents)).to.be.eql(JSON.stringify(expectedNextSetComponents));
           });
 
@@ -991,6 +1013,8 @@ contract('ETHTwentyDayMACOManager', accounts => {
               stableCollateral,
               newSet,
               ethMedianizer,
+              USDC_DECIMALS,
+              ETH_DECIMALS,
               false
             );
             expect(newSetNaturalUnit).to.be.bignumber.equal(expectedNextSetParams['naturalUnit']);
@@ -1007,6 +1031,8 @@ contract('ETHTwentyDayMACOManager', accounts => {
               stableCollateral,
               newSet,
               ethMedianizer,
+              USDC_DECIMALS,
+              ETH_DECIMALS,
               false
             );
             expect(JSON.stringify(newSetUnits)).to.be.eql(JSON.stringify(expectedNextSetParams['units']));

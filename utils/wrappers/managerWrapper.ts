@@ -15,6 +15,11 @@ import { BigNumber } from 'bignumber.js';
 
 import {
   DEFAULT_GAS,
+  ETH_DECIMALS,
+  RISK_COLLATERAL_NATURAL_UNIT,
+  STABLE_COLLATERAL_NATURAL_UNIT,
+  USDC_DECIMALS,
+  VALUE_TO_CENTS_CONVERSION,
 } from '../constants';
 
 import { getWeb3 } from '../web3Helper';
@@ -244,35 +249,49 @@ export class ManagerWrapper {
     stableCollateral: SetTokenContract,
     riskCollateral: SetTokenContract,
     spotPriceOracle: MedianContract,
+    stableCollateralDecimals: BigNumber,
+    riskCollateralDecimals: BigNumber,
     riskOn: boolean,
   ): Promise<any> {
+    let naturalUnit: BigNumber;
     let units: BigNumber[];
 
-    const CALCULATION_PRECISION = new BigNumber(100);
-    const naturalUnit: BigNumber = new BigNumber(100);
     const currentEthPrice = new BigNumber(await spotPriceOracle.read.callAsync());
-    const currentDaiPrice = new BigNumber(10 ** 18);
+    const currentUSDCPrice = new BigNumber(10 ** 18);
+
+    const riskUnits = await riskCollateral.getUnits.callAsync();
+    const riskNaturalUnit = await riskCollateral.naturalUnit.callAsync();
+    const stableUnits = await stableCollateral.getUnits.callAsync();
+    const stableNaturalUnit = await stableCollateral.naturalUnit.callAsync();
 
     if (riskOn) {
-      const riskUnits = await riskCollateral.getUnits.callAsync();
-      const riskNaturalUnit = await riskCollateral.naturalUnit.callAsync();
+      const riskCollateralUSDValue = this.computeTokenDollarAmount(
+        currentEthPrice,
+        SET_FULL_TOKEN_UNITS.mul(riskUnits).div(riskNaturalUnit),
+        riskCollateralDecimals
+      );
 
-      const newUnits = currentEthPrice
-                        .mul(riskUnits[0])
-                        .mul(CALCULATION_PRECISION)
-                        .div(riskNaturalUnit)
-                        .div(currentDaiPrice);
+      const newUnits = riskCollateralUSDValue
+                        .mul(stableCollateralDecimals)
+                        .mul(stableNaturalUnit)
+                        .div(SET_FULL_TOKEN_UNITS)
+                        .div(currentUSDCPrice.div(VALUE_TO_CENTS_CONVERSION));
       units = [newUnits];
+      naturalUnit = STABLE_COLLATERAL_NATURAL_UNIT;
     } else {
-      const stableUnits = await stableCollateral.getUnits.callAsync();
-      const stableNaturalUnit = await stableCollateral.naturalUnit.callAsync();
+      const stableCollateralUSDValue = this.computeTokenDollarAmount(
+        currentUSDCPrice,
+        SET_FULL_TOKEN_UNITS.mul(stableUnits).div(stableNaturalUnit),
+        stableCollateralDecimals
+      );
 
-      const newUnits = currentDaiPrice
-                        .mul(stableUnits[0])
-                        .mul(CALCULATION_PRECISION)
-                        .div(stableNaturalUnit)
-                        .div(currentEthPrice);
+      const newUnits = stableCollateralUSDValue
+                        .mul(riskCollateralDecimals)
+                        .mul(riskNaturalUnit)
+                        .div(SET_FULL_TOKEN_UNITS)
+                        .div(currentEthPrice.div(VALUE_TO_CENTS_CONVERSION));
       units = [newUnits];
+      naturalUnit = RISK_COLLATERAL_NATURAL_UNIT;
     }
     return {
       units,
@@ -355,12 +374,29 @@ export class ManagerWrapper {
     const currentSetUnits = await currentSetToken.getUnits.callAsync();
     const currentSetNaturalUnit = await currentSetToken.naturalUnit.callAsync();
 
+    const USDC_PRICE = new BigNumber(10 ** 18);
     if (riskOn) {
-      nextSetDollarAmount = nextSetUnits[0].mul(new BigNumber(10 ** 18)).div(nextSetNaturalUnit);
-      currentSetDollarAmount = ethPrice.mul(currentSetUnits[0]).div(currentSetNaturalUnit);
+      nextSetDollarAmount = nextSetUnits[0]
+        .mul(SET_FULL_TOKEN_UNITS)
+        .mul(USDC_PRICE)
+        .div(nextSetNaturalUnit)
+        .div(USDC_DECIMALS);
+      currentSetDollarAmount = currentSetUnits[0]
+        .mul(SET_FULL_TOKEN_UNITS)
+        .mul(ethPrice)
+        .div(currentSetNaturalUnit)
+        .div(ETH_DECIMALS);
     } else {
-      currentSetDollarAmount = currentSetUnits[0].mul(new BigNumber(10 ** 18)).div(currentSetNaturalUnit);
-      nextSetDollarAmount = ethPrice.mul(nextSetUnits[0]).div(nextSetNaturalUnit);
+      currentSetDollarAmount = currentSetUnits[0]
+        .mul(SET_FULL_TOKEN_UNITS)
+        .mul(USDC_PRICE)
+        .div(currentSetNaturalUnit)
+        .div(USDC_DECIMALS);
+      nextSetDollarAmount = nextSetUnits[0]
+        .mul(SET_FULL_TOKEN_UNITS)
+        .mul(ethPrice)
+        .div(nextSetNaturalUnit)
+        .div(ETH_DECIMALS);
     }
 
     const fairValue = nextSetDollarAmount.div(currentSetDollarAmount).mul(1000).round(0, 3);
@@ -463,8 +499,6 @@ export class ManagerWrapper {
     unitsInFullSet: BigNumber,
     tokenDecimals: BigNumber,
   ): BigNumber {
-    const VALUE_TO_CENTS_CONVERSION = new BigNumber(10 ** 16);
-
     return tokenPrice
              .mul(unitsInFullSet)
              .div(tokenDecimals)

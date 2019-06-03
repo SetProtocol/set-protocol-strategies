@@ -120,6 +120,7 @@ contract('MovingAverageOracle', accounts => {
       updatedValues = await oracleWrapper.batchUpdateDailyPriceFeedAsync(
         dailyPriceFeed,
         ethMedianizer,
+        0,
         19
       );
 

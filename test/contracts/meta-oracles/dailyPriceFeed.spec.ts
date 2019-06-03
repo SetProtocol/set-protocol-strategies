@@ -236,6 +236,7 @@ contract('DailyPriceDataBank', accounts => {
       updatedPrices = await oracleWrapper.batchUpdateDailyPriceFeedAsync(
         dailyPriceFeed,
         ethMedianizer,
+        0,
         20,
       );
 

@@ -239,4 +239,15 @@ export class ProtocolWrapper {
       { from: this._tokenOwnerAddress },
     );
   }
+
+  public async addTokenToWhiteList(
+    address: Address,
+    whiteList: WhiteListContract,
+    from: Address = this._tokenOwnerAddress,
+  ): Promise<void> {
+    await whiteList.addAddress.sendTransactionAsync(
+      address,
+      { from },
+    );
+  }
 }

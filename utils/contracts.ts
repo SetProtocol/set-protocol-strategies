@@ -10,6 +10,7 @@ import { LinkedListLibraryMockContract } from '../types/generated/linked_list_li
 import { ManagerLibraryMockContract } from '../types/generated/manager_library_mock';
 import { MovingAverageOracleContract } from '../types/generated/moving_average_oracle';
 import { PriceFeedContract } from '../types/generated/price_feed';
+import { USDCMockContract } from '../types/generated/u_s_d_c_mock';
 
 export {
   BTCDaiRebalancingManagerContract,
@@ -23,4 +24,5 @@ export {
   ManagerLibraryMockContract,
   MovingAverageOracleContract,
   PriceFeedContract,
+  USDCMockContract,
 };
