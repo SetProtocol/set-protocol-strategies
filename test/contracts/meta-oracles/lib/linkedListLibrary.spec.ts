@@ -87,13 +87,16 @@ contract('LinkedListLibrary', accounts => {
       expect(JSON.stringify(actualDataArray)).to.equal(JSON.stringify(expectedDataArray));
     });
 
-    it('sets correct node link for index 0', async () => {
-      await subject();
+    describe('when attempting to initialize but array already contains value', async () => {
+      beforeEach(async () => {
+        await linkedListLibraryMock.addBadValue.sendTransactionAsync(
+          subjectInitialValue
+        );
+      });
 
-      const actualNodeLink = await linkedListLibraryMock.getNodeLink.callAsync(ZERO);
-      const expectedNodeLink = subjectDataSizeLimit.sub(1);
-
-      expect(actualNodeLink).to.be.bignumber.equal(expectedNodeLink);
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
     });
   });
 
@@ -105,7 +108,7 @@ contract('LinkedListLibrary', accounts => {
 
     beforeEach(async () => {
       initialValue = ether(150);
-      dataSizeLimit = new BigNumber(2);
+      dataSizeLimit = new BigNumber(3);
       await linkedListLibraryMock.initializeMock.sendTransactionAsync(
         dataSizeLimit,
         initialValue,
@@ -139,18 +142,22 @@ contract('LinkedListLibrary', accounts => {
       expect(JSON.stringify(actualDataArray)).to.equal(JSON.stringify(expectedDataArray));
     });
 
-    it('sets correct node link for index 1', async () => {
-      await subject();
-
-      const actualNodeLink = await linkedListLibraryMock.getNodeLink.callAsync(new BigNumber(1));
-      const expectedNodeLink = ZERO;
-
-      expect(actualNodeLink).to.be.bignumber.equal(expectedNodeLink);
-    });
-
     describe('when attempting to add node that exceeds data size limit', async () => {
       beforeEach(async () => {
         await subject();
+        await subject();
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('when attempting to add node but indicies are out of line', async () => {
+      beforeEach(async () => {
+        await linkedListLibraryMock.addBadValue.sendTransactionAsync(
+          subjectAddedValue
+        );
       });
 
       it('should revert', async () => {

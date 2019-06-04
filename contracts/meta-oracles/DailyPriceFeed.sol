@@ -40,12 +40,11 @@ contract DailyPriceFeed is
     uint256 constant DAYS_IN_DATASET = 200;
 
     /* ============ State Variables ============ */
-    address public medianizerAddress;
     uint256 public lastUpdatedAt;
     string public dataDescription;
+    IMedian public medianizerInstance;
 
-    LinkedListLibrary.LinkedList public dailyPriceData;
-    IMedian private medianizerInstance;
+    LinkedList public dailyPriceData;
 
     /* ============ Constructor ============ */
 
@@ -68,7 +67,6 @@ contract DailyPriceFeed is
         public
     {
         // Set medianizer address, data description, and instantiate medianizer
-        medianizerAddress = _medianizerAddress;
         dataDescription = _dataDescription;
         medianizerInstance = IMedian(_medianizerAddress);
 
@@ -98,8 +96,8 @@ contract DailyPriceFeed is
     /* ============ External ============ */
 
     /*
-     * Updates linked list with newest data point by querying medianizer. Can only be called
-     * every 24 hours.
+     * Updates linked list with newest data point by querying medianizer. Is eligible to be
+     * called every 24 hours.
      */
     function poke()
         external
@@ -125,7 +123,8 @@ contract DailyPriceFeed is
 
     /*
      * Query linked list for specified days of data. Will revert if number of days
-     * passed exceeds amount of days collected.
+     * passed exceeds amount of days collected. Will revert if not enough days of
+     * data logged.
      *
      * @param  _dataDays       Number of days of data being queried
      * @returns                Array of daily price data of length _dataDays                   
@@ -155,7 +154,6 @@ contract DailyPriceFeed is
         external
         onlyOwner
     {
-        medianizerAddress = _newMedianizerAddress;
         medianizerInstance = IMedian(_newMedianizerAddress);
     }
 

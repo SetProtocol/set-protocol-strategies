@@ -89,7 +89,7 @@ contract('MovingAverageOracle', accounts => {
     it('sets the correct price feed address', async () => {
       movingAverageOracle = await subject();
 
-      const actualPriceFeedAddress = await movingAverageOracle.priceFeedAddress.callAsync();
+      const actualPriceFeedAddress = await movingAverageOracle.priceFeedInstance.callAsync();
 
       expect(actualPriceFeedAddress).to.equal(subjectPriceFeedAddress);
     });

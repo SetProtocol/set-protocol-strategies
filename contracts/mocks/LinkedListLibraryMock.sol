@@ -92,6 +92,14 @@ contract LinkedListLibraryMock is
         );
     }
 
+    function addBadValue(
+        uint256 _badValue
+    )
+        public
+    {
+        linkedList.dataArray.push(_badValue);
+    }
+
     /* ============ Getters ============ */
 
     function getDataSizeLimit()
@@ -116,15 +124,5 @@ contract LinkedListLibraryMock is
         returns (uint256[] memory)
     {
         return linkedList.dataArray;
-    }
-
-    function getNodeLink(
-        uint256 _index
-    )
-        public
-        view
-        returns (uint256)
-    {
-        return linkedList.links[_index];
     }
 }
