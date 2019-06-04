@@ -269,10 +269,11 @@ contract ETHTwentyDayMACOManager {
     function confirmLastRebalance()
         internal
     {
+        // Get set currently collateralizing rebalancing set token
         address[] memory currentCollateralComponents = ISetToken(rebalancingSetTokenAddress).getComponents();
 
-        bool isRiskCollateral = (currentCollateralComponents[0] == riskCollateralAddress);
-        riskOn = isRiskCollateral ? true : false;
+        // If collateralized by riskCollateral set riskOn to true, else to false
+        riskOn = (currentCollateralComponents[0] == riskCollateralAddress);
     }
 
     /*
