@@ -40,7 +40,7 @@ interface IDailyPriceFeed {
     /*
      * Get the source medianizer address for Price Feed.
      */
-    function medianizerAddress()
+    function medianizerInstance()
         external
         view
         returns (address);

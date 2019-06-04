@@ -36,7 +36,6 @@ contract LinkedListLibrary {
         uint256 dataSizeLimit;
         uint256 lastUpdatedIndex;
         uint256[] dataArray;
-        mapping (uint256 => uint256) links;
     }
 
     /*
@@ -53,10 +52,14 @@ contract LinkedListLibrary {
     )
         internal
     {
+        require(
+            _self.dataArray.length == 0,
+            "LinkedListLibrary: Initialized LinkedList must be empty"
+        );
+
         // Initialize Linked list by defining upper limit of data points in the list and setting
         // initial value
         _self.dataSizeLimit = _dataSizeLimit;
-        _self.links[0] = _dataSizeLimit.sub(1);
         _self.dataArray.push(_initialValue);
         _self.lastUpdatedIndex = 0;
     }
@@ -97,12 +100,14 @@ contract LinkedListLibrary {
         uint256 newNodeIndex = _self.lastUpdatedIndex.add(1);
 
         require(
+            newNodeIndex == _self.dataArray.length,
+            "LinkedListLibrary: Node must be added at next expected index in list"
+        );
+
+        require(
             newNodeIndex < _self.dataSizeLimit,
             "LinkedListLibrary: Attempting to add node that exceeds data size limit"
         );
-
-        // Add links of new node
-        _self.links[newNodeIndex] = _self.lastUpdatedIndex;
 
         // Add node value
         _self.dataArray.push(_addedValue);
@@ -125,12 +130,7 @@ contract LinkedListLibrary {
         internal
     {
         // Determine the next node in list to be updated
-        uint256 updateNodeIndex;
-        if (_self.lastUpdatedIndex == _self.dataSizeLimit.sub(1)) {
-            updateNodeIndex = 0;
-        } else {
-            updateNodeIndex = _self.lastUpdatedIndex.add(1);
-        }
+        uint256 updateNodeIndex = _self.lastUpdatedIndex.add(1) % _self.dataSizeLimit;
 
         // Require that updated node has been previously added
         require(
@@ -173,7 +173,11 @@ contract LinkedListLibrary {
             outputArray[i] = _self.dataArray[linkedListIndex];
 
             // Find next linked index
-            linkedListIndex = _self.links[linkedListIndex];
+            if (linkedListIndex != 0) {
+                linkedListIndex = linkedListIndex.sub(1);  
+            } else {
+                linkedListIndex = _self.dataSizeLimit.sub(1); 
+            }
         }
 
         return outputArray;

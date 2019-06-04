@@ -86,7 +86,7 @@ contract('DailyPriceDataBank', accounts => {
     it('sets the correct medianizer address', async () => {
       dailyPriceFeed = await subject();
 
-      const actualMedianizerAddress = await dailyPriceFeed.medianizerAddress.callAsync();
+      const actualMedianizerAddress = await dailyPriceFeed.medianizerInstance.callAsync();
 
       expect(actualMedianizerAddress).to.equal(subjectMedianizerAddress);
     });
@@ -309,7 +309,7 @@ contract('DailyPriceDataBank', accounts => {
     it('updates the medianizer address', async () => {
       await subject();
 
-      const actualMedianizerAddress = await dailyPriceFeed.medianizerAddress.callAsync();
+      const actualMedianizerAddress = await dailyPriceFeed.medianizerInstance.callAsync();
 
       expect(actualMedianizerAddress).to.equal(subjectNewMedianizer);
     });

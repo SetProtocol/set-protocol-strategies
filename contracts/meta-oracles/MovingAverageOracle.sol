@@ -33,10 +33,8 @@ contract MovingAverageOracle {
     using SafeMath for uint256;
 
     /* ============ State Variables ============ */
-    address public priceFeedAddress;
     string public dataDescription;
-
-    IDailyPriceFeed private priceFeedInterface;
+    IDailyPriceFeed public priceFeedInstance;
 
     /* ============ Constructor ============ */
 
@@ -54,8 +52,7 @@ contract MovingAverageOracle {
     )
         public
     {
-        priceFeedAddress = _priceFeed;
-        priceFeedInterface = IDailyPriceFeed(_priceFeed);
+        priceFeedInstance = IDailyPriceFeed(_priceFeed);
 
         dataDescription = _dataDescription;
     }
@@ -75,7 +72,7 @@ contract MovingAverageOracle {
         returns (bytes32)
     {
         // Get data from price feed
-        uint256[] memory dataArray = priceFeedInterface.read(_dataPoints);
+        uint256[] memory dataArray = priceFeedInstance.read(_dataPoints);
 
         // Sum data retrieved from daily price feed
         uint256 dataSumTotal = 0;
@@ -97,6 +94,6 @@ contract MovingAverageOracle {
         view
         returns (address)
     {
-        return priceFeedInterface.medianizerAddress();
+        return priceFeedInstance.medianizerInstance();
     }
 }
