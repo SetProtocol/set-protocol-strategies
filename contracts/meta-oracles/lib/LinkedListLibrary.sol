@@ -78,11 +78,9 @@ contract LinkedListLibrary {
         internal
     {
         // Add node if data hasn't reached size limit, otherwise update next node
-        if (_self.dataArray.length < _self.dataSizeLimit) {
-            addNode(_self, _addedValue);
-        } else {
-            updateNode(_self, _addedValue);
-        }
+        _self.dataArray.length < _self.dataSizeLimit ? addNode(_self, _addedValue)
+            : updateNode(_self, _addedValue);
+
     }
 
     /*
@@ -173,11 +171,7 @@ contract LinkedListLibrary {
             outputArray[i] = _self.dataArray[linkedListIndex];
 
             // Find next linked index
-            if (linkedListIndex != 0) {
-                linkedListIndex = linkedListIndex.sub(1);  
-            } else {
-                linkedListIndex = _self.dataSizeLimit.sub(1); 
-            }
+            linkedListIndex = linkedListIndex == 0 ? _self.dataSizeLimit.sub(1) : linkedListIndex.sub(1);
         }
 
         return outputArray;
