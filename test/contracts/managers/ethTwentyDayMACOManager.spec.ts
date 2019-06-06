@@ -26,7 +26,7 @@ import {
   WhiteListContract,
 } from 'set-protocol-contracts';
 import {
-  DailyPriceFeedContract,
+  HistoricalPriceFeedContract,
   ETHTwentyDayMACOManagerContract,
   MovingAverageOracleContract,
   USDCMockContract,
@@ -76,7 +76,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
   let usdcMock: USDCMockContract;
   let wrappedETH: WethMockContract;
 
-  let dailyPriceFeed: DailyPriceFeedContract;
+  let dailyPriceFeed: HistoricalPriceFeedContract;
   let movingAverageOracle: MovingAverageOracleContract;
   let ethTwentyDayMACOManager: ETHTwentyDayMACOManagerContract;
 
@@ -134,9 +134,11 @@ contract('ETHTwentyDayMACOManager', accounts => {
       transferProxy.address
     );
 
+    const updateFrequency = ONE_DAY_IN_SECONDS;
     const feedDataDescription = '200DailyETHPrice';
     const seededValues = [];
-    dailyPriceFeed = await oracleWrapper.deployDailyPriceFeedAsync(
+    dailyPriceFeed = await oracleWrapper.deployHistoricalPriceFeedAsync(
+      updateFrequency,
       ethMedianizer.address,
       feedDataDescription,
       seededValues,
@@ -295,7 +297,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
     });
 
     beforeEach(async () => {
-      await oracleWrapper.batchUpdateDailyPriceFeedAsync(
+      await oracleWrapper.batchUpdateHistoricalPriceFeedAsync(
         dailyPriceFeed,
         ethMedianizer,
         SEVEN_DAYS_IN_MINUTES,
@@ -416,7 +418,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
     });
 
     beforeEach(async () => {
-      await oracleWrapper.batchUpdateDailyPriceFeedAsync(
+      await oracleWrapper.batchUpdateHistoricalPriceFeedAsync(
         dailyPriceFeed,
         ethMedianizer,
         SEVEN_DAYS_IN_MINUTES,
@@ -659,7 +661,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
     });
 
     beforeEach(async () => {
-      await oracleWrapper.batchUpdateDailyPriceFeedAsync(
+      await oracleWrapper.batchUpdateHistoricalPriceFeedAsync(
         dailyPriceFeed,
         ethMedianizer,
         SEVEN_DAYS_IN_MINUTES,

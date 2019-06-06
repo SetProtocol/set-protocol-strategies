@@ -11,7 +11,7 @@ import { BigNumberSetup } from '@utils/bigNumberSetup';
 import { Blockchain } from '@utils/blockchain';
 import { MedianContract } from 'set-protocol-contracts';
 import {
-  DailyPriceFeedContract,
+  HistoricalPriceFeedContract,
   MovingAverageOracleContract,
 } from '@utils/contracts';
 import { ONE_DAY_IN_SECONDS } from '@utils/constants';
@@ -32,7 +32,7 @@ contract('MovingAverageOracle:Scenario', accounts => {
   ] = accounts;
 
   let ethMedianizer: MedianContract;
-  let dailyPriceFeed: DailyPriceFeedContract;
+  let dailyPriceFeed: HistoricalPriceFeedContract;
   let movingAverageOracle: MovingAverageOracleContract;
 
   let initialEthPrice: BigNumber;
@@ -93,8 +93,10 @@ contract('MovingAverageOracle:Scenario', accounts => {
     let subjectDataPoints: BigNumber;
 
     beforeEach(async () => {
+      const updateFrequency = ONE_DAY_IN_SECONDS;
       const feedDataDescription = '200DailyETHPrice';
-      dailyPriceFeed = await oracleWrapper.deployDailyPriceFeedAsync(
+      dailyPriceFeed = await oracleWrapper.deployHistoricalPriceFeedAsync(
+        updateFrequency,
         ethMedianizer.address,
         feedDataDescription,
         seededValues,
@@ -129,7 +131,7 @@ contract('MovingAverageOracle:Scenario', accounts => {
         const newEthPrice = new BigNumber(267140000000000000000);
 
         // Update medianizer and price feed
-        await oracleWrapper.updateDailyPriceFeedAsync(
+        await oracleWrapper.updateHistoricalPriceFeedAsync(
           dailyPriceFeed,
           ethMedianizer,
           newEthPrice,

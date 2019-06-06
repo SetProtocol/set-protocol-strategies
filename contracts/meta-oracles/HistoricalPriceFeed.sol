@@ -24,42 +24,44 @@ import { LinkedListLibrary } from "./lib/LinkedListLibrary.sol";
 
 
 /**
- * @title DailyPriceFeed
+ * @title HistoricalPriceFeed
  * @author Set Protocol
  *
- * Contract used to store daily price data from an off-chain oracle
+ * Contract used to store Historical price data from an off-chain oracle
  */
-contract DailyPriceFeed is
+contract HistoricalPriceFeed is
     Ownable,
     LinkedListLibrary
 {
     using SafeMath for uint256;
 
     /* ============ Constants ============ */
-    uint256 constant TWENTY_FOUR_HOURS_IN_SECONDS = 86400;
     uint256 constant DAYS_IN_DATASET = 200;
 
     /* ============ State Variables ============ */
+    uint256 public updateFrequency;
     uint256 public lastUpdatedAt;
     string public dataDescription;
     IMedian public medianizerInstance;
 
-    LinkedList public dailyPriceData;
+    LinkedList public historicalPriceData;
 
     /* ============ Constructor ============ */
 
     /*
-     * Daily Price Feed constructor.
-     * Stores daily prices according to passed in oracle address. Updates must be 
+     * Historical Price Feed constructor.
+     * Stores Historical prices according to passed in oracle address. Updates must be 
      * triggered off chain to be stored in this smart contract.
      *
-     * @param  _medianizerAddress         The oracle address to read daily data from
+     * @param  _updateFrequency           How often new data can be logged, passe=d in seconds
+     * @param  _medianizerAddress         The oracle address to read historical data from
      * @param  _dataDescription           Description of data in Data Bank
-     * @param  _seededValues              Array of previous days' daily price values to seed
+     * @param  _seededValues              Array of previous days' Historical price values to seed
      *                                    initial values in list. Should NOT contain the current
      *                                    days price.
      */
     constructor(
+        uint256 _updateFrequency,
         address _medianizerAddress,
         string memory _dataDescription,
         uint256[] memory _seededValues
@@ -67,6 +69,7 @@ contract DailyPriceFeed is
         public
     {
         // Set medianizer address, data description, and instantiate medianizer
+        updateFrequency = _updateFrequency;
         dataDescription = _dataDescription;
         medianizerInstance = IMedian(_medianizerAddress);
 
@@ -75,16 +78,16 @@ contract DailyPriceFeed is
 
         // Define upper data size limit for linked list and input initial value
         initialize(
-            dailyPriceData,
+            historicalPriceData,
             DAYS_IN_DATASET,
             initialValues[0]
         );
 
         // Cycle through input values array (skipping first value used to initialize LinkedList)
-        // and add to dailyPriceData
+        // and add to historicalPriceData
         for (uint256 i = 1; i < initialValues.length; i++) {
             editList(
-                dailyPriceData,
+                historicalPriceData,
                 initialValues[i]
             );
         }
@@ -104,8 +107,8 @@ contract DailyPriceFeed is
     {
         // Make sure 24 hours have passed since last update
         require(
-            block.timestamp >= lastUpdatedAt.add(TWENTY_FOUR_HOURS_IN_SECONDS),
-            "DailyPriceFeed: Not enough time passed between updates"
+            block.timestamp >= lastUpdatedAt.add(updateFrequency),
+            "HistoricalPriceFeed: Not enough time passed between updates"
         );
 
         // Update the timestamp to current block timestamp; Prevents re-entrancy
@@ -116,7 +119,7 @@ contract DailyPriceFeed is
 
         // Update linkedList with new price
         editList(
-            dailyPriceData,
+            historicalPriceData,
             newValue
         );
     }
@@ -127,7 +130,7 @@ contract DailyPriceFeed is
      * data logged.
      *
      * @param  _dataDays       Number of days of data being queried
-     * @returns                Array of daily price data of length _dataDays                   
+     * @returns                Array of historical price data of length _dataDays                   
      */
     function read(
         uint256 _dataDays
@@ -137,7 +140,7 @@ contract DailyPriceFeed is
         returns (uint256[] memory)
     {
         return readList(
-            dailyPriceData,
+            historicalPriceData,
             _dataDays
         );
     }
@@ -162,10 +165,10 @@ contract DailyPriceFeed is
 
     /*
      * Create initialValues array from _seededValues and the current medianizer price.
-     * Added to dailyPriceData in constructor.
+     * Added to historicalPriceData in constructor.
      *
-     * @param  _seededValues        Array of previous days' daily price values to seed
-     * @returns                     Array of initial values to add to dailyPriceData                  
+     * @param  _seededValues        Array of previous days' historical price values to seed
+     * @returns                     Array of initial values to add to historicalPriceData                  
      */
     function createInitialValues(
         uint256[] memory _seededValues
