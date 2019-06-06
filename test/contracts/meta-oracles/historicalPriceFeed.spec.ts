@@ -91,7 +91,7 @@ contract('HistoricalPriceFeed', accounts => {
 
       const actualUpdateFrequency = await historicalPriceFeed.updateFrequency.callAsync();
 
-      expect(actualUpdateFrequency).to.equal(subjectUpdateFrequency);
+      expect(actualUpdateFrequency).to.be.bignumber.equal(subjectUpdateFrequency);
     });
 
     it('sets the correct medianizer address', async () => {
