@@ -17,12 +17,12 @@
 pragma solidity 0.5.7;
 
 /**
- * @title IDailyPriceFeed
+ * @title IHistoricalPriceFeed
  * @author Set Protocol
  *
- * Interface for interacting with DailyPriceFeed contract
+ * Interface for interacting with HistoricalPriceFeed contract
  */
-interface IDailyPriceFeed {
+interface IHistoricalPriceFeed {
 
     /*
      * Query linked list for specified days of data. Will revert if number of days

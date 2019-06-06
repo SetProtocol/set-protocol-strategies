@@ -13,10 +13,10 @@ import { Blockchain } from '@utils/blockchain';
 import { ether } from '@utils/units';
 import { MedianContract } from 'set-protocol-contracts';
 import {
-  DailyPriceFeedContract,
+  HistoricalPriceFeedContract,
   MovingAverageOracleContract,
 } from '@utils/contracts';
-import { ZERO } from '@utils/constants';
+import { ZERO, ONE_DAY_IN_SECONDS } from '@utils/constants';
 import { getWeb3 } from '@utils/web3Helper';
 
 import { OracleWrapper } from '@utils/wrappers/oracleWrapper';
@@ -34,7 +34,7 @@ contract('MovingAverageOracle', accounts => {
   ] = accounts;
 
   let ethMedianizer: MedianContract;
-  let dailyPriceFeed: DailyPriceFeedContract;
+  let historicalPriceFeed: HistoricalPriceFeedContract;
   let movingAverageOracle: MovingAverageOracleContract;
 
   let initialEthPrice: BigNumber;
@@ -67,15 +67,17 @@ contract('MovingAverageOracle', accounts => {
     let subjectDataDescription: string;
 
     beforeEach(async () => {
+      const updateFrequency = ONE_DAY_IN_SECONDS;
       const feedDataDescription = '200DailyETHPrice';
       seededValues = [];
-      dailyPriceFeed = await oracleWrapper.deployDailyPriceFeedAsync(
+      historicalPriceFeed = await oracleWrapper.deployHistoricalPriceFeedAsync(
+        updateFrequency,
         ethMedianizer.address,
         feedDataDescription,
         seededValues,
       );
 
-      subjectPriceFeedAddress = dailyPriceFeed.address;
+      subjectPriceFeedAddress = historicalPriceFeed.address;
       subjectDataDescription = 'ETHDailyMA';
     });
 
@@ -109,16 +111,18 @@ contract('MovingAverageOracle', accounts => {
     let subjectDataPoints: BigNumber;
 
     beforeEach(async () => {
+      const updateFrequency = ONE_DAY_IN_SECONDS;
       const feedDataDescription = '200DailyETHPrice';
       const seededValues = [];
-      dailyPriceFeed = await oracleWrapper.deployDailyPriceFeedAsync(
+      historicalPriceFeed = await oracleWrapper.deployHistoricalPriceFeedAsync(
+        updateFrequency,
         ethMedianizer.address,
         feedDataDescription,
         seededValues,
       );
 
-      updatedValues = await oracleWrapper.batchUpdateDailyPriceFeedAsync(
-        dailyPriceFeed,
+      updatedValues = await oracleWrapper.batchUpdateHistoricalPriceFeedAsync(
+        historicalPriceFeed,
         ethMedianizer,
         0,
         19
@@ -126,7 +130,7 @@ contract('MovingAverageOracle', accounts => {
 
       const dataDescription = 'ETH20dayMA';
       movingAverageOracle = await oracleWrapper.deployMovingAverageOracleAsync(
-        dailyPriceFeed.address,
+        historicalPriceFeed.address,
         dataDescription
       );
 
@@ -152,9 +156,11 @@ contract('MovingAverageOracle', accounts => {
   describe('#getSourceMedianizer', async () => {
 
     beforeEach(async () => {
+      const updateFrequency = ONE_DAY_IN_SECONDS;
       const feedDataDescription = '200DailyETHPrice';
       const seededValues = [];
-      dailyPriceFeed = await oracleWrapper.deployDailyPriceFeedAsync(
+      historicalPriceFeed = await oracleWrapper.deployHistoricalPriceFeedAsync(
+        updateFrequency,
         ethMedianizer.address,
         feedDataDescription,
         seededValues,
@@ -162,7 +168,7 @@ contract('MovingAverageOracle', accounts => {
 
       const dataDescription = 'ETH20dayMA';
       movingAverageOracle = await oracleWrapper.deployMovingAverageOracleAsync(
-        dailyPriceFeed.address,
+        historicalPriceFeed.address,
         dataDescription
       );
     });

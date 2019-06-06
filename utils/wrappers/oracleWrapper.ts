@@ -8,7 +8,7 @@ import { Blockchain } from '@utils/blockchain';
 import { ether } from '@utils/units';
 
 import {
-  DailyPriceFeedContract,
+  HistoricalPriceFeedContract,
   FeedFactoryContract,
   MovingAverageOracleContract,
   PriceFeedContract,
@@ -21,7 +21,7 @@ import { getWeb3 } from '../web3Helper';
 import { FeedCreatedArgs } from '../contract_logs/oracle';
 
 const web3 = getWeb3();
-const DailyPriceFeed = artifacts.require('DailyPriceFeed');
+const HistoricalPriceFeed = artifacts.require('HistoricalPriceFeed');
 const FeedFactory = artifacts.require('FeedFactory');
 const Median = artifacts.require('Median');
 const MovingAverageOracle = artifacts.require('MovingAverageOracle');
@@ -87,21 +87,23 @@ export class OracleWrapper {
     );
   }
 
-  public async deployDailyPriceFeedAsync(
+  public async deployHistoricalPriceFeedAsync(
+    updateFrequency: BigNumber,
     medianizerAddress: Address,
     dataDescription: string,
     seededValues: BigNumber[],
     from: Address = this._contractOwnerAddress
-  ): Promise<DailyPriceFeedContract> {
-    const dailyPriceFeed = await DailyPriceFeed.new(
+  ): Promise<HistoricalPriceFeedContract> {
+    const historicalPriceFeed = await HistoricalPriceFeed.new(
+      updateFrequency,
       medianizerAddress,
       dataDescription,
       seededValues,
       { from },
     );
 
-    return new DailyPriceFeedContract(
-      new web3.eth.Contract(dailyPriceFeed.abi, dailyPriceFeed.address),
+    return new HistoricalPriceFeedContract(
+      new web3.eth.Contract(historicalPriceFeed.abi, historicalPriceFeed.address),
       { from },
     );
   }
@@ -192,8 +194,8 @@ export class OracleWrapper {
     );
   }
 
-  public async updateDailyPriceFeedAsync(
-    dailyPriceFeed: DailyPriceFeedContract,
+  public async updateHistoricalPriceFeedAsync(
+    dailyPriceFeed: HistoricalPriceFeedContract,
     medianizer: MedianContract,
     price: BigNumber,
     timeOffset: number,
@@ -212,8 +214,8 @@ export class OracleWrapper {
     );
   }
 
-  public async batchUpdateDailyPriceFeedAsync(
-    dailyPriceFeed: DailyPriceFeedContract,
+  public async batchUpdateHistoricalPriceFeedAsync(
+    dailyPriceFeed: HistoricalPriceFeedContract,
     medianizer: MedianContract,
     initialTimeOffset: number,
     daysOfData: number,
@@ -228,7 +230,7 @@ export class OracleWrapper {
     const ONE_DAY_IN_MINUTES = 1440;
     let i: number;
     for (i = 0; i < priceArray.length; i++) {
-      await this.updateDailyPriceFeedAsync(
+      await this.updateHistoricalPriceFeedAsync(
         dailyPriceFeed,
         medianizer,
         priceArray[i],
