@@ -10,6 +10,7 @@ export { PriceFeed } from './ts/PriceFeed';
 
 // Export abi-gen contract wrappers
 export {
+	BaseContract,
 	BTCDaiRebalancingManagerContract,
 	BTCETHRebalancingManagerContract,
 	ETHDaiRebalancingManagerContract,
