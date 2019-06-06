@@ -1,9 +1,9 @@
-
+import { BaseContract } from '../types/base_contract';
 import { BTCDaiRebalancingManagerContract } from '../types/generated/b_t_c_dai_rebalancing_manager';
 import { BTCETHRebalancingManagerContract } from '../types/generated/b_t_c_e_t_h_rebalancing_manager';
+import { DailyPriceFeedContract } from '../types/generated/daily_price_feed';
 import { ETHDaiRebalancingManagerContract } from '../types/generated/e_t_h_dai_rebalancing_manager';
 import { ETHTwentyDayMACOManagerContract } from '../types/generated/e_t_h_twenty_day_m_a_c_o_manager';
-import { DailyPriceFeedContract } from '../types/generated/daily_price_feed';
 import { FeedFactoryContract } from '../types/generated/feed_factory';
 import { FlexibleTimingManagerLibraryMockContract } from '../types/generated/flexible_timing_manager_library_mock';
 import { LinkedListLibraryMockContract } from '../types/generated/linked_list_library_mock';
@@ -13,6 +13,7 @@ import { PriceFeedContract } from '../types/generated/price_feed';
 import { USDCMockContract } from '../types/generated/u_s_d_c_mock';
 
 export {
+  BaseContract,
   BTCDaiRebalancingManagerContract,
   BTCETHRebalancingManagerContract,
   ETHDaiRebalancingManagerContract,
