@@ -16,8 +16,6 @@ import { BigNumber } from 'bignumber.js';
 import {
   DEFAULT_GAS,
   ETH_DECIMALS,
-  RISK_COLLATERAL_NATURAL_UNIT,
-  STABLE_COLLATERAL_NATURAL_UNIT,
   USDC_DECIMALS,
   VALUE_TO_CENTS_CONVERSION,
 } from '../constants';
@@ -264,6 +262,8 @@ export class ManagerWrapper {
     const stableUnits = await stableCollateral.getUnits.callAsync();
     const stableNaturalUnit = await stableCollateral.naturalUnit.callAsync();
 
+    let newUnits: BigNumber = new BigNumber(1);
+    let naturalUnitMultiplier: BigNumber = new BigNumber(1);
     if (riskOn) {
       const riskCollateralUSDValue = this.computeTokenDollarAmount(
         currentEthPrice,
@@ -271,13 +271,17 @@ export class ManagerWrapper {
         riskCollateralDecimals
       );
 
-      const newUnits = riskCollateralUSDValue
-                        .mul(stableCollateralDecimals)
-                        .mul(stableNaturalUnit)
-                        .div(SET_FULL_TOKEN_UNITS)
-                        .div(currentUSDCPrice.div(VALUE_TO_CENTS_CONVERSION));
+      while (newUnits.lessThanOrEqualTo(1)) {
+        naturalUnit = stableNaturalUnit.mul(naturalUnitMultiplier);
+        newUnits = this.calculateNewUnits(
+          riskCollateralUSDValue,
+          currentUSDCPrice,
+          USDC_DECIMALS,
+          naturalUnit
+        );
+        naturalUnitMultiplier = naturalUnitMultiplier.mul(10);
+      }
       units = [newUnits];
-      naturalUnit = STABLE_COLLATERAL_NATURAL_UNIT;
     } else {
       const stableCollateralUSDValue = this.computeTokenDollarAmount(
         currentUSDCPrice,
@@ -285,18 +289,35 @@ export class ManagerWrapper {
         stableCollateralDecimals
       );
 
-      const newUnits = stableCollateralUSDValue
-                        .mul(riskCollateralDecimals)
-                        .mul(riskNaturalUnit)
-                        .div(SET_FULL_TOKEN_UNITS)
-                        .div(currentEthPrice.div(VALUE_TO_CENTS_CONVERSION));
-      units = [newUnits];
-      naturalUnit = RISK_COLLATERAL_NATURAL_UNIT;
+      while (newUnits.lessThanOrEqualTo(1)) {
+        naturalUnit = riskNaturalUnit.mul(naturalUnitMultiplier);
+        newUnits = this.calculateNewUnits(
+          stableCollateralUSDValue,
+          currentEthPrice,
+          ETH_DECIMALS,
+          naturalUnit
+        );
+        naturalUnitMultiplier = naturalUnitMultiplier.mul(10);
+      }
     }
+    units = [newUnits];
     return {
       units,
       naturalUnit,
     };
+  }
+
+  private calculateNewUnits(
+    currentUSDValue: BigNumber,
+    replacedCollateralPrice: BigNumber,
+    replacedCollateralDecimals: BigNumber,
+    replacedCollateralNaturalUnit: BigNumber
+  ): BigNumber {
+    return currentUSDValue
+              .mul(replacedCollateralDecimals)
+              .mul(replacedCollateralNaturalUnit)
+              .div(SET_FULL_TOKEN_UNITS).round(0, 3)
+              .div(replacedCollateralPrice.div(VALUE_TO_CENTS_CONVERSION)).round(0, 3);
   }
 
   public async getExpectedGeneralAuctionParameters(

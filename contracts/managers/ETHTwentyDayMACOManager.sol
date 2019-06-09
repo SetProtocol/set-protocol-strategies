@@ -52,6 +52,7 @@ contract ETHTwentyDayMACOManager {
     uint256 constant USDC_PRICE = 10 ** 18;
     uint256 constant USDC_DECIMALS = 6;
     uint256 constant ETH_DECIMALS = 18;
+    uint256 constant SET_TOKEN_DECIMALS = 10**18;
 
     /* ============ State Variables ============ */
     address public contractDeployer;
@@ -435,11 +436,15 @@ contract ETHTwentyDayMACOManager {
             // Create static components and units array
             address[] memory nextSetComponents = new address[](1);
             nextSetComponents[0] = usdcAddress;
-            uint256[] memory nextSetUnits = getNewCollateralSetUnits(
+            
+            (
+                uint256[] memory nextSetUnits,
+                uint256 nextNaturalUnit
+            ) = getNewCollateralSetParameters(
                 _riskCollateralValue,
                 USDC_PRICE,
                 USDC_DECIMALS,
-                _stableCollateralDetails
+                _stableCollateralDetails.naturalUnit
             );
 
             // Create new stable collateral set with units and naturalUnit as calculated above
@@ -447,7 +452,7 @@ contract ETHTwentyDayMACOManager {
                 setTokenFactory,
                 nextSetComponents,
                 nextSetUnits,
-                _stableCollateralDetails.naturalUnit,
+                nextNaturalUnit,
                 bytes32("USDCETH"),
                 bytes32("USDCETH"),
                 ""
@@ -455,7 +460,7 @@ contract ETHTwentyDayMACOManager {
             // Calculate dollar value of new stable collateral
             stableCollateralDollarValue = FlexibleTimingManagerLibrary.calculateTokenAllocationAmountUSD(
                 USDC_PRICE,
-                _stableCollateralDetails.naturalUnit,
+                nextNaturalUnit,
                 nextSetUnits[0],
                 USDC_DECIMALS
             );
@@ -463,12 +468,16 @@ contract ETHTwentyDayMACOManager {
         } else {
             // Create static components and units array
             address[] memory nextSetComponents = new address[](1);
-            nextSetComponents[0] = wethAddress;
-            uint256[] memory nextSetUnits = getNewCollateralSetUnits(
+            nextSetComponents[0] = ethAddress;
+
+            (
+                uint256[] memory nextSetUnits,
+                uint256 nextNaturalUnit
+            ) = getNewCollateralSetParameters(
                 _stableCollateralValue,
                 _ethPrice,
                 ETH_DECIMALS,
-                _riskCollateralDetails
+                _riskCollateralDetails.naturalUnit
             );
 
             // Create new risk collateral set with units and naturalUnit as calculated above
@@ -476,7 +485,7 @@ contract ETHTwentyDayMACOManager {
                 setTokenFactory,
                 nextSetComponents,
                 nextSetUnits,
-                _riskCollateralDetails.naturalUnit,
+                nextNaturalUnit,
                 bytes32("USDC"),
                 bytes32("USDC"),
                 ""
@@ -485,7 +494,7 @@ contract ETHTwentyDayMACOManager {
             // Calculate dollar value of new risk collateral
             riskCollateralDollarValue = FlexibleTimingManagerLibrary.calculateTokenAllocationAmountUSD(
                 _ethPrice,
-                _riskCollateralDetails.naturalUnit,
+                nextNaturalUnit,
                 nextSetUnits[0],
                 ETH_DECIMALS
             );
@@ -496,30 +505,72 @@ contract ETHTwentyDayMACOManager {
     }
 
     /*
+     * Calculate new collateral units and natural unit. If necessary iterate through until naturalUnit
+     * found that supports non-zero unit amount.
+     *
+     * @param  _currentCollateralUSDValue           USD Value of current collateral set
+     * @param  _replacedCollateralPrice             Price of asset to be rebalanced into
+     * @param  _replacedCollateralDecimals          Amount of decimals in replacement collateral
+     * @param  _replacedCollateralNaturalUnit       Natural Unit of collateral set to be replaced
+     * @return uint256[]                            Units array for new collateral set
+     * @return uint256                              NaturalUnit for new collateral set
+     */
+    function getNewCollateralSetParameters(
+        uint256 _currentCollateralUSDValue,
+        uint256 _replacedCollateralPrice,
+        uint256 _replacedCollateralDecimals,
+        uint256 _replacedCollateralNaturalUnit
+    )
+        public
+        pure
+        returns (uint256[] memory, uint256)
+    {
+        // Calculate nextSetUnits such that the USD value of new Set is equal to the USD value of the Set
+        // being rebalanced out of
+        uint256[] memory nextSetUnits = new uint256[](1);
+
+        uint256 potentialNextUnit = 0;
+        uint256 naturalUnitMultiplier = 1;
+        uint256 nextNaturalUnit;
+
+        // Calculate next units. If nextUnit is 0 then bump natural unit (and thus units) by factor of
+        // ten until unit is greater than 0
+        while (potentialNextUnit == 0) {
+            nextNaturalUnit = _replacedCollateralNaturalUnit.mul(naturalUnitMultiplier);
+            potentialNextUnit = calculateNextSetUnits(
+                _currentCollateralUSDValue,
+                _replacedCollateralPrice,
+                _replacedCollateralDecimals,
+                nextNaturalUnit
+            );
+            naturalUnitMultiplier = naturalUnitMultiplier.mul(10);            
+        }
+
+        nextSetUnits[0] = potentialNextUnit;
+        return (nextSetUnits, nextNaturalUnit);
+    }
+
+    /*
      * Calculate new collateral units by making the new collateral USD value equal to the USD value of the
      * Set currently collateralizing the Rebalancing Set
      *
      * @param  _currentCollateralUSDValue           USD Value of current collateral set
      * @param  _replacedCollateralPrice             Price of asset to be rebalanced into
      * @param  _replacedCollateralDecimals          Amount of decimals in replacement collateral
-     * @param  _replacedCollateralDetails           Details of Set to be replaced
-     * @return uint256[]                            Units array for new collateral set
+     * @param  _replacedCollateralNaturalUnit       Natural Unit of collateral set to be replaced
+     * @return uint256                              New unit for new collateral set
      */
-    function getNewCollateralSetUnits(
+    function calculateNextSetUnits(
         uint256 _currentCollateralUSDValue,
         uint256 _replacedCollateralPrice,
         uint256 _replacedCollateralDecimals,
-        SetTokenLibrary.SetDetails memory _replacedCollateralDetails
+        uint256 _nextNaturalUnit        
     )
         internal
         pure
-        returns (uint256[] memory)
+        returns (uint256)
     {
-        uint256 SET_TOKEN_DECIMALS = 10**18;
-        // Calculate nextSetUnits such that the USD value of new Set is equal to the USD value of the Set
-        // being rebalanced out of
-        uint256[] memory nextSetUnits = new uint256[](1);
-        nextSetUnits[0] = _currentCollateralUSDValue
+        return _currentCollateralUSDValue
             .mul(10 ** _replacedCollateralDecimals)
             .mul(_replacedCollateralDetails.naturalUnit)
             .div(SET_TOKEN_DECIMALS.mul(_replacedCollateralPrice));
