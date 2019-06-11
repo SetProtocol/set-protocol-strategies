@@ -522,7 +522,7 @@ contract ETHTwentyDayMACOManager {
         uint256 _replacementUnderlyingDecimals,
         uint256 _replacementCollateralNaturalUnit
     )
-        public
+        internal
         pure
         returns (uint256[] memory, uint256)
     {
