@@ -137,14 +137,10 @@ contract ETHTwentyDayMACOManager {
     )
         external
     {
+        // Check that contract deployer is calling function
         require(
             msg.sender == contractDeployer,
             "ETHTwentyDayMACOManager.initialize: Only the contract deployer can initialize"
-        );
-
-        require(
-            rebalancingSetTokenAddress == address(0),
-            "ETHTwentyDayMACOManager.initialize: Rebalancing SetToken Address must be empty"
         );
 
         // Make sure the rebalancingSetToken is tracked by Core
