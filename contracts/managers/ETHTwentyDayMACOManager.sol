@@ -42,6 +42,7 @@ contract ETHTwentyDayMACOManager {
 
     /* ============ Constants ============ */
     uint256 constant AUCTION_LIB_PRICE_DIVISOR = 1000;
+    uint256 constant ALLOCATION_PRICE_RATIO_LIMIT = 4;
 
     uint256 constant TEN_MINUTES_IN_SECONDS = 600;
     uint256 constant SIX_HOURS_IN_SECONDS = 21600;
@@ -392,8 +393,8 @@ contract ETHTwentyDayMACOManager {
         );
         
         // If value of one Set is 5 times greater than the other, create a new collateral Set
-        if (riskCollateralDollarValue.mul(4) <= stableCollateralDollarValue ||
-            riskCollateralDollarValue >= stableCollateralDollarValue.mul(4)) {
+        if (riskCollateralDollarValue.mul(ALLOCATION_PRICE_RATIO_LIMIT) <= stableCollateralDollarValue ||
+            riskCollateralDollarValue >= stableCollateralDollarValue.mul(ALLOCATION_PRICE_RATIO_LIMIT)) {
             //Determine the new collateral parameters
             return determineNewCollateralParameters(
                 _ethPrice,
