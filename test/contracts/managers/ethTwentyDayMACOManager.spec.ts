@@ -566,10 +566,48 @@ contract('ETHTwentyDayMACOManager', accounts => {
     describe('when propose is called and rebalancing set token is in Proposal state', async () => {
       beforeEach(async () => {
         await blockchain.increaseTimeAsync(subjectTimeFastForward);
-        await ethTwentyDayMACOManager.initialPropose.sendTransactionAsync();
+        await ethTwentyDayMACOManager.initialPropose.sendTransactionAsync(
+          { from: subjectCaller, gas: DEFAULT_GAS}
+        );
 
         await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS.div(4));
         await ethTwentyDayMACOManager.confirmPropose.sendTransactionAsync();
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe.only('when propose is called and rebalancing set token is in Rebalance state', async () => {
+      beforeEach(async () => {
+        // Issue currentSetToken
+        const initialAllocationTokenAddress = await rebalancingSetToken.currentSet.callAsync();
+        const initialAllocationToken = await protocolWrapper.getSetTokenAsync(initialAllocationTokenAddress);
+        await core.issue.sendTransactionAsync(
+          initialAllocationToken.address,
+          ether(9),
+          {from: deployerAccount, gas: DEFAULT_GAS},
+        );
+        await erc20Wrapper.approveTransfersAsync([initialAllocationToken], transferProxy.address);
+
+        // Use issued currentSetToken to issue rebalancingSetToken
+        await core.issue.sendTransactionAsync(
+          rebalancingSetToken.address,
+          ether(7),
+          { from: deployerAccount, gas: DEFAULT_GAS }
+        );
+
+        await blockchain.increaseTimeAsync(subjectTimeFastForward);
+        await ethTwentyDayMACOManager.initialPropose.sendTransactionAsync(
+          { from: subjectCaller, gas: DEFAULT_GAS}
+        );
+
+        await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS.div(4));
+        await ethTwentyDayMACOManager.confirmPropose.sendTransactionAsync();
+
+        await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS);
+        await rebalancingSetToken.startRebalance.sendTransactionAsync();
       });
 
       it('should revert', async () => {
@@ -744,9 +782,9 @@ contract('ETHTwentyDayMACOManager', accounts => {
           await SetTestUtils.assertLogEquivalence(formattedLogs, expectedLogs);
         });
 
-        describe('but stable collateral is 5x valuable than risk collateral', async () => {
+        describe('but stable collateral is 4x valuable than risk collateral', async () => {
           before(async () => {
-            triggerPrice = ether(20);
+            triggerPrice = ether(25);
             lastPrice = triggerPrice;
           });
 
@@ -968,9 +1006,9 @@ contract('ETHTwentyDayMACOManager', accounts => {
           await SetTestUtils.assertLogEquivalence(formattedLogs, expectedLogs);
         });
 
-        describe('but risk collateral is 5x valuable than stable collateral', async () => {
+        describe('but risk collateral is 4x valuable than stable collateral', async () => {
           before(async () => {
-            triggerPrice = ether(500);
+            triggerPrice = ether(400);
             lastPrice = triggerPrice;
           });
 
@@ -1108,6 +1146,50 @@ contract('ETHTwentyDayMACOManager', accounts => {
             await expectRevertError(subject());
           });
         });
+      });
+    });
+
+    describe('when propose is called and rebalancing set token is in Proposal state', async () => {
+      beforeEach(async () => {
+        await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS.div(4));
+        await ethTwentyDayMACOManager.confirmPropose.sendTransactionAsync();
+
+        subjectTimeFastForward = new BigNumber(1);
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('when propose is called and rebalancing set token is in Rebalance state', async () => {
+      beforeEach(async () => {
+        // Issue currentSetToken
+        const initialAllocationTokenAddress = await rebalancingSetToken.currentSet.callAsync();
+        const initialAllocationToken = await protocolWrapper.getSetTokenAsync(initialAllocationTokenAddress);
+        await core.issue.sendTransactionAsync(
+          initialAllocationToken.address,
+          ether(9),
+          {from: deployerAccount, gas: DEFAULT_GAS},
+        );
+        await erc20Wrapper.approveTransfersAsync([initialAllocationToken], transferProxy.address);
+
+        // Use issued currentSetToken to issue rebalancingSetToken
+        await core.issue.sendTransactionAsync(
+          rebalancingSetToken.address,
+          ether(7),
+          { from: deployerAccount, gas: DEFAULT_GAS }
+        );
+
+        await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS.div(4));
+        await ethTwentyDayMACOManager.confirmPropose.sendTransactionAsync();
+
+        await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS);
+        await rebalancingSetToken.startRebalance.sendTransactionAsync();
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
       });
     });
   });
