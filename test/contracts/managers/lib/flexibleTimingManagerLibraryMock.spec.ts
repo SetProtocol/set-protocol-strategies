@@ -11,6 +11,7 @@ import {
 } from '@utils/contracts';
 import { Blockchain } from '@utils/blockchain';
 import { ether } from '@utils/units';
+import { expectRevertError } from '@utils/tokenAssertions';
 import { getWeb3 } from '@utils/web3Helper';
 
 import { LibraryMockWrapper } from '@utils/wrappers/libraryMockWrapper';
@@ -68,6 +69,17 @@ contract('FlexibleTimingManagerLibraryMock', accounts => {
       const expectedDollarValue = ether(300);
 
       expect(tokenDollarValue).to.bignumber.equal(expectedDollarValue);
+    });
+
+    describe('when USD value is less than 18 decimals', async () => {
+      beforeEach(async () => {
+        subjectUnits = [new BigNumber(1)];
+        subjectNaturalUnit = new BigNumber(10 ** 19);
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
     });
   });
 });

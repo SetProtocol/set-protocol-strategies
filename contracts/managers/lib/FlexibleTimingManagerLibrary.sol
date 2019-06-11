@@ -193,7 +193,7 @@ library FlexibleTimingManagerLibrary {
             .div(10 ** _tokenDecimals);
 
         require(
-            AllocationUSDValue > 0,
+            allocationUSDValue > 0,
             "FlexibleTimingManagerLibrary.calculateTokenAllocationAmountUSD: Value must be > 0"
         );
 
