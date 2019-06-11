@@ -579,7 +579,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
       });
     });
 
-    describe.only('when propose is called and rebalancing set token is in Rebalance state', async () => {
+    describe('when propose is called and rebalancing set token is in Rebalance state', async () => {
       beforeEach(async () => {
         // Issue currentSetToken
         const initialAllocationTokenAddress = await rebalancingSetToken.currentSet.callAsync();
