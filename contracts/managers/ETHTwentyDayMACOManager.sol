@@ -506,20 +506,21 @@ contract ETHTwentyDayMACOManager {
 
     /*
      * Calculate new collateral units and natural unit. If necessary iterate through until naturalUnit
-     * found that supports non-zero unit amount.
+     * found that supports non-zero unit amount. Here Underlying refers to the token underlying the
+     * collateral Set (i.e. ETH is underlying of riskCollateral Set).
      *
-     * @param  _currentCollateralUSDValue           USD Value of current collateral set
-     * @param  _replacedCollateralPrice             Price of asset to be rebalanced into
-     * @param  _replacedCollateralDecimals          Amount of decimals in replacement collateral
-     * @param  _replacedCollateralNaturalUnit       Natural Unit of collateral set to be replaced
-     * @return uint256[]                            Units array for new collateral set
-     * @return uint256                              NaturalUnit for new collateral set
+     * @param  _currentCollateralUSDValue              USD Value of current collateral set
+     * @param  _replacementUnderlyingPrice             Price of underlying token to be rebalanced into
+     * @param  _replacementUnderlyingDecimals          Amount of decimals in replacement token
+     * @param  _replacementCollateralNaturalUnit       Natural Unit of replacement collateral Set
+     * @return uint256[]                               Units array for new collateral set
+     * @return uint256                                 NaturalUnit for new collateral set
      */
     function getNewCollateralSetParameters(
         uint256 _currentCollateralUSDValue,
-        uint256 _replacedCollateralPrice,
-        uint256 _replacedCollateralDecimals,
-        uint256 _replacedCollateralNaturalUnit
+        uint256 _replacementUnderlyingPrice,
+        uint256 _replacementUnderlyingDecimals,
+        uint256 _replacementCollateralNaturalUnit
     )
         public
         pure
@@ -536,11 +537,11 @@ contract ETHTwentyDayMACOManager {
         // Calculate next units. If nextUnit is 0 then bump natural unit (and thus units) by factor of
         // ten until unit is greater than 0
         while (potentialNextUnit == 0) {
-            nextNaturalUnit = _replacedCollateralNaturalUnit.mul(naturalUnitMultiplier);
+            nextNaturalUnit = _replacementCollateralNaturalUnit.mul(naturalUnitMultiplier);
             potentialNextUnit = calculateNextSetUnits(
                 _currentCollateralUSDValue,
-                _replacedCollateralPrice,
-                _replacedCollateralDecimals,
+                _replacementUnderlyingPrice,
+                _replacementUnderlyingDecimals,
                 nextNaturalUnit
             );
             naturalUnitMultiplier = naturalUnitMultiplier.mul(10);            
@@ -552,18 +553,19 @@ contract ETHTwentyDayMACOManager {
 
     /*
      * Calculate new collateral units by making the new collateral USD value equal to the USD value of the
-     * Set currently collateralizing the Rebalancing Set
+     * Set currently collateralizing the Rebalancing Set. Here Underlying refers to the token underlying the
+     * collateral Set (i.e. ETH is underlying of riskCollateral Set).
      *
-     * @param  _currentCollateralUSDValue           USD Value of current collateral set
-     * @param  _replacedCollateralPrice             Price of asset to be rebalanced into
-     * @param  _replacedCollateralDecimals          Amount of decimals in replacement collateral
-     * @param  _replacedCollateralNaturalUnit       Natural Unit of collateral set to be replaced
-     * @return uint256                              New unit for new collateral set
+     * @param  _currentCollateralUSDValue              USD Value of current collateral set
+     * @param  _replacementUnderlyingPrice             Price of asset to be rebalanced into
+     * @param  _replacementUnderlyingDecimals          Amount of decimals in replacement collateral
+     * @param  _replacementCollateralNaturalUnit       Natural Unit of collateral set to be replacement
+     * @return uint256                                 New unit for new collateral set
      */
     function calculateNextSetUnits(
         uint256 _currentCollateralUSDValue,
-        uint256 _replacedCollateralPrice,
-        uint256 _replacedCollateralDecimals,
+        uint256 _replacementUnderlyingPrice,
+        uint256 _replacementUnderlyingDecimals,
         uint256 _nextNaturalUnit        
     )
         internal
@@ -571,10 +573,9 @@ contract ETHTwentyDayMACOManager {
         returns (uint256)
     {
         return _currentCollateralUSDValue
-            .mul(10 ** _replacedCollateralDecimals)
-            .mul(_replacedCollateralDetails.naturalUnit)
-            .div(SET_TOKEN_DECIMALS.mul(_replacedCollateralPrice));
-        return nextSetUnits;      
+            .mul(10 ** _replacementUnderlyingDecimals)
+            .mul(_nextNaturalUnit)
+            .div(SET_TOKEN_DECIMALS.mul(_replacementUnderlyingPrice));        
     }
 }
 
