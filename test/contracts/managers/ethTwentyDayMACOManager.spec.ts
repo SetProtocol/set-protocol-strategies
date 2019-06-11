@@ -162,7 +162,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
       core,
       factory.address,
       [wrappedETH.address],
-      [new BigNumber(100)],
+      [new BigNumber(10 ** 6)],
       RISK_COLLATERAL_NATURAL_UNIT,
     );
   });
@@ -181,7 +181,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
     let subjectSetTokenFactoryAddress: Address;
     let subjectAuctionLibraryAddress: Address;
     let subjectAuctionTimeToPivot: BigNumber;
-    let subjectRiskOn: boolean;
+    let subjectMovingAverageDays: BigNumber;
 
     beforeEach(async () => {
       subjectCoreAddress = core.address;
@@ -192,8 +192,8 @@ contract('ETHTwentyDayMACOManager', accounts => {
       subjectRiskCollateralAddress = riskCollateral.address;
       subjectSetTokenFactoryAddress = factory.address;
       subjectAuctionLibraryAddress = linearAuctionPriceCurve.address;
+      subjectMovingAverageDays = new BigNumber(20);
       subjectAuctionTimeToPivot = ONE_DAY_IN_SECONDS.div(6);
-      subjectRiskOn = false;
     });
 
     async function subject(): Promise<ETHTwentyDayMACOManagerContract> {
@@ -206,8 +206,8 @@ contract('ETHTwentyDayMACOManager', accounts => {
         subjectRiskCollateralAddress,
         subjectSetTokenFactoryAddress,
         subjectAuctionLibraryAddress,
+        subjectMovingAverageDays,
         subjectAuctionTimeToPivot,
-        subjectRiskOn
       );
     }
 
@@ -267,20 +267,20 @@ contract('ETHTwentyDayMACOManager', accounts => {
       expect(actualAuctionLibraryAddress).to.equal(subjectAuctionLibraryAddress);
     });
 
+    it('sets the correct moving average days', async () => {
+      ethTwentyDayMACOManager = await subject();
+
+      const actualMovingAverageDays = await ethTwentyDayMACOManager.movingAverageDays.callAsync();
+
+      expect(actualMovingAverageDays).to.be.bignumber.equal(subjectMovingAverageDays);
+    });
+
     it('sets the correct auction time to pivot', async () => {
       ethTwentyDayMACOManager = await subject();
 
       const actualAuctionTimeToPivot = await ethTwentyDayMACOManager.auctionTimeToPivot.callAsync();
 
       expect(actualAuctionTimeToPivot).to.be.bignumber.equal(subjectAuctionTimeToPivot);
-    });
-
-    it('sets the correct risk on parameter', async () => {
-      ethTwentyDayMACOManager = await subject();
-
-      const actualRiskOn = await ethTwentyDayMACOManager.riskOn.callAsync();
-
-      expect(actualRiskOn).to.equal(subjectRiskOn);
     });
   });
 
@@ -306,7 +306,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
       );
 
       auctionTimeToPivot = ONE_DAY_IN_SECONDS.div(4);
-      const [riskOn, initialAllocationAddress] = await managerWrapper.getMACOInitialAllocationAsync(
+      const initialAllocationAddress = await managerWrapper.getMACOInitialAllocationAsync(
         stableCollateral,
         riskCollateral,
         ethMedianizer,
@@ -314,6 +314,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
         new BigNumber(20)
       );
 
+      const movingAverageDays = new BigNumber(20);
       ethTwentyDayMACOManager = await managerWrapper.deployETHTwentyDayMACOManagerAsync(
         core.address,
         movingAverageOracle.address,
@@ -323,8 +324,8 @@ contract('ETHTwentyDayMACOManager', accounts => {
         riskCollateral.address,
         factory.address,
         linearAuctionPriceCurve.address,
+        movingAverageDays,
         auctionTimeToPivot,
-        riskOn,
       );
 
       proposalPeriod = ONE_DAY_IN_SECONDS;
@@ -410,7 +411,6 @@ contract('ETHTwentyDayMACOManager', accounts => {
     let lastPrice: BigNumber;
     let proposalPeriod: BigNumber;
     let auctionTimeToPivot: BigNumber;
-    let misalignedRiskOn: boolean = undefined;
 
     before(async () => {
       updatedValues = _.map(new Array(19), function(el, i) {return ether(150 + i); });
@@ -427,7 +427,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
       );
 
       auctionTimeToPivot = ONE_DAY_IN_SECONDS.div(4);
-      const [riskOn, initialAllocationAddress] = await managerWrapper.getMACOInitialAllocationAsync(
+      const initialAllocationAddress = await managerWrapper.getMACOInitialAllocationAsync(
         stableCollateral,
         riskCollateral,
         ethMedianizer,
@@ -435,13 +435,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
         new BigNumber(20)
       );
 
-      let passedRiskOn: boolean;
-      if (misalignedRiskOn != undefined) {
-        passedRiskOn = misalignedRiskOn;
-      } else {
-        passedRiskOn = riskOn;
-      }
-
+      const movingAverageDays = new BigNumber(20);
       ethTwentyDayMACOManager = await managerWrapper.deployETHTwentyDayMACOManagerAsync(
         core.address,
         movingAverageOracle.address,
@@ -451,8 +445,8 @@ contract('ETHTwentyDayMACOManager', accounts => {
         riskCollateral.address,
         factory.address,
         linearAuctionPriceCurve.address,
+        movingAverageDays,
         auctionTimeToPivot,
-        passedRiskOn,
       );
 
       proposalPeriod = ONE_DAY_IN_SECONDS;
@@ -495,38 +489,8 @@ contract('ETHTwentyDayMACOManager', accounts => {
           const block = await web3.eth.getBlock('latest');
           const expectedTimestamp = new BigNumber(block.timestamp);
 
-          const actualTimestamp = await ethTwentyDayMACOManager.proposalTimestamp.callAsync();
+          const actualTimestamp = await ethTwentyDayMACOManager.lastProposalTimestamp.callAsync();
           expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
-        });
-
-        describe('but riskOn parameter has become misaligned due to failed rebalance', async () => {
-          before(async () => {
-            misalignedRiskOn = false;
-          });
-
-          after(async () => {
-            misalignedRiskOn = undefined;
-          });
-
-          it('riskOn parameter is flipped', async () => {
-            const preCallRiskOn = await ethTwentyDayMACOManager.riskOn.callAsync();
-            expect(preCallRiskOn).to.equal(false);
-
-            await subject();
-
-            const postCallRiskOn = await ethTwentyDayMACOManager.riskOn.callAsync();
-            expect(postCallRiskOn).to.equal(true);
-          });
-
-          it('sets the proposalTimestamp correctly', async () => {
-            await subject();
-
-            const block = await web3.eth.getBlock('latest');
-            const expectedTimestamp = new BigNumber(block.timestamp);
-
-            const actualTimestamp = await ethTwentyDayMACOManager.proposalTimestamp.callAsync();
-            expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
-          });
         });
 
         describe('but price has not dipped below MA', async () => {
@@ -579,38 +543,8 @@ contract('ETHTwentyDayMACOManager', accounts => {
           const block = await web3.eth.getBlock('latest');
           const expectedTimestamp = new BigNumber(block.timestamp);
 
-          const actualTimestamp = await ethTwentyDayMACOManager.proposalTimestamp.callAsync();
+          const actualTimestamp = await ethTwentyDayMACOManager.lastProposalTimestamp.callAsync();
           expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
-        });
-
-        describe('but riskOn parameter has become misaligned due to failed rebalance', async () => {
-          before(async () => {
-            misalignedRiskOn = true;
-          });
-
-          after(async () => {
-            misalignedRiskOn = undefined;
-          });
-
-          it('riskOn parameter is flipped', async () => {
-            const preCallRiskOn = await ethTwentyDayMACOManager.riskOn.callAsync();
-            expect(preCallRiskOn).to.equal(true);
-
-            await subject();
-
-            const postCallRiskOn = await ethTwentyDayMACOManager.riskOn.callAsync();
-            expect(postCallRiskOn).to.equal(false);
-          });
-
-          it('sets the proposalTimestamp correctly', async () => {
-            await subject();
-
-            const block = await web3.eth.getBlock('latest');
-            const expectedTimestamp = new BigNumber(block.timestamp);
-
-            const actualTimestamp = await ethTwentyDayMACOManager.proposalTimestamp.callAsync();
-            expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
-          });
         });
 
         describe('but price has not dipped below MA', async () => {
@@ -670,7 +604,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
       );
 
       auctionTimeToPivot = ONE_DAY_IN_SECONDS.div(4);
-      const [riskOn, initialAllocationAddress] = await managerWrapper.getMACOInitialAllocationAsync(
+      const initialAllocationAddress = await managerWrapper.getMACOInitialAllocationAsync(
         stableCollateral,
         riskCollateral,
         ethMedianizer,
@@ -678,6 +612,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
         new BigNumber(20)
       );
 
+      const movingAverageDays = new BigNumber(20);
       ethTwentyDayMACOManager = await managerWrapper.deployETHTwentyDayMACOManagerAsync(
         core.address,
         movingAverageOracle.address,
@@ -687,8 +622,8 @@ contract('ETHTwentyDayMACOManager', accounts => {
         riskCollateral.address,
         factory.address,
         linearAuctionPriceCurve.address,
+        movingAverageDays,
         auctionTimeToPivot,
-        riskOn,
       );
 
       proposalPeriod = ONE_DAY_IN_SECONDS;
@@ -793,14 +728,6 @@ contract('ETHTwentyDayMACOManager', accounts => {
           const newAuctionPivotPrice = newAuctionParameters[3];
 
           expect(newAuctionPivotPrice).to.be.bignumber.equal(auctionPriceParameters['auctionPivotPrice']);
-        });
-
-        it('updates riskOn to false', async () => {
-          await subject();
-
-          const actualRiskOn = await ethTwentyDayMACOManager.riskOn.callAsync();
-
-          expect(actualRiskOn).to.equal(false);
         });
 
         it('emits correct LogProposal event', async () => {
@@ -925,14 +852,6 @@ contract('ETHTwentyDayMACOManager', accounts => {
 
             expect(newAuctionPivotPrice).to.be.bignumber.equal(auctionPriceParameters['auctionPivotPrice']);
           });
-
-          it('updates riskOn to false', async () => {
-            await subject();
-
-            const actualRiskOn = await ethTwentyDayMACOManager.riskOn.callAsync();
-
-            expect(actualRiskOn).to.equal(false);
-          });
         });
 
         describe('but price has not dipped below MA', async () => {
@@ -1033,14 +952,6 @@ contract('ETHTwentyDayMACOManager', accounts => {
           const newAuctionPivotPrice = newAuctionParameters[3];
 
           expect(newAuctionPivotPrice).to.be.bignumber.equal(auctionPriceParameters['auctionPivotPrice']);
-        });
-
-        it('updates riskOn to true', async () => {
-          await subject();
-
-          const actualRiskOn = await ethTwentyDayMACOManager.riskOn.callAsync();
-
-          expect(actualRiskOn).to.equal(true);
         });
 
         it('emits correct LogProposal event', async () => {
@@ -1164,14 +1075,6 @@ contract('ETHTwentyDayMACOManager', accounts => {
             const newAuctionPivotPrice = newAuctionParameters[3];
 
             expect(newAuctionPivotPrice).to.be.bignumber.equal(auctionPriceParameters['auctionPivotPrice']);
-          });
-
-          it('updates riskOn to true', async () => {
-            await subject();
-
-            const actualRiskOn = await ethTwentyDayMACOManager.riskOn.callAsync();
-
-            expect(actualRiskOn).to.equal(true);
           });
         });
 

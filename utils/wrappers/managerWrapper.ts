@@ -152,8 +152,8 @@ export class ManagerWrapper {
     riskCollateralAddress: Address,
     setTokenFactoryAddress: Address,
     auctionLibrary: Address,
+    movingAverageDays: BigNumber,
     auctionTimeToPivot: BigNumber = new BigNumber(100000),
-    riskOn: boolean,
     from: Address = this._tokenOwnerAddress
   ): Promise<ETHTwentyDayMACOManagerContract> {
     const truffleRebalacingTokenManager = await ETHTwentyDayMACOManager.new(
@@ -165,8 +165,8 @@ export class ManagerWrapper {
       riskCollateralAddress,
       setTokenFactoryAddress,
       auctionLibrary,
+      movingAverageDays,
       auctionTimeToPivot,
-      riskOn,
       { from },
     );
 
@@ -184,14 +184,14 @@ export class ManagerWrapper {
     spotPriceOracle: MedianContract,
     movingAverageOracle: MovingAverageOracleContract,
     dataDays: BigNumber,
-  ): Promise<[boolean, Address]> {
+  ): Promise<Address> {
     const spotPrice = parseInt(await spotPriceOracle.read.callAsync());
     const maPrice = parseInt(await movingAverageOracle.read.callAsync(dataDays));
 
     if (spotPrice > maPrice) {
-      return [true, riskCollateral.address];
+      return riskCollateral.address;
     } else {
-      return [false, stableCollateral.address];
+      return stableCollateral.address;
     }
   }
 
