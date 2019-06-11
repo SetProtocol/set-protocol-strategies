@@ -1122,6 +1122,11 @@ contract('ETHTwentyDayMACOManager', accounts => {
             lastPrice = ether(150);
           });
 
+          after(async () => {
+            triggerPrice = ether(170);
+            lastPrice = triggerPrice;
+          });
+
           it('should revert', async () => {
             await expectRevertError(subject());
           });
