@@ -356,19 +356,6 @@ contract('ETHTwentyDayMACOManager', accounts => {
       expect(rebalancingSetTokenAddress).to.equal(subjectRebalancingSetToken);
     });
 
-    describe('when the rebalancing set address has already been set', async () => {
-      beforeEach(async () => {
-        await ethTwentyDayMACOManager.initialize.sendTransactionAsync(
-          subjectRebalancingSetToken,
-          { from: subjectCaller, gas: DEFAULT_GAS}
-        );
-      });
-
-      it('should revert', async () => {
-        await expectRevertError(subject());
-      });
-    });
-
     describe('but caller is not the contract deployer', async () => {
       beforeEach(async () => {
         subjectCaller = notDeployerAccount;
