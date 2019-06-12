@@ -468,7 +468,7 @@ contract ETHTwentyDayMACOManager {
         } else {
             // Create static components and units array
             address[] memory nextSetComponents = new address[](1);
-            nextSetComponents[0] = ethAddress;
+            nextSetComponents[0] = wethAddress;
 
             (
                 uint256[] memory nextSetUnits,

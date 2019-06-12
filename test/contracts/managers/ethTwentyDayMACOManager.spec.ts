@@ -987,14 +987,6 @@ contract('ETHTwentyDayMACOManager', accounts => {
 
             expect(newAuctionPivotPrice).to.be.bignumber.equal(auctionPriceParameters['auctionPivotPrice']);
           });
-
-          it('updates riskOn to false', async () => {
-            await subject();
-
-            const actualRiskOn = await ethTwentyDayMACOManager.riskOn.callAsync();
-
-            expect(actualRiskOn).to.equal(false);
-          });
         });
 
         describe('but price has not dipped below MA', async () => {
@@ -1329,14 +1321,6 @@ contract('ETHTwentyDayMACOManager', accounts => {
             const newAuctionPivotPrice = newAuctionParameters[3];
 
             expect(newAuctionPivotPrice).to.be.bignumber.equal(auctionPriceParameters['auctionPivotPrice']);
-          });
-
-          it('updates riskOn to true', async () => {
-            await subject();
-
-            const actualRiskOn = await ethTwentyDayMACOManager.riskOn.callAsync();
-
-            expect(actualRiskOn).to.equal(true);
           });
         });
 
