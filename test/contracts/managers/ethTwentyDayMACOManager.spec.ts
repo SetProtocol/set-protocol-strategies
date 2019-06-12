@@ -62,6 +62,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
   const [
     deployerAccount,
     notDeployerAccount,
+    randomTokenAddress,
   ] = accounts;
 
   let rebalancingSetToken: RebalancingSetTokenContract;
@@ -171,11 +172,11 @@ contract('ETHTwentyDayMACOManager', accounts => {
     blockchain.revertAsync();
   });
 
-  describe('#constructor', async () => {
+  describe.only('#constructor', async () => {
     let subjectCoreAddress: Address;
     let subjectMovingAveragePriceFeed: Address;
-    let subjectUSDCAddress: Address;
-    let subjectEthAddress: Address;
+    let subjectStableAssetAddress: Address;
+    let subjectRiskAssetAddress: Address;
     let subjectStableCollateralAddress: Address;
     let subjectRiskCollateralAddress: Address;
     let subjectSetTokenFactoryAddress: Address;
@@ -186,8 +187,8 @@ contract('ETHTwentyDayMACOManager', accounts => {
     beforeEach(async () => {
       subjectCoreAddress = core.address;
       subjectMovingAveragePriceFeed = movingAverageOracle.address;
-      subjectUSDCAddress = usdcMock.address;
-      subjectEthAddress = wrappedETH.address;
+      subjectStableAssetAddress = usdcMock.address;
+      subjectRiskAssetAddress = wrappedETH.address;
       subjectStableCollateralAddress = stableCollateral.address;
       subjectRiskCollateralAddress = riskCollateral.address;
       subjectSetTokenFactoryAddress = factory.address;
@@ -200,8 +201,8 @@ contract('ETHTwentyDayMACOManager', accounts => {
       return managerWrapper.deployETHTwentyDayMACOManagerAsync(
         subjectCoreAddress,
         subjectMovingAveragePriceFeed,
-        subjectUSDCAddress,
-        subjectEthAddress,
+        subjectStableAssetAddress,
+        subjectRiskAssetAddress,
         subjectStableCollateralAddress,
         subjectRiskCollateralAddress,
         subjectSetTokenFactoryAddress,
@@ -227,12 +228,20 @@ contract('ETHTwentyDayMACOManager', accounts => {
       expect(actualMovingAveragePriceFeedAddress).to.equal(subjectMovingAveragePriceFeed);
     });
 
-    it('sets the correct usdc address', async () => {
+    it('sets the correct stable asset address', async () => {
       ethTwentyDayMACOManager = await subject();
 
-      const actualUSDCAddress = await ethTwentyDayMACOManager.usdcAddress.callAsync();
+      const actualStableAssetAddress = await ethTwentyDayMACOManager.stableAssetAddress.callAsync();
 
-      expect(actualUSDCAddress).to.equal(subjectUSDCAddress);
+      expect(actualStableAssetAddress).to.equal(subjectStableAssetAddress);
+    });
+
+    it('sets the correct risk asset address', async () => {
+      ethTwentyDayMACOManager = await subject();
+
+      const actualRiskAssetAddress = await ethTwentyDayMACOManager.riskAssetAddress.callAsync();
+
+      expect(actualRiskAssetAddress).to.equal(subjectRiskAssetAddress);
     });
 
     it('sets the correct stable collateral address', async () => {
@@ -267,6 +276,24 @@ contract('ETHTwentyDayMACOManager', accounts => {
       expect(actualAuctionLibraryAddress).to.equal(subjectAuctionLibraryAddress);
     });
 
+    it('sets the correct risk asset decimals', async () => {
+      ethTwentyDayMACOManager = await subject();
+
+      const actualRiskAssetDecimals = await ethTwentyDayMACOManager.riskAssetDecimals.callAsync();
+      const expectedRiskAssetDecimals = await wrappedETH.decimals.callAsync();
+
+      expect(actualRiskAssetDecimals).to.be.bignumber.equal(expectedRiskAssetDecimals);
+    });
+
+    it('sets the correct stable asset decimals', async () => {
+      ethTwentyDayMACOManager = await subject();
+
+      const actualStableAssetDecimals = await ethTwentyDayMACOManager.stableAssetDecimals.callAsync();
+      const expectedStableAssetDecimals = await usdcMock.decimals.callAsync();
+
+      expect(actualStableAssetDecimals).to.be.bignumber.equal(expectedStableAssetDecimals);
+    });
+
     it('sets the correct moving average days', async () => {
       ethTwentyDayMACOManager = await subject();
 
@@ -281,6 +308,26 @@ contract('ETHTwentyDayMACOManager', accounts => {
       const actualAuctionTimeToPivot = await ethTwentyDayMACOManager.auctionTimeToPivot.callAsync();
 
       expect(actualAuctionTimeToPivot).to.be.bignumber.equal(subjectAuctionTimeToPivot);
+    });
+
+    describe('but stable asset address does not match stable collateral component', async () => {
+      beforeEach(async () => {
+        subjectStableAssetAddress = randomTokenAddress;
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('but risk asset address does not match risk collateral component', async () => {
+      beforeEach(async () => {
+        subjectRiskAssetAddress = randomTokenAddress;
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
     });
   });
 
