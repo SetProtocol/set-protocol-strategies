@@ -49,14 +49,14 @@ library FlexibleTimingManagerLibrary {
         uint256 rebalanceInterval = _rebalancingSetInterface.rebalanceInterval();
         require(
             block.timestamp >= lastRebalanceTimestamp.add(rebalanceInterval),
-            "ManagerLibrary.proposeNewRebalance: Rebalance interval not elapsed"
+            "FlexibleTimingManagerLibrary.proposeNewRebalance: Rebalance interval not elapsed"
         );
 
         // Require that Rebalancing Set Token is in Default state, won't allow for re-proposals
         // because malicious actor could prevent token from ever rebalancing
         require(
             _rebalancingSetInterface.rebalanceState() == RebalancingLibrary.State.Default,
-            "ManagerLibrary.proposeNewRebalance: State must be in Default"
+            "FlexibleTimingManagerLibrary.proposeNewRebalance: State must be in Default"
         );        
     }
 
