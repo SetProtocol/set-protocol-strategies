@@ -30,7 +30,7 @@ import { FlexibleTimingManagerLibrary } from "./lib/FlexibleTimingManagerLibrary
 
 
 /**
- * @title ETHTwentyDayMACOManager
+ * @title MACOStrategyManager
  * @author Set Protocol
  *
  * Rebalancing Manager contract for implementing the Moving Average (MA) Crossover
@@ -38,7 +38,7 @@ import { FlexibleTimingManagerLibrary } from "./lib/FlexibleTimingManagerLibrary
  * frame for the MA is defined on instantiation. When the spot price dips below the MA
  * risk asset is sold for stable asset and vice versa when the spot price exceeds the MA.
  */
-contract ETHTwentyDayMACOManager {
+contract MACOStrategyManager {
     using SafeMath for uint256;
 
     /* ============ Constants ============ */
@@ -81,7 +81,7 @@ contract ETHTwentyDayMACOManager {
     );
 
     /*
-     * ETHTwentyDayMACOManager constructor.
+     * MACOStrategyManager constructor.
      *
      * @param  _coreAddress                         The address of the Core contract
      * @param  _movingAveragePriceFeed              The address of MA price feed
@@ -130,12 +130,12 @@ contract ETHTwentyDayMACOManager {
 
         require(
             initialStableCollateralComponents[0] == _stableAssetAddress,
-            "ETHTwentyDayMACOManager.constructor: Stable collateral component must match stable asset."
+            "MACOStrategyManager.constructor: Stable collateral component must match stable asset."
         );
 
         require(
             initialRiskCollateralComponents[0] == _riskAssetAddress,
-            "ETHTwentyDayMACOManager.constructor: Risk collateral component must match risk asset."
+            "MACOStrategyManager.constructor: Risk collateral component must match risk asset."
         );
 
         // Get decimals of underlying assets from smart contracts
@@ -161,13 +161,13 @@ contract ETHTwentyDayMACOManager {
         // Check that contract deployer is calling function
         require(
             msg.sender == contractDeployer,
-            "ETHTwentyDayMACOManager.initialize: Only the contract deployer can initialize"
+            "MACOStrategyManager.initialize: Only the contract deployer can initialize"
         );
 
         // Make sure the rebalancingSetToken is tracked by Core
         require(
             ICore(coreAddress).validSets(_rebalancingSetTokenAddress),
-            "ETHTwentyDayMACOManager.initialize: Invalid or disabled RebalancingSetToken address"
+            "MACOStrategyManager.initialize: Invalid or disabled RebalancingSetToken address"
         );
 
         rebalancingSetTokenAddress = _rebalancingSetTokenAddress;
@@ -185,7 +185,7 @@ contract ETHTwentyDayMACOManager {
         // Make sure propose in manager hasn't already been initiated
         require(
             block.timestamp > lastProposalTimestamp.add(TWELVE_HOURS_IN_SECONDS),
-            "ETHTwentyDayMACOManager.initialPropose: 12 hours must pass before new proposal initiated"
+            "MACOStrategyManager.initialPropose: 12 hours must pass before new proposal initiated"
         );
         
         // Create interface to interact with RebalancingSetToken and check enough time has passed for proposal
@@ -214,7 +214,7 @@ contract ETHTwentyDayMACOManager {
         require(
             block.timestamp >= lastProposalTimestamp.add(SIX_HOURS_IN_SECONDS) &&
             block.timestamp <= lastProposalTimestamp.add(TWELVE_HOURS_IN_SECONDS),
-            "ETHTwentyDayMACOManager.confirmPropose: Confirming signal must be 6-12 hours from initial propose"
+            "MACOStrategyManager.confirmPropose: Confirming signal must be 6-12 hours from initial propose"
         );
 
         // Create interface to interact with RebalancingSetToken and check not in Proposal state
@@ -326,13 +326,13 @@ contract ETHTwentyDayMACOManager {
             // If currently holding risk asset (riskOn) check to see if price is below MA, otherwise revert.
             require(
                 _movingAveragePrice > _riskAssetPrice,
-                "ETHTwentyDayMACOManager.checkPriceTriggerMet: Risk asset price must be below moving average price"
+                "MACOStrategyManager.checkPriceTriggerMet: Risk asset price must be below moving average price"
             );
         } else {
             // If currently holding stable asset (not riskOn) check to see if price is above MA, otherwise revert.
             require(
                 _movingAveragePrice < _riskAssetPrice,
-                "ETHTwentyDayMACOManager.checkPriceTriggerMet: Risk asset price must be above moving average price"
+                "MACOStrategyManager.checkPriceTriggerMet: Risk asset price must be above moving average price"
             );
         }        
     }
