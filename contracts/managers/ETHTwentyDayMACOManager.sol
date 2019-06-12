@@ -33,9 +33,9 @@ import { FlexibleTimingManagerLibrary } from "./lib/FlexibleTimingManagerLibrary
  * @author Set Protocol
  *
  * Rebalancing Manager contract for implementing the Moving Average (MA) Crossover
- * Strategy between ETH 20-day MA and the spot price of ETH. When the spot price
- * dips below the 20-day MA ETH is sold for USDC and vice versa when the spot price
- * exceeds the 20-day MA.
+ * Strategy between ETH MA and the spot price of ETH. The time frame for the MA is
+ * defined on instantiation When the spot price dips below the  MA ETH is sold for 
+ * USDC and vice versa when the spot price exceeds the MA.
  */
 contract ETHTwentyDayMACOManager {
     using SafeMath for uint256;
@@ -90,6 +90,7 @@ contract ETHTwentyDayMACOManager {
      *                                              (made of ETH wrapped in a Set Token)
      * @param  _setTokenFactory                     The address of the SetTokenFactory
      * @param  _auctionLibrary                      The address of auction price curve to use in rebalance
+     * @param  _movingAverageDays                   The amount of days to use in moving average calculation
      * @param  _auctionTimeToPivot                  The amount of time until pivot reached in rebalance
      */
     constructor(
@@ -196,7 +197,7 @@ contract ETHTwentyDayMACOManager {
             "ETHTwentyDayMACOManager.confirmPropose: Confirming signal must be 6-12 hours from initial propose"
         );
 
-        // Create interface to interact with RebalancingSetToken and check enough time has passed for proposal
+        // Create interface to interact with RebalancingSetToken and check not in Proposal state
         FlexibleTimingManagerLibrary.validateManagerPropose(IRebalancingSetToken(rebalancingSetTokenAddress));
 
         // Get price data from oracles
@@ -271,7 +272,7 @@ contract ETHTwentyDayMACOManager {
      * 10 ** 18 = $1.
      *
      * @return uint256              USD Price of ETH
-     * @return uint256              20 day moving average USD Price of ETH
+     * @return uint256              Moving average USD Price of ETH
      */
     function getPriceData()
         internal
@@ -292,7 +293,7 @@ contract ETHTwentyDayMACOManager {
      * Check to make sure that the necessary price changes have occured to allow a rebalance.
      *
      * @param  _ethPrice                Current Ethereum price as found on oracle
-     * @param  _movingAveragePrice      Current 20 day MA price from Meta Oracle
+     * @param  _movingAveragePrice      Current MA price from Meta Oracle
      */
     function checkPriceTriggerMet(
         uint256 _ethPrice,
@@ -302,13 +303,13 @@ contract ETHTwentyDayMACOManager {
         view
     {
         if (usingRiskCollateral()) {
-            // If currently holding ETH (riskOn) check to see if price is below 20 day MA, otherwise revert.
+            // If currently holding ETH (riskOn) check to see if price is below MA, otherwise revert.
             require(
                 _movingAveragePrice > _ethPrice,
                 "ETHTwentyDayMACOManager.checkPriceTriggerMet: ETH Price must be below moving average price"
             );
         } else {
-            // If currently holding USDC (not riskOn) check to see if price is above 20 day MA, otherwise revert.
+            // If currently holding USDC (not riskOn) check to see if price is above MA, otherwise revert.
             require(
                 _movingAveragePrice < _ethPrice,
                 "ETHTwentyDayMACOManager.checkPriceTriggerMet: ETH Price must be above moving average price"
@@ -323,7 +324,7 @@ contract ETHTwentyDayMACOManager {
      * stable collateral set is created, if !riskOn then a new risk collateral set is created.
      *
      * @param  _ethPrice                Current Ethereum price as found on oracle
-     * @param  _movingAveragePrice      Current 20 day MA price from Meta Oracle
+     * @param  _movingAveragePrice      Current MA price from Meta Oracle
      * @return address                  The address of the proposed nextSet
      * @return uint256                  The USD value of current Set
      * @return uint256                  The USD value of next Set
@@ -357,8 +358,8 @@ contract ETHTwentyDayMACOManager {
      * than 5x different from each other then create a new collateral set.
      *
      * @param  _ethPrice                Current Ethereum price as found on oracle
-     * @return uint256                          The USD value of stable collateral
-     * @return uint256                          The USD value of risk collateral
+     * @return uint256                  The USD value of stable collateral
+     * @return uint256                  The USD value of risk collateral
      */
     function checkForNewAllocation(
         uint256 _ethPrice
