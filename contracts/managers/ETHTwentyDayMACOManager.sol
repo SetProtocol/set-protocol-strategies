@@ -566,7 +566,7 @@ contract ETHTwentyDayMACOManager {
         uint256 _currentCollateralUSDValue,
         uint256 _replacementUnderlyingPrice,
         uint256 _replacementUnderlyingDecimals,
-        uint256 _nextNaturalUnit        
+        uint256 _replacementCollateralNaturalUnit        
     )
         internal
         pure
@@ -574,7 +574,7 @@ contract ETHTwentyDayMACOManager {
     {
         return _currentCollateralUSDValue
             .mul(10 ** _replacementUnderlyingDecimals)
-            .mul(_nextNaturalUnit)
+            .mul(_replacementCollateralNaturalUnit)
             .div(SET_TOKEN_DECIMALS.mul(_replacementUnderlyingPrice));        
     }
 }
