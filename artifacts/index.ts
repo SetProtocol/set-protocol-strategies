@@ -1,7 +1,7 @@
 export { BTCDaiRebalancingManager } from './ts/BTCDaiRebalancingManager';
 export { BTCETHRebalancingManager } from './ts/BTCETHRebalancingManager';
 export { ETHDaiRebalancingManager } from './ts/ETHDaiRebalancingManager';
-export { ETHTwentyDayMACOManager } from './ts/ETHTwentyDayMACOManager';
+export { MACOStrategyManager } from './ts/MACOStrategyManager';
 export { HistoricalPriceFeed } from './ts/HistoricalPriceFeed';
 export { FeedFactory } from './ts/FeedFactory';
 export { LinkedListLibraryMock } from './ts/LinkedListLibraryMock';
@@ -15,7 +15,7 @@ export {
 	BTCDaiRebalancingManagerContract,
 	BTCETHRebalancingManagerContract,
 	ETHDaiRebalancingManagerContract,
-	ETHTwentyDayMACOManagerContract,
+	MACOStrategyManagerContract,
 	HistoricalPriceFeedContract,
 	FeedFactoryContract,
 	LinkedListLibraryMockContract,
