@@ -938,7 +938,7 @@ contract('MACOStrategyManager', accounts => {
             const logs = await setTestUtils.getLogsFromTxHash(txHash);
             const expectedSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
 
-            const actualStableCollateralAddress = await ethTwentyDayMACOManager.stableCollateralAddress.callAsync();
+            const actualStableCollateralAddress = await macoStrategyManager.stableCollateralAddress.callAsync();
             expect(actualStableCollateralAddress).to.equal(expectedSetAddress);
           });
 
@@ -1272,7 +1272,7 @@ contract('MACOStrategyManager', accounts => {
             const logs = await setTestUtils.getLogsFromTxHash(txHash);
             const expectedSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
 
-            const actualRiskCollateralAddress = await ethTwentyDayMACOManager.riskCollateralAddress.callAsync();
+            const actualRiskCollateralAddress = await macoStrategyManager.riskCollateralAddress.callAsync();
             expect(actualRiskCollateralAddress).to.equal(expectedSetAddress);
           });
 
