@@ -162,7 +162,7 @@ library FlexibleTimingManagerLibrary {
     }
 
     /*
-     * Get USD value of one component in a Set
+     * Get USD value of one component in a Set to 18 decimals
      *
      * @param  _tokenPrice          The 18 decimal value of one full token
      * @param  _naturalUnit         The naturalUnit of the set being component belongs to
@@ -187,9 +187,16 @@ library FlexibleTimingManagerLibrary {
             .mul(10 ** SET_TOKEN_DECIMALS)
             .div(_naturalUnit);
         
-        // Return value of component token in one full set token
-        return _tokenPrice
+        // Return value of component token in one full set token, to 18 decimals
+        uint256 allocationUSDValue = _tokenPrice
             .mul(componentUnitsInFullToken)
             .div(10 ** _tokenDecimals);
+
+        require(
+            allocationUSDValue > 0,
+            "FlexibleTimingManagerLibrary.calculateTokenAllocationAmountUSD: Value must be > 0"
+        );
+
+        return allocationUSDValue;
     }
 }

@@ -879,6 +879,116 @@ contract('ETHTwentyDayMACOManager', accounts => {
           });
         });
 
+        describe('but new stable collateral requires bump in natural unit', async () => {
+          before(async () => {
+            triggerPrice = ether(.8);
+            lastPrice = triggerPrice;
+          });
+
+          it('should set new stable collateral address', async () => {
+            const txHash = await subject();
+
+            const logs = await setTestUtils.getLogsFromTxHash(txHash);
+            const expectedSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
+
+            const actualStableCollateralAddress = await ethTwentyDayMACOManager.stableCollateralAddress.callAsync();
+            expect(actualStableCollateralAddress).to.equal(expectedSetAddress);
+          });
+
+          it('updates new stable collateral to the correct naturalUnit', async () => {
+            await subject();
+
+            const newSetAddress = await rebalancingSetToken.nextSet.callAsync();
+            const newSet = await protocolWrapper.getSetTokenAsync(newSetAddress);
+            const newSetNaturalUnit = await newSet.naturalUnit.callAsync();
+
+            const expectedNextSetParams = await managerWrapper.getExpectedMACONewCollateralParametersAsync(
+              stableCollateral,
+              riskCollateral,
+              ethMedianizer,
+              USDC_DECIMALS,
+              ETH_DECIMALS,
+              true
+            );
+            expect(newSetNaturalUnit).to.be.bignumber.equal(expectedNextSetParams['naturalUnit']);
+          });
+
+          it('updates new stable collateral to the correct units', async () => {
+            await subject();
+
+            const newSetAddress = await rebalancingSetToken.nextSet.callAsync();
+            const newSet = await protocolWrapper.getSetTokenAsync(newSetAddress);
+            const newSetUnits = await newSet.getUnits.callAsync();
+
+            const expectedNextSetParams = await managerWrapper.getExpectedMACONewCollateralParametersAsync(
+              stableCollateral,
+              riskCollateral,
+              ethMedianizer,
+              USDC_DECIMALS,
+              ETH_DECIMALS,
+              true
+            );
+            expect(JSON.stringify(newSetUnits)).to.be.eql(JSON.stringify(expectedNextSetParams['units']));
+          });
+
+          it('updates new stable collateral to the correct components', async () => {
+            await subject();
+
+            const nextSetAddress = await rebalancingSetToken.nextSet.callAsync();
+            const nextSet = await protocolWrapper.getSetTokenAsync(nextSetAddress);
+            const nextSetComponents = await nextSet.getComponents.callAsync();
+
+            const expectedNextSetComponents = [usdcMock.address];
+            expect(JSON.stringify(nextSetComponents)).to.be.eql(JSON.stringify(expectedNextSetComponents));
+          });
+
+          it('updates the auction start price correctly', async () => {
+            const txHash = await subject();
+
+            const logs = await setTestUtils.getLogsFromTxHash(txHash);
+            const newSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
+            const newSet = await protocolWrapper.getSetTokenAsync(newSetAddress);
+
+            const timeIncrement = new BigNumber(600);
+            const auctionPriceParameters = await managerWrapper.getExpectedMACOAuctionParametersAsync(
+              riskCollateral,
+              newSet,
+              true,
+              lastPrice,
+              timeIncrement,
+              auctionTimeToPivot
+            );
+
+            const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
+            const newAuctionStartPrice = newAuctionParameters[2];
+
+            expect(newAuctionStartPrice).to.be.bignumber.equal(auctionPriceParameters['auctionStartPrice']);
+          });
+
+          it('updates the auction pivot price correctly', async () => {
+            const txHash = await subject();
+
+            const logs = await setTestUtils.getLogsFromTxHash(txHash);
+            const newSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
+            const newSet = await protocolWrapper.getSetTokenAsync(newSetAddress);
+
+            const timeIncrement = new BigNumber(600);
+            const auctionPriceParameters = await managerWrapper.getExpectedMACOAuctionParametersAsync(
+              riskCollateral,
+              newSet,
+              true,
+              lastPrice,
+              timeIncrement,
+              auctionTimeToPivot
+            );
+
+            const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
+            const newAuctionPivotPrice = newAuctionParameters[3];
+
+            expect(newAuctionPivotPrice).to.be.bignumber.equal(auctionPriceParameters['auctionPivotPrice']);
+          });
+        });
+
         describe('but price has not dipped below MA', async () => {
           before(async () => {
             triggerPrice = ether(140);
@@ -1037,6 +1147,117 @@ contract('ETHTwentyDayMACOManager', accounts => {
             const expectedNextSetParams = await managerWrapper.getExpectedMACONewCollateralParametersAsync(
               stableCollateral,
               newSet,
+              ethMedianizer,
+              USDC_DECIMALS,
+              ETH_DECIMALS,
+              false
+            );
+            expect(JSON.stringify(newSetUnits)).to.be.eql(JSON.stringify(expectedNextSetParams['units']));
+          });
+
+          it('updates new risk collateral to the correct components', async () => {
+            await subject();
+
+            const nextSetAddress = await rebalancingSetToken.nextSet.callAsync();
+            const nextSet = await protocolWrapper.getSetTokenAsync(nextSetAddress);
+            const nextSetComponents = await nextSet.getComponents.callAsync();
+
+            const expectedNextSetComponents = [wrappedETH.address];
+            expect(JSON.stringify(nextSetComponents)).to.be.eql(JSON.stringify(expectedNextSetComponents));
+          });
+
+          it('updates the auction start price correctly', async () => {
+            const txHash = await subject();
+
+            const logs = await setTestUtils.getLogsFromTxHash(txHash);
+            const newSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
+            const newSet = await protocolWrapper.getSetTokenAsync(newSetAddress);
+
+            const timeIncrement = new BigNumber(600);
+            const auctionPriceParameters = await managerWrapper.getExpectedMACOAuctionParametersAsync(
+              stableCollateral,
+              newSet,
+              false,
+              lastPrice,
+              timeIncrement,
+              auctionTimeToPivot
+            );
+
+            const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
+            const newAuctionStartPrice = newAuctionParameters[2];
+
+            expect(newAuctionStartPrice).to.be.bignumber.equal(auctionPriceParameters['auctionStartPrice']);
+          });
+
+          it('updates the auction pivot price correctly', async () => {
+            const txHash = await subject();
+
+            const logs = await setTestUtils.getLogsFromTxHash(txHash);
+            const newSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
+            const newSet = await protocolWrapper.getSetTokenAsync(newSetAddress);
+
+            const timeIncrement = new BigNumber(600);
+            const auctionPriceParameters = await managerWrapper.getExpectedMACOAuctionParametersAsync(
+              stableCollateral,
+              newSet,
+              false,
+              lastPrice,
+              timeIncrement,
+              auctionTimeToPivot
+            );
+
+            const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
+            const newAuctionPivotPrice = newAuctionParameters[3];
+
+            expect(newAuctionPivotPrice).to.be.bignumber.equal(auctionPriceParameters['auctionPivotPrice']);
+          });
+        });
+
+        describe('but new risk collateral requires bump in natural unit', async () => {
+          before(async () => {
+            triggerPrice = ether(16000);
+            lastPrice = triggerPrice;
+          });
+
+          it('should set new risk collateral address', async () => {
+            const txHash = await subject();
+
+            const logs = await setTestUtils.getLogsFromTxHash(txHash);
+            const expectedSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
+
+            const actualRiskCollateralAddress = await ethTwentyDayMACOManager.riskCollateralAddress.callAsync();
+            expect(actualRiskCollateralAddress).to.equal(expectedSetAddress);
+          });
+
+          it('updates new risk collateral to the correct naturalUnit', async () => {
+            await subject();
+
+            const newSetAddress = await rebalancingSetToken.nextSet.callAsync();
+            const newSet = await protocolWrapper.getSetTokenAsync(newSetAddress);
+            const newSetNaturalUnit = await newSet.naturalUnit.callAsync();
+
+            const expectedNextSetParams = await managerWrapper.getExpectedMACONewCollateralParametersAsync(
+              stableCollateral,
+              riskCollateral,
+              ethMedianizer,
+              USDC_DECIMALS,
+              ETH_DECIMALS,
+              false
+            );
+
+            expect(newSetNaturalUnit).to.be.bignumber.equal(expectedNextSetParams['naturalUnit']);
+          });
+
+          it('updates new risk collateral to the correct units', async () => {
+            await subject();
+
+            const newSetAddress = await rebalancingSetToken.nextSet.callAsync();
+            const newSet = await protocolWrapper.getSetTokenAsync(newSetAddress);
+            const newSetUnits = await newSet.getUnits.callAsync();
+
+            const expectedNextSetParams = await managerWrapper.getExpectedMACONewCollateralParametersAsync(
+              stableCollateral,
+              riskCollateral,
               ethMedianizer,
               USDC_DECIMALS,
               ETH_DECIMALS,
