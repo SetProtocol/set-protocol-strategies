@@ -17,6 +17,7 @@
 pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
+import { ERC20Detailed } from "openzeppelin-solidity/contracts/token/ERC20/ERC20Detailed.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { ICore } from "set-protocol-contracts/contracts/core/interfaces/ICore.sol";
 import { IRebalancingSetToken } from "set-protocol-contracts/contracts/core/interfaces/IRebalancingSetToken.sol";
@@ -29,15 +30,15 @@ import { FlexibleTimingManagerLibrary } from "./lib/FlexibleTimingManagerLibrary
 
 
 /**
- * @title ETHTwentyDayMACOManager
+ * @title MACOStrategyManager
  * @author Set Protocol
  *
  * Rebalancing Manager contract for implementing the Moving Average (MA) Crossover
- * Strategy between ETH MA and the spot price of ETH. The time frame for the MA is
- * defined on instantiation When the spot price dips below the  MA ETH is sold for 
- * USDC and vice versa when the spot price exceeds the MA.
+ * Strategy between a risk asset's MA and the spot price of the risk asset. The time
+ * frame for the MA is defined on instantiation. When the spot price dips below the MA
+ * risk asset is sold for stable asset and vice versa when the spot price exceeds the MA.
  */
-contract ETHTwentyDayMACOManager {
+contract MACOStrategyManager {
     using SafeMath for uint256;
 
     /* ============ Constants ============ */
@@ -49,9 +50,7 @@ contract ETHTwentyDayMACOManager {
     uint256 constant TWELVE_HOURS_IN_SECONDS = 43200;
 
     // Equal to $1 since token prices are passed with 18 decimals
-    uint256 constant USDC_PRICE = 10 ** 18;
-    uint256 constant USDC_DECIMALS = 6;
-    uint256 constant ETH_DECIMALS = 18;
+    uint256 constant STABLE_ASSET_PRICE = 10 ** 18;
     uint256 constant SET_TOKEN_DECIMALS = 10**18;
 
     /* ============ State Variables ============ */
@@ -62,10 +61,13 @@ contract ETHTwentyDayMACOManager {
     address public setTokenFactory;
     address public auctionLibrary;
 
-    address public usdcAddress;
-    address public wethAddress;
+    address public stableAssetAddress;
+    address public riskAssetAddress;
     address public stableCollateralAddress;
     address public riskCollateralAddress;
+
+    uint256 public stableAssetDecimals;
+    uint256 public riskAssetDecimals;
 
     uint256 public auctionTimeToPivot;
     uint256 public movingAverageDays;
@@ -74,21 +76,21 @@ contract ETHTwentyDayMACOManager {
     /* ============ Events ============ */
 
     event LogManagerProposal(
-        uint256 ethPrice,
+        uint256 riskAssetPrice,
         uint256 movingAveragePrice
     );
 
     /*
-     * ETHTwentyDayMACOManager constructor.
+     * MACOStrategyManager constructor.
      *
      * @param  _coreAddress                         The address of the Core contract
      * @param  _movingAveragePriceFeed              The address of MA price feed
-     * @param  _usdcAddress                         The address of the USDC contract
-     * @param  _wethAddress                         The address of the WETH contract
+     * @param  _stableAssetAddress                  The address of the stable asset contract
+     * @param  _riskAssetAddress                    The address of the risk asset contract
      * @param  _initialStableCollateralAddress      The address stable collateral 
-     *                                              (made of USDC wrapped in a Set Token)
+     *                                              (made of stable asset wrapped in a Set Token)
      * @param  _initialRiskCollateralAddress        The address risk collateral 
-     *                                              (made of ETH wrapped in a Set Token)
+     *                                              (made of risk asset wrapped in a Set Token)
      * @param  _setTokenFactory                     The address of the SetTokenFactory
      * @param  _auctionLibrary                      The address of auction price curve to use in rebalance
      * @param  _movingAverageDays                   The amount of days to use in moving average calculation
@@ -97,8 +99,8 @@ contract ETHTwentyDayMACOManager {
     constructor(
         address _coreAddress,
         address _movingAveragePriceFeed,
-        address _usdcAddress,
-        address _wethAddress,
+        address _stableAssetAddress,
+        address _riskAssetAddress,
         address _initialStableCollateralAddress,
         address _initialRiskCollateralAddress,
         address _setTokenFactory,
@@ -114,14 +116,31 @@ contract ETHTwentyDayMACOManager {
         setTokenFactory = _setTokenFactory;
         auctionLibrary = _auctionLibrary;
 
-        usdcAddress = _usdcAddress;
-        wethAddress = _wethAddress;
+        stableAssetAddress = _stableAssetAddress;
+        riskAssetAddress = _riskAssetAddress;
         stableCollateralAddress = _initialStableCollateralAddress;
         riskCollateralAddress = _initialRiskCollateralAddress;
 
         auctionTimeToPivot = _auctionTimeToPivot;
         movingAverageDays = _movingAverageDays;
         lastProposalTimestamp = 0;
+
+        address[] memory initialRiskCollateralComponents = ISetToken(_initialRiskCollateralAddress).getComponents();
+        address[] memory initialStableCollateralComponents = ISetToken(_initialStableCollateralAddress).getComponents();
+
+        require(
+            initialStableCollateralComponents[0] == _stableAssetAddress,
+            "MACOStrategyManager.constructor: Stable collateral component must match stable asset."
+        );
+
+        require(
+            initialRiskCollateralComponents[0] == _riskAssetAddress,
+            "MACOStrategyManager.constructor: Risk collateral component must match risk asset."
+        );
+
+        // Get decimals of underlying assets from smart contracts
+        stableAssetDecimals = ERC20Detailed(_stableAssetAddress).decimals();
+        riskAssetDecimals = ERC20Detailed(_riskAssetAddress).decimals();
     }
 
     /* ============ External ============ */
@@ -142,13 +161,13 @@ contract ETHTwentyDayMACOManager {
         // Check that contract deployer is calling function
         require(
             msg.sender == contractDeployer,
-            "ETHTwentyDayMACOManager.initialize: Only the contract deployer can initialize"
+            "MACOStrategyManager.initialize: Only the contract deployer can initialize"
         );
 
         // Make sure the rebalancingSetToken is tracked by Core
         require(
             ICore(coreAddress).validSets(_rebalancingSetTokenAddress),
-            "ETHTwentyDayMACOManager.initialize: Invalid or disabled RebalancingSetToken address"
+            "MACOStrategyManager.initialize: Invalid or disabled RebalancingSetToken address"
         );
 
         rebalancingSetTokenAddress = _rebalancingSetTokenAddress;
@@ -166,7 +185,7 @@ contract ETHTwentyDayMACOManager {
         // Make sure propose in manager hasn't already been initiated
         require(
             block.timestamp > lastProposalTimestamp.add(TWELVE_HOURS_IN_SECONDS),
-            "ETHTwentyDayMACOManager.initialPropose: 12 hours must pass before new proposal initiated"
+            "MACOStrategyManager.initialPropose: 12 hours must pass before new proposal initiated"
         );
         
         // Create interface to interact with RebalancingSetToken and check enough time has passed for proposal
@@ -174,12 +193,12 @@ contract ETHTwentyDayMACOManager {
         
         // Get price data from oracles
         (
-            uint256 ethPrice,
+            uint256 riskAssetPrice,
             uint256 movingAveragePrice
         ) = getPriceData();
 
         // Make sure price trigger has been reached
-        checkPriceTriggerMet(ethPrice, movingAveragePrice);      
+        checkPriceTriggerMet(riskAssetPrice, movingAveragePrice);      
 
         lastProposalTimestamp = block.timestamp;
     }
@@ -195,7 +214,7 @@ contract ETHTwentyDayMACOManager {
         require(
             block.timestamp >= lastProposalTimestamp.add(SIX_HOURS_IN_SECONDS) &&
             block.timestamp <= lastProposalTimestamp.add(TWELVE_HOURS_IN_SECONDS),
-            "ETHTwentyDayMACOManager.confirmPropose: Confirming signal must be 6-12 hours from initial propose"
+            "MACOStrategyManager.confirmPropose: Confirming signal must be 6-12 hours from initial propose"
         );
 
         // Create interface to interact with RebalancingSetToken and check not in Proposal state
@@ -203,12 +222,12 @@ contract ETHTwentyDayMACOManager {
 
         // Get price data from oracles
         (
-            uint256 ethPrice,
+            uint256 riskAssetPrice,
             uint256 movingAveragePrice
         ) = getPriceData();
 
         // Make sure price trigger has been reached
-        checkPriceTriggerMet(ethPrice, movingAveragePrice);          
+        checkPriceTriggerMet(riskAssetPrice, movingAveragePrice);          
 
         // If price trigger has been met, get next Set allocation. Create new set if price difference is too
         // great to run good auction. Return nextSet address and dollar value of current and next set
@@ -217,7 +236,7 @@ contract ETHTwentyDayMACOManager {
             uint256 currentSetDollarValue,
             uint256 nextSetDollarValue
         ) = determineNewAllocation(
-            ethPrice,
+            riskAssetPrice,
             movingAveragePrice
         );
 
@@ -243,7 +262,7 @@ contract ETHTwentyDayMACOManager {
         );
 
         emit LogManagerProposal(
-            ethPrice,
+            riskAssetPrice,
             movingAveragePrice
         );
     }
@@ -269,51 +288,51 @@ contract ETHTwentyDayMACOManager {
     }
 
     /*
-     * Get the ETH and moving average prices from respective oracles. Price returned have 18 decimals so 
+     * Get the risk asset and moving average prices from respective oracles. Price returned have 18 decimals so 
      * 10 ** 18 = $1.
      *
-     * @return uint256              USD Price of ETH
-     * @return uint256              Moving average USD Price of ETH
+     * @return uint256              USD Price of risk asset
+     * @return uint256              Moving average USD Price of risk asset
      */
     function getPriceData()
         internal
         view
         returns(uint256, uint256)
     {
-        // Get raw eth price feed being used by moving average oracle
-        address ethPriceFeed = IMetaOracle(movingAveragePriceFeed).getSourceMedianizer();
+        // Get raw riska asset price feed being used by moving average oracle
+        address riskAssetPriceFeed = IMetaOracle(movingAveragePriceFeed).getSourceMedianizer();
 
-        // Get current eth price and moving average data
-        uint256 ethPrice = FlexibleTimingManagerLibrary.queryPriceData(ethPriceFeed);
+        // Get current risk asset price and moving average data
+        uint256 riskAssetPrice = FlexibleTimingManagerLibrary.queryPriceData(riskAssetPriceFeed);
         uint256 movingAveragePrice = uint256(IMetaOracle(movingAveragePriceFeed).read(movingAverageDays));
 
-        return (ethPrice, movingAveragePrice);        
+        return (riskAssetPrice, movingAveragePrice);        
     }
 
     /*
      * Check to make sure that the necessary price changes have occured to allow a rebalance.
      *
-     * @param  _ethPrice                Current Ethereum price as found on oracle
+     * @param  _riskAssetPrice          Current risk asset price as found on oracle
      * @param  _movingAveragePrice      Current MA price from Meta Oracle
      */
     function checkPriceTriggerMet(
-        uint256 _ethPrice,
+        uint256 _riskAssetPrice,
         uint256 _movingAveragePrice
     )
         internal
         view
     {
         if (usingRiskCollateral()) {
-            // If currently holding ETH (riskOn) check to see if price is below MA, otherwise revert.
+            // If currently holding risk asset (riskOn) check to see if price is below MA, otherwise revert.
             require(
-                _movingAveragePrice > _ethPrice,
-                "ETHTwentyDayMACOManager.checkPriceTriggerMet: ETH Price must be below moving average price"
+                _movingAveragePrice > _riskAssetPrice,
+                "MACOStrategyManager.checkPriceTriggerMet: Risk asset price must be below moving average price"
             );
         } else {
-            // If currently holding USDC (not riskOn) check to see if price is above MA, otherwise revert.
+            // If currently holding stable asset (not riskOn) check to see if price is above MA, otherwise revert.
             require(
-                _movingAveragePrice < _ethPrice,
-                "ETHTwentyDayMACOManager.checkPriceTriggerMet: ETH Price must be above moving average price"
+                _movingAveragePrice < _riskAssetPrice,
+                "MACOStrategyManager.checkPriceTriggerMet: Risk asset price must be above moving average price"
             );
         }        
     }
@@ -324,14 +343,14 @@ contract ETHTwentyDayMACOManager {
      * than 5x different from each other then create a new collateral set. If currently riskOn then a new
      * stable collateral set is created, if !riskOn then a new risk collateral set is created.
      *
-     * @param  _ethPrice                Current Ethereum price as found on oracle
+     * @param  _riskAssetPrice          Current risk asset price as found on oracle
      * @param  _movingAveragePrice      Current MA price from Meta Oracle
      * @return address                  The address of the proposed nextSet
      * @return uint256                  The USD value of current Set
      * @return uint256                  The USD value of next Set
      */
     function determineNewAllocation(
-        uint256 _ethPrice,
+        uint256 _riskAssetPrice,
         uint256 _movingAveragePrice
     )
         internal
@@ -342,7 +361,7 @@ contract ETHTwentyDayMACOManager {
         (
             uint256 stableCollateralDollarValue,
             uint256 riskCollateralDollarValue
-        ) = checkForNewAllocation(_ethPrice);
+        ) = checkForNewAllocation(_riskAssetPrice);
 
         (
             address nextSetAddress,
@@ -358,12 +377,12 @@ contract ETHTwentyDayMACOManager {
      * Check to see if a new collateral set needs to be created. If the dollar value of the two collateral sets is more
      * than 5x different from each other then create a new collateral set.
      *
-     * @param  _ethPrice                Current Ethereum price as found on oracle
+     * @param  _riskAssetPrice          Current risk asset price as found on oracle
      * @return uint256                  The USD value of stable collateral
      * @return uint256                  The USD value of risk collateral
      */
     function checkForNewAllocation(
-        uint256 _ethPrice
+        uint256 _riskAssetPrice
     )
         internal
         returns(uint256, uint256)
@@ -378,16 +397,16 @@ contract ETHTwentyDayMACOManager {
 
         // Value both Sets
         uint256 stableCollateralDollarValue = FlexibleTimingManagerLibrary.calculateTokenAllocationAmountUSD(
-            USDC_PRICE,
+            STABLE_ASSET_PRICE,
             stableCollateralDetails.naturalUnit,
             stableCollateralDetails.units[0],
-            USDC_DECIMALS
+            stableAssetDecimals
         );
         uint256 riskCollateralDollarValue = FlexibleTimingManagerLibrary.calculateTokenAllocationAmountUSD(
-            _ethPrice,
+            _riskAssetPrice,
             riskCollateralDetails.naturalUnit,
             riskCollateralDetails.units[0],
-            ETH_DECIMALS
+            riskAssetDecimals
         );
         
         // If value of one Set is 5 times greater than the other, create a new collateral Set
@@ -395,7 +414,7 @@ contract ETHTwentyDayMACOManager {
             riskCollateralDollarValue >= stableCollateralDollarValue.mul(ALLOCATION_PRICE_RATIO_LIMIT)) {
             //Determine the new collateral parameters
             return determineNewCollateralParameters(
-                _ethPrice,
+                _riskAssetPrice,
                 stableCollateralDollarValue,
                 riskCollateralDollarValue,
                 stableCollateralDetails,
@@ -411,7 +430,7 @@ contract ETHTwentyDayMACOManager {
      * sets is more than 5x different from each other. The new collateral set address is then
      * assigned to the correct state variable (risk or stable collateral) 
      *
-     * @param  _ethPrice                        Current Ethereum price as found on oracle
+     * @param  _riskAssetPrice                  Current risk asset price as found on oracle
      * @param  _stableCollateralValue           Value of current stable collateral set in USD
      * @param  _riskCollateralValue             Value of current risk collateral set in USD
      * @param  _stableCollateralDetails         Set details of current stable collateral set
@@ -420,7 +439,7 @@ contract ETHTwentyDayMACOManager {
      * @return uint256                          The USD value of risk collateral
      */
     function determineNewCollateralParameters(
-        uint256 _ethPrice,
+        uint256 _riskAssetPrice,
         uint256 _stableCollateralValue,
         uint256 _riskCollateralValue,
         SetTokenLibrary.SetDetails memory _stableCollateralDetails,
@@ -435,15 +454,15 @@ contract ETHTwentyDayMACOManager {
         if (usingRiskCollateral()) {
             // Create static components and units array
             address[] memory nextSetComponents = new address[](1);
-            nextSetComponents[0] = usdcAddress;
+            nextSetComponents[0] = stableAssetAddress;
             
             (
                 uint256[] memory nextSetUnits,
                 uint256 nextNaturalUnit
             ) = getNewCollateralSetParameters(
                 _riskCollateralValue,
-                USDC_PRICE,
-                USDC_DECIMALS,
+                STABLE_ASSET_PRICE,
+                stableAssetDecimals,
                 _stableCollateralDetails.naturalUnit
             );
 
@@ -453,30 +472,30 @@ contract ETHTwentyDayMACOManager {
                 nextSetComponents,
                 nextSetUnits,
                 nextNaturalUnit,
-                bytes32("USDCETH"),
-                bytes32("USDCETH"),
+                bytes32("STBLCollateral"),
+                bytes32("STBLMACO"),
                 ""
             );
             // Calculate dollar value of new stable collateral
             stableCollateralDollarValue = FlexibleTimingManagerLibrary.calculateTokenAllocationAmountUSD(
-                USDC_PRICE,
+                STABLE_ASSET_PRICE,
                 nextNaturalUnit,
                 nextSetUnits[0],
-                USDC_DECIMALS
+                stableAssetDecimals
             );
             riskCollateralDollarValue = _riskCollateralValue;
         } else {
             // Create static components and units array
             address[] memory nextSetComponents = new address[](1);
-            nextSetComponents[0] = wethAddress;
+            nextSetComponents[0] = riskAssetAddress;
 
             (
                 uint256[] memory nextSetUnits,
                 uint256 nextNaturalUnit
             ) = getNewCollateralSetParameters(
                 _stableCollateralValue,
-                _ethPrice,
-                ETH_DECIMALS,
+                _riskAssetPrice,
+                riskAssetDecimals,
                 _riskCollateralDetails.naturalUnit
             );
 
@@ -486,17 +505,17 @@ contract ETHTwentyDayMACOManager {
                 nextSetComponents,
                 nextSetUnits,
                 nextNaturalUnit,
-                bytes32("USDC"),
-                bytes32("USDC"),
+                bytes32("RISKCollateral"),
+                bytes32("RISKMACO"),
                 ""
             );
 
             // Calculate dollar value of new risk collateral
             riskCollateralDollarValue = FlexibleTimingManagerLibrary.calculateTokenAllocationAmountUSD(
-                _ethPrice,
+                _riskAssetPrice,
                 nextNaturalUnit,
                 nextSetUnits[0],
-                ETH_DECIMALS
+                riskAssetDecimals
             );
             stableCollateralDollarValue = _stableCollateralValue;
         }

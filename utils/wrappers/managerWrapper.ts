@@ -8,7 +8,7 @@ import {
   BTCETHRebalancingManagerContract,
   BTCDaiRebalancingManagerContract,
   ETHDaiRebalancingManagerContract,
-  ETHTwentyDayMACOManagerContract,
+  MACOStrategyManagerContract,
   MovingAverageOracleContract,
 } from '../contracts';
 import { BigNumber } from 'bignumber.js';
@@ -26,7 +26,7 @@ const web3 = getWeb3();
 const BTCETHRebalancingManager = artifacts.require('BTCETHRebalancingManager');
 const BTCDaiRebalancingManager = artifacts.require('BTCDaiRebalancingManager');
 const ETHDaiRebalancingManager = artifacts.require('ETHDaiRebalancingManager');
-const ETHTwentyDayMACOManager = artifacts.require('ETHTwentyDayMACOManager');
+const MACOStrategyManager = artifacts.require('MACOStrategyManager');
 
 const { SetProtocolUtils: SetUtils } = setProtocolUtils;
 const {
@@ -141,7 +141,7 @@ export class ManagerWrapper {
     );
   }
 
-  public async deployETHTwentyDayMACOManagerAsync(
+  public async deployMACOStrategyManagerAsync(
     coreAddress: Address,
     movingAveragePriceFeedAddress: Address,
     daiAddress: Address,
@@ -153,8 +153,8 @@ export class ManagerWrapper {
     movingAverageDays: BigNumber,
     auctionTimeToPivot: BigNumber = new BigNumber(100000),
     from: Address = this._tokenOwnerAddress
-  ): Promise<ETHTwentyDayMACOManagerContract> {
-    const truffleRebalacingTokenManager = await ETHTwentyDayMACOManager.new(
+  ): Promise<MACOStrategyManagerContract> {
+    const truffleRebalacingTokenManager = await MACOStrategyManager.new(
       coreAddress,
       movingAveragePriceFeedAddress,
       daiAddress,
@@ -168,7 +168,7 @@ export class ManagerWrapper {
       { from },
     );
 
-    return new ETHTwentyDayMACOManagerContract(
+    return new MACOStrategyManagerContract(
       new web3.eth.Contract(truffleRebalacingTokenManager.abi, truffleRebalacingTokenManager.address),
       { from, gas: DEFAULT_GAS },
     );

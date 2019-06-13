@@ -27,7 +27,7 @@ import {
 } from 'set-protocol-contracts';
 import {
   HistoricalPriceFeedContract,
-  ETHTwentyDayMACOManagerContract,
+  MACOStrategyManagerContract,
   MovingAverageOracleContract,
   USDCMockContract,
 } from '@utils/contracts';
@@ -42,7 +42,7 @@ import {
 import { extractNewSetTokenAddressFromLogs } from '@utils/contract_logs/core';
 import { expectRevertError } from '@utils/tokenAssertions';
 import { getWeb3 } from '@utils/web3Helper';
-import { LogManagerProposal } from '@utils/contract_logs/ethTwentyDayMACOManager';
+import { LogManagerProposal } from '@utils/contract_logs/macoStrategyManager';
 
 import { ERC20Wrapper } from '@utils/wrappers/erc20Wrapper';
 import { ManagerWrapper } from '@utils/wrappers/managerWrapper';
@@ -52,16 +52,17 @@ import { ProtocolWrapper } from '@utils/wrappers/protocolWrapper';
 BigNumberSetup.configure();
 ChaiSetup.configure();
 const web3 = getWeb3();
-const ETHTwentyDayMACOManager = artifacts.require('ETHTwentyDayMACOManager');
+const MACOStrategyManager = artifacts.require('MACOStrategyManager');
 const { expect } = chai;
 const blockchain = new Blockchain(web3);
 const { SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
 const setTestUtils = new SetTestUtils(web3);
 
-contract('ETHTwentyDayMACOManager', accounts => {
+contract('MACOStrategyManager', accounts => {
   const [
     deployerAccount,
     notDeployerAccount,
+    randomTokenAddress,
   ] = accounts;
 
   let rebalancingSetToken: RebalancingSetTokenContract;
@@ -78,7 +79,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
 
   let dailyPriceFeed: HistoricalPriceFeedContract;
   let movingAverageOracle: MovingAverageOracleContract;
-  let ethTwentyDayMACOManager: ETHTwentyDayMACOManagerContract;
+  let macoStrategyManager: MACOStrategyManagerContract;
 
   let stableCollateral: SetTokenContract;
   let riskCollateral: SetTokenContract;
@@ -94,12 +95,12 @@ contract('ETHTwentyDayMACOManager', accounts => {
 
   before(async () => {
     ABIDecoder.addABI(Core.abi);
-    ABIDecoder.addABI(ETHTwentyDayMACOManager.abi);
+    ABIDecoder.addABI(MACOStrategyManager.abi);
   });
 
   after(async () => {
     ABIDecoder.removeABI(Core.abi);
-    ABIDecoder.removeABI(ETHTwentyDayMACOManager.abi);
+    ABIDecoder.removeABI(MACOStrategyManager.abi);
   });
 
   beforeEach(async () => {
@@ -174,8 +175,8 @@ contract('ETHTwentyDayMACOManager', accounts => {
   describe('#constructor', async () => {
     let subjectCoreAddress: Address;
     let subjectMovingAveragePriceFeed: Address;
-    let subjectUSDCAddress: Address;
-    let subjectEthAddress: Address;
+    let subjectStableAssetAddress: Address;
+    let subjectRiskAssetAddress: Address;
     let subjectStableCollateralAddress: Address;
     let subjectRiskCollateralAddress: Address;
     let subjectSetTokenFactoryAddress: Address;
@@ -186,8 +187,8 @@ contract('ETHTwentyDayMACOManager', accounts => {
     beforeEach(async () => {
       subjectCoreAddress = core.address;
       subjectMovingAveragePriceFeed = movingAverageOracle.address;
-      subjectUSDCAddress = usdcMock.address;
-      subjectEthAddress = wrappedETH.address;
+      subjectStableAssetAddress = usdcMock.address;
+      subjectRiskAssetAddress = wrappedETH.address;
       subjectStableCollateralAddress = stableCollateral.address;
       subjectRiskCollateralAddress = riskCollateral.address;
       subjectSetTokenFactoryAddress = factory.address;
@@ -196,12 +197,12 @@ contract('ETHTwentyDayMACOManager', accounts => {
       subjectAuctionTimeToPivot = ONE_DAY_IN_SECONDS.div(6);
     });
 
-    async function subject(): Promise<ETHTwentyDayMACOManagerContract> {
-      return managerWrapper.deployETHTwentyDayMACOManagerAsync(
+    async function subject(): Promise<MACOStrategyManagerContract> {
+      return managerWrapper.deployMACOStrategyManagerAsync(
         subjectCoreAddress,
         subjectMovingAveragePriceFeed,
-        subjectUSDCAddress,
-        subjectEthAddress,
+        subjectStableAssetAddress,
+        subjectRiskAssetAddress,
         subjectStableCollateralAddress,
         subjectRiskCollateralAddress,
         subjectSetTokenFactoryAddress,
@@ -212,75 +213,121 @@ contract('ETHTwentyDayMACOManager', accounts => {
     }
 
     it('sets the correct core address', async () => {
-      ethTwentyDayMACOManager = await subject();
+      macoStrategyManager = await subject();
 
-      const actualCoreAddress = await ethTwentyDayMACOManager.coreAddress.callAsync();
+      const actualCoreAddress = await macoStrategyManager.coreAddress.callAsync();
 
       expect(actualCoreAddress).to.equal(subjectCoreAddress);
     });
 
     it('sets the correct moving average price feed address', async () => {
-      ethTwentyDayMACOManager = await subject();
+      macoStrategyManager = await subject();
 
-      const actualMovingAveragePriceFeedAddress = await ethTwentyDayMACOManager.movingAveragePriceFeed.callAsync();
+      const actualMovingAveragePriceFeedAddress = await macoStrategyManager.movingAveragePriceFeed.callAsync();
 
       expect(actualMovingAveragePriceFeedAddress).to.equal(subjectMovingAveragePriceFeed);
     });
 
-    it('sets the correct usdc address', async () => {
-      ethTwentyDayMACOManager = await subject();
+    it('sets the correct stable asset address', async () => {
+      macoStrategyManager = await subject();
 
-      const actualUSDCAddress = await ethTwentyDayMACOManager.usdcAddress.callAsync();
+      const actualStableAssetAddress = await macoStrategyManager.stableAssetAddress.callAsync();
 
-      expect(actualUSDCAddress).to.equal(subjectUSDCAddress);
+      expect(actualStableAssetAddress).to.equal(subjectStableAssetAddress);
+    });
+
+    it('sets the correct risk asset address', async () => {
+      macoStrategyManager = await subject();
+
+      const actualRiskAssetAddress = await macoStrategyManager.riskAssetAddress.callAsync();
+
+      expect(actualRiskAssetAddress).to.equal(subjectRiskAssetAddress);
     });
 
     it('sets the correct stable collateral address', async () => {
-      ethTwentyDayMACOManager = await subject();
+      macoStrategyManager = await subject();
 
-      const actualStableCollateralAddress = await ethTwentyDayMACOManager.stableCollateralAddress.callAsync();
+      const actualStableCollateralAddress = await macoStrategyManager.stableCollateralAddress.callAsync();
 
       expect(actualStableCollateralAddress).to.equal(subjectStableCollateralAddress);
     });
 
     it('sets the correct risk collateral address', async () => {
-      ethTwentyDayMACOManager = await subject();
+      macoStrategyManager = await subject();
 
-      const actualRiskCollateralAddress = await ethTwentyDayMACOManager.riskCollateralAddress.callAsync();
+      const actualRiskCollateralAddress = await macoStrategyManager.riskCollateralAddress.callAsync();
 
       expect(actualRiskCollateralAddress).to.equal(subjectRiskCollateralAddress);
     });
 
     it('sets the correct set token factory address', async () => {
-      ethTwentyDayMACOManager = await subject();
+      macoStrategyManager = await subject();
 
-      const actualSetTokenFactoryAddress = await ethTwentyDayMACOManager.setTokenFactory.callAsync();
+      const actualSetTokenFactoryAddress = await macoStrategyManager.setTokenFactory.callAsync();
 
       expect(actualSetTokenFactoryAddress).to.equal(subjectSetTokenFactoryAddress);
     });
 
     it('sets the correct auction library address', async () => {
-      ethTwentyDayMACOManager = await subject();
+      macoStrategyManager = await subject();
 
-      const actualAuctionLibraryAddress = await ethTwentyDayMACOManager.auctionLibrary.callAsync();
+      const actualAuctionLibraryAddress = await macoStrategyManager.auctionLibrary.callAsync();
 
       expect(actualAuctionLibraryAddress).to.equal(subjectAuctionLibraryAddress);
     });
 
-    it('sets the correct moving average days', async () => {
-      ethTwentyDayMACOManager = await subject();
+    it('sets the correct risk asset decimals', async () => {
+      macoStrategyManager = await subject();
 
-      const actualMovingAverageDays = await ethTwentyDayMACOManager.movingAverageDays.callAsync();
+      const actualRiskAssetDecimals = await macoStrategyManager.riskAssetDecimals.callAsync();
+      const expectedRiskAssetDecimals = await wrappedETH.decimals.callAsync();
+
+      expect(actualRiskAssetDecimals).to.be.bignumber.equal(expectedRiskAssetDecimals);
+    });
+
+    it('sets the correct stable asset decimals', async () => {
+      macoStrategyManager = await subject();
+
+      const actualStableAssetDecimals = await macoStrategyManager.stableAssetDecimals.callAsync();
+      const expectedStableAssetDecimals = await usdcMock.decimals.callAsync();
+
+      expect(actualStableAssetDecimals).to.be.bignumber.equal(expectedStableAssetDecimals);
+    });
+
+    it('sets the correct moving average days', async () => {
+      macoStrategyManager = await subject();
+
+      const actualMovingAverageDays = await macoStrategyManager.movingAverageDays.callAsync();
 
       expect(actualMovingAverageDays).to.be.bignumber.equal(subjectMovingAverageDays);
     });
 
     it('sets the correct auction time to pivot', async () => {
-      ethTwentyDayMACOManager = await subject();
+      macoStrategyManager = await subject();
 
-      const actualAuctionTimeToPivot = await ethTwentyDayMACOManager.auctionTimeToPivot.callAsync();
+      const actualAuctionTimeToPivot = await macoStrategyManager.auctionTimeToPivot.callAsync();
 
       expect(actualAuctionTimeToPivot).to.be.bignumber.equal(subjectAuctionTimeToPivot);
+    });
+
+    describe('but stable asset address does not match stable collateral component', async () => {
+      beforeEach(async () => {
+        subjectStableAssetAddress = randomTokenAddress;
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('but risk asset address does not match risk collateral component', async () => {
+      beforeEach(async () => {
+        subjectRiskAssetAddress = randomTokenAddress;
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
     });
   });
 
@@ -315,7 +362,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
       );
 
       const movingAverageDays = new BigNumber(20);
-      ethTwentyDayMACOManager = await managerWrapper.deployETHTwentyDayMACOManagerAsync(
+      macoStrategyManager = await managerWrapper.deployMACOStrategyManagerAsync(
         core.address,
         movingAverageOracle.address,
         usdcMock.address,
@@ -332,7 +379,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
       rebalancingSetToken = await protocolWrapper.createDefaultRebalancingSetTokenAsync(
         core,
         rebalancingFactory.address,
-        ethTwentyDayMACOManager.address,
+        macoStrategyManager.address,
         initialAllocationAddress,
         proposalPeriod
       );
@@ -342,7 +389,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
     });
 
     async function subject(): Promise<string> {
-      return ethTwentyDayMACOManager.initialize.sendTransactionAsync(
+      return macoStrategyManager.initialize.sendTransactionAsync(
         subjectRebalancingSetToken,
         { from: subjectCaller, gas: DEFAULT_GAS}
       );
@@ -351,7 +398,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
     it('sets the rebalancing set token address', async () => {
       await subject();
 
-      const rebalancingSetTokenAddress = await ethTwentyDayMACOManager.rebalancingSetTokenAddress.callAsync();
+      const rebalancingSetTokenAddress = await macoStrategyManager.rebalancingSetTokenAddress.callAsync();
 
       expect(rebalancingSetTokenAddress).to.equal(subjectRebalancingSetToken);
     });
@@ -371,7 +418,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
         const unTrackedSetToken = await protocolWrapper.createDefaultRebalancingSetTokenAsync(
           core,
           rebalancingFactory.address,
-          ethTwentyDayMACOManager.address,
+          macoStrategyManager.address,
           riskCollateral.address,
           proposalPeriod,
         );
@@ -423,7 +470,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
       );
 
       const movingAverageDays = new BigNumber(20);
-      ethTwentyDayMACOManager = await managerWrapper.deployETHTwentyDayMACOManagerAsync(
+      macoStrategyManager = await managerWrapper.deployMACOStrategyManagerAsync(
         core.address,
         movingAverageOracle.address,
         usdcMock.address,
@@ -440,12 +487,12 @@ contract('ETHTwentyDayMACOManager', accounts => {
       rebalancingSetToken = await protocolWrapper.createDefaultRebalancingSetTokenAsync(
         core,
         rebalancingFactory.address,
-        ethTwentyDayMACOManager.address,
+        macoStrategyManager.address,
         initialAllocationAddress,
         proposalPeriod
       );
 
-      await ethTwentyDayMACOManager.initialize.sendTransactionAsync(
+      await macoStrategyManager.initialize.sendTransactionAsync(
         rebalancingSetToken.address,
         { from: subjectCaller, gas: DEFAULT_GAS}
       );
@@ -463,7 +510,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
 
     async function subject(): Promise<string> {
       await blockchain.increaseTimeAsync(subjectTimeFastForward);
-      return ethTwentyDayMACOManager.initialPropose.sendTransactionAsync(
+      return macoStrategyManager.initialPropose.sendTransactionAsync(
         { from: subjectCaller, gas: DEFAULT_GAS}
       );
     }
@@ -476,7 +523,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
           const block = await web3.eth.getBlock('latest');
           const expectedTimestamp = new BigNumber(block.timestamp);
 
-          const actualTimestamp = await ethTwentyDayMACOManager.lastProposalTimestamp.callAsync();
+          const actualTimestamp = await macoStrategyManager.lastProposalTimestamp.callAsync();
           expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
         });
 
@@ -498,7 +545,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
           beforeEach(async () => {
             const timeFastForward = ONE_DAY_IN_SECONDS;
             await blockchain.increaseTimeAsync(timeFastForward);
-            await ethTwentyDayMACOManager.initialPropose.sendTransactionAsync();
+            await macoStrategyManager.initialPropose.sendTransactionAsync();
             subjectTimeFastForward = ONE_DAY_IN_SECONDS.div(4);
           });
 
@@ -530,7 +577,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
           const block = await web3.eth.getBlock('latest');
           const expectedTimestamp = new BigNumber(block.timestamp);
 
-          const actualTimestamp = await ethTwentyDayMACOManager.lastProposalTimestamp.callAsync();
+          const actualTimestamp = await macoStrategyManager.lastProposalTimestamp.callAsync();
           expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
         });
 
@@ -553,12 +600,12 @@ contract('ETHTwentyDayMACOManager', accounts => {
     describe('when propose is called and rebalancing set token is in Proposal state', async () => {
       beforeEach(async () => {
         await blockchain.increaseTimeAsync(subjectTimeFastForward);
-        await ethTwentyDayMACOManager.initialPropose.sendTransactionAsync(
+        await macoStrategyManager.initialPropose.sendTransactionAsync(
           { from: subjectCaller, gas: DEFAULT_GAS}
         );
 
         await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS.div(4));
-        await ethTwentyDayMACOManager.confirmPropose.sendTransactionAsync();
+        await macoStrategyManager.confirmPropose.sendTransactionAsync();
       });
 
       it('should revert', async () => {
@@ -586,12 +633,12 @@ contract('ETHTwentyDayMACOManager', accounts => {
         );
 
         await blockchain.increaseTimeAsync(subjectTimeFastForward);
-        await ethTwentyDayMACOManager.initialPropose.sendTransactionAsync(
+        await macoStrategyManager.initialPropose.sendTransactionAsync(
           { from: subjectCaller, gas: DEFAULT_GAS}
         );
 
         await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS.div(4));
-        await ethTwentyDayMACOManager.confirmPropose.sendTransactionAsync();
+        await macoStrategyManager.confirmPropose.sendTransactionAsync();
 
         await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS);
         await rebalancingSetToken.startRebalance.sendTransactionAsync();
@@ -638,7 +685,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
       );
 
       const movingAverageDays = new BigNumber(20);
-      ethTwentyDayMACOManager = await managerWrapper.deployETHTwentyDayMACOManagerAsync(
+      macoStrategyManager = await managerWrapper.deployMACOStrategyManagerAsync(
         core.address,
         movingAverageOracle.address,
         usdcMock.address,
@@ -655,12 +702,12 @@ contract('ETHTwentyDayMACOManager', accounts => {
       rebalancingSetToken = await protocolWrapper.createDefaultRebalancingSetTokenAsync(
         core,
         rebalancingFactory.address,
-        ethTwentyDayMACOManager.address,
+        macoStrategyManager.address,
         initialAllocationAddress,
         proposalPeriod
       );
 
-      await ethTwentyDayMACOManager.initialize.sendTransactionAsync(
+      await macoStrategyManager.initialize.sendTransactionAsync(
         rebalancingSetToken.address,
         { from: subjectCaller, gas: DEFAULT_GAS}
       );
@@ -673,7 +720,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
       );
 
       await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS.add(1));
-      await ethTwentyDayMACOManager.initialPropose.sendTransactionAsync();
+      await macoStrategyManager.initialPropose.sendTransactionAsync();
 
       const lastBlockInfo = await web3.eth.getBlock('latest');
       await oracleWrapper.updateMedianizerPriceAsync(
@@ -688,7 +735,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
 
     async function subject(): Promise<string> {
       await blockchain.increaseTimeAsync(subjectTimeFastForward);
-      return ethTwentyDayMACOManager.confirmPropose.sendTransactionAsync(
+      return macoStrategyManager.confirmPropose.sendTransactionAsync(
         { from: subjectCaller, gas: DEFAULT_GAS}
       );
     }
@@ -763,7 +810,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
           const expectedLogs = LogManagerProposal(
             lastPrice,
             movingAveragePrice,
-            ethTwentyDayMACOManager.address
+            macoStrategyManager.address
           );
 
           await SetTestUtils.assertLogEquivalence(formattedLogs, expectedLogs);
@@ -781,7 +828,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
             const logs = await setTestUtils.getLogsFromTxHash(txHash);
             const expectedSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
 
-            const actualStableCollateralAddress = await ethTwentyDayMACOManager.stableCollateralAddress.callAsync();
+            const actualStableCollateralAddress = await macoStrategyManager.stableCollateralAddress.callAsync();
             expect(actualStableCollateralAddress).to.equal(expectedSetAddress);
           });
 
@@ -891,7 +938,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
             const logs = await setTestUtils.getLogsFromTxHash(txHash);
             const expectedSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
 
-            const actualStableCollateralAddress = await ethTwentyDayMACOManager.stableCollateralAddress.callAsync();
+            const actualStableCollateralAddress = await macoStrategyManager.stableCollateralAddress.callAsync();
             expect(actualStableCollateralAddress).to.equal(expectedSetAddress);
           });
 
@@ -1097,7 +1144,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
           const expectedLogs = LogManagerProposal(
             lastPrice,
             movingAveragePrice,
-            ethTwentyDayMACOManager.address
+            macoStrategyManager.address
           );
 
           await SetTestUtils.assertLogEquivalence(formattedLogs, expectedLogs);
@@ -1115,7 +1162,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
             const logs = await setTestUtils.getLogsFromTxHash(txHash);
             const expectedSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
 
-            const actualRiskCollateralAddress = await ethTwentyDayMACOManager.riskCollateralAddress.callAsync();
+            const actualRiskCollateralAddress = await macoStrategyManager.riskCollateralAddress.callAsync();
             expect(actualRiskCollateralAddress).to.equal(expectedSetAddress);
           });
 
@@ -1225,7 +1272,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
             const logs = await setTestUtils.getLogsFromTxHash(txHash);
             const expectedSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
 
-            const actualRiskCollateralAddress = await ethTwentyDayMACOManager.riskCollateralAddress.callAsync();
+            const actualRiskCollateralAddress = await macoStrategyManager.riskCollateralAddress.callAsync();
             expect(actualRiskCollateralAddress).to.equal(expectedSetAddress);
           });
 
@@ -1365,7 +1412,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
     describe('when propose is called and rebalancing set token is in Proposal state', async () => {
       beforeEach(async () => {
         await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS.div(4));
-        await ethTwentyDayMACOManager.confirmPropose.sendTransactionAsync();
+        await macoStrategyManager.confirmPropose.sendTransactionAsync();
 
         subjectTimeFastForward = new BigNumber(1);
       });
@@ -1395,7 +1442,7 @@ contract('ETHTwentyDayMACOManager', accounts => {
         );
 
         await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS.div(4));
-        await ethTwentyDayMACOManager.confirmPropose.sendTransactionAsync();
+        await macoStrategyManager.confirmPropose.sendTransactionAsync();
 
         await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS);
         await rebalancingSetToken.startRebalance.sendTransactionAsync();
