@@ -314,6 +314,16 @@ contract('MACOStrategyManager', accounts => {
       expect(actualAuctionTimeToPivot).to.be.bignumber.equal(subjectAuctionTimeToPivot);
     });
 
+    describe('but max confirmation bound is less than the min', async () => {
+      beforeEach(async () => {
+        subjectCrossoverConfirmationBounds = [new BigNumber(100), new BigNumber(10)];
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
     describe('but stable asset address does not match stable collateral component', async () => {
       beforeEach(async () => {
         subjectStableAssetAddress = randomTokenAddress;
@@ -410,8 +420,6 @@ contract('MACOStrategyManager', accounts => {
 
       expect(rebalancingSetTokenAddress).to.equal(subjectRebalancingSetToken);
     });
-
-    // But the confirmation bounds are not correct
 
     describe('but caller is not the contract deployer', async () => {
       beforeEach(async () => {
