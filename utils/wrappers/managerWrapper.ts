@@ -151,6 +151,7 @@ export class ManagerWrapper {
     setTokenFactoryAddress: Address,
     auctionLibrary: Address,
     movingAverageDays: BigNumber,
+    crossoverConfirmationBounds: BigNumber[],
     auctionTimeToPivot: BigNumber = new BigNumber(100000),
     from: Address = this._tokenOwnerAddress
   ): Promise<MACOStrategyManagerContract> {
@@ -165,6 +166,7 @@ export class ManagerWrapper {
       auctionLibrary,
       movingAverageDays,
       auctionTimeToPivot,
+      crossoverConfirmationBounds,
       { from },
     );
 

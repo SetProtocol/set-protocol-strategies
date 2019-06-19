@@ -46,8 +46,6 @@ contract MACOStrategyManager {
     uint256 constant ALLOCATION_PRICE_RATIO_LIMIT = 4;
 
     uint256 constant TEN_MINUTES_IN_SECONDS = 600;
-    uint256 constant SIX_HOURS_IN_SECONDS = 21600;
-    uint256 constant TWELVE_HOURS_IN_SECONDS = 43200;
 
     // Equal to $1 since token prices are passed with 18 decimals
     uint256 constant STABLE_ASSET_PRICE = 10 ** 18;
@@ -71,7 +69,10 @@ contract MACOStrategyManager {
 
     uint256 public auctionTimeToPivot;
     uint256 public movingAverageDays;
-    uint256 public lastProposalTimestamp;
+    uint256 public lastCrossoverConfirmationTimestamp;
+
+    uint256 public crossoverConfirmationMinTime;
+    uint256 public crossoverConfirmationMaxTime;
 
     /* ============ Events ============ */
 
@@ -95,6 +96,8 @@ contract MACOStrategyManager {
      * @param  _auctionLibrary                      The address of auction price curve to use in rebalance
      * @param  _movingAverageDays                   The amount of days to use in moving average calculation
      * @param  _auctionTimeToPivot                  The amount of time until pivot reached in rebalance
+     * @param  _crossoverConfirmationBounds         The minimum and maximum time in seconds confirm confirmation
+     *                                                can be called after the last initial crossover confirmation
      */
     constructor(
         address _coreAddress,
@@ -106,7 +109,8 @@ contract MACOStrategyManager {
         address _setTokenFactory,
         address _auctionLibrary,
         uint256 _movingAverageDays,
-        uint256 _auctionTimeToPivot
+        uint256 _auctionTimeToPivot,
+        uint256[2] memory _crossoverConfirmationBounds
     )
         public
     {
@@ -123,10 +127,18 @@ contract MACOStrategyManager {
 
         auctionTimeToPivot = _auctionTimeToPivot;
         movingAverageDays = _movingAverageDays;
-        lastProposalTimestamp = 0;
+        lastCrossoverConfirmationTimestamp = 0;
+
+        crossoverConfirmationMinTime = _crossoverConfirmationBounds[0];
+        crossoverConfirmationMaxTime = _crossoverConfirmationBounds[1];
 
         address[] memory initialRiskCollateralComponents = ISetToken(_initialRiskCollateralAddress).getComponents();
         address[] memory initialStableCollateralComponents = ISetToken(_initialStableCollateralAddress).getComponents();
+
+        require(
+            crossoverConfirmationMaxTime > crossoverConfirmationMinTime,
+            "MACOStrategyManager.constructor: Max confirmation time must be greater than min."
+        );
 
         require(
             initialStableCollateralComponents[0] == _stableAssetAddress,
@@ -184,7 +196,7 @@ contract MACOStrategyManager {
     {
         // Make sure propose in manager hasn't already been initiated
         require(
-            block.timestamp > lastProposalTimestamp.add(TWELVE_HOURS_IN_SECONDS),
+            block.timestamp > lastCrossoverConfirmationTimestamp.add(crossoverConfirmationMaxTime),
             "MACOStrategyManager.initialPropose: 12 hours must pass before new proposal initiated"
         );
         
@@ -200,7 +212,7 @@ contract MACOStrategyManager {
         // Make sure price trigger has been reached
         checkPriceTriggerMet(riskAssetPrice, movingAveragePrice);      
 
-        lastProposalTimestamp = block.timestamp;
+        lastCrossoverConfirmationTimestamp = block.timestamp;
     }
 
     /*
@@ -212,9 +224,9 @@ contract MACOStrategyManager {
     {
         // Make sure enough time has passed to initiate proposal on Rebalancing Set Token
         require(
-            block.timestamp >= lastProposalTimestamp.add(SIX_HOURS_IN_SECONDS) &&
-            block.timestamp <= lastProposalTimestamp.add(TWELVE_HOURS_IN_SECONDS),
-            "MACOStrategyManager.confirmPropose: Confirming signal must be 6-12 hours from initial propose"
+            block.timestamp >= lastCrossoverConfirmationTimestamp.add(crossoverConfirmationMinTime) &&
+            block.timestamp <= lastCrossoverConfirmationTimestamp.add(crossoverConfirmationMaxTime),
+            "MACOStrategyManager.confirmPropose: Confirming signal must be within bounds of the initial propose"
         );
 
         // Create interface to interact with RebalancingSetToken and check not in Proposal state
