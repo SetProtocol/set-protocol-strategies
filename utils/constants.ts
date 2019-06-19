@@ -14,6 +14,7 @@ export const DEPLOYED_TOKEN_QUANTITY: BigNumber = ether(100000000000);
 export const ETH_DECIMALS = new BigNumber(10 ** 18);
 export const KYBER_RESERVE_CONFIGURED_RATE: BigNumber = new BigNumber('321556325999999997');
 export const ONE: BigNumber = new BigNumber(1);
+export const ONE_HOUR_IN_SECONDS = new BigNumber(3600);
 export const ONE_DAY_IN_SECONDS = new BigNumber(86400);
 export const RISK_COLLATERAL_NATURAL_UNIT = new BigNumber(10 ** 6);
 export const SNAPSHOT_TIME_LOCK = new BigNumber(1);

@@ -35,6 +35,7 @@ import {
   DEFAULT_GAS,
   ETH_DECIMALS,
   ONE_DAY_IN_SECONDS,
+  ONE_HOUR_IN_SECONDS,
   RISK_COLLATERAL_NATURAL_UNIT,
   STABLE_COLLATERAL_NATURAL_UNIT,
   USDC_DECIMALS,
@@ -183,6 +184,7 @@ contract('MACOStrategyManager', accounts => {
     let subjectAuctionLibraryAddress: Address;
     let subjectAuctionTimeToPivot: BigNumber;
     let subjectMovingAverageDays: BigNumber;
+    let subjectCrossoverConfirmationBounds: BigNumber[];
 
     beforeEach(async () => {
       subjectCoreAddress = core.address;
@@ -195,6 +197,7 @@ contract('MACOStrategyManager', accounts => {
       subjectAuctionLibraryAddress = linearAuctionPriceCurve.address;
       subjectMovingAverageDays = new BigNumber(20);
       subjectAuctionTimeToPivot = ONE_DAY_IN_SECONDS.div(6);
+      subjectCrossoverConfirmationBounds = [ONE_HOUR_IN_SECONDS.mul(6), ONE_HOUR_IN_SECONDS.mul(12)];
     });
 
     async function subject(): Promise<MACOStrategyManagerContract> {
@@ -208,6 +211,7 @@ contract('MACOStrategyManager', accounts => {
         subjectSetTokenFactoryAddress,
         subjectAuctionLibraryAddress,
         subjectMovingAverageDays,
+        subjectCrossoverConfirmationBounds,
         subjectAuctionTimeToPivot,
       );
     }
@@ -338,6 +342,7 @@ contract('MACOStrategyManager', accounts => {
     let updatedValues: BigNumber[];
     let proposalPeriod: BigNumber;
     let auctionTimeToPivot: BigNumber;
+    let crossoverConfirmationBounds: BigNumber[];
 
     before(async () => {
       updatedValues = _.map(new Array(19), function(el, i) {return ether(150 + i); });
@@ -351,6 +356,8 @@ contract('MACOStrategyManager', accounts => {
         20,
         updatedValues
       );
+
+      crossoverConfirmationBounds = [ONE_HOUR_IN_SECONDS.mul(6), ONE_HOUR_IN_SECONDS.mul(12)];
 
       auctionTimeToPivot = ONE_DAY_IN_SECONDS.div(4);
       const initialAllocationAddress = await managerWrapper.getMACOInitialAllocationAsync(
@@ -372,6 +379,7 @@ contract('MACOStrategyManager', accounts => {
         factory.address,
         linearAuctionPriceCurve.address,
         movingAverageDays,
+        crossoverConfirmationBounds,
         auctionTimeToPivot,
       );
 
@@ -402,6 +410,8 @@ contract('MACOStrategyManager', accounts => {
 
       expect(rebalancingSetTokenAddress).to.equal(subjectRebalancingSetToken);
     });
+
+    // But the confirmation bounds are not correct
 
     describe('but caller is not the contract deployer', async () => {
       beforeEach(async () => {
@@ -445,6 +455,7 @@ contract('MACOStrategyManager', accounts => {
     let lastPrice: BigNumber;
     let proposalPeriod: BigNumber;
     let auctionTimeToPivot: BigNumber;
+    let crossoverConfirmationBounds: BigNumber[];
 
     before(async () => {
       updatedValues = _.map(new Array(19), function(el, i) {return ether(150 + i); });
@@ -469,6 +480,8 @@ contract('MACOStrategyManager', accounts => {
         new BigNumber(20)
       );
 
+      crossoverConfirmationBounds = [ONE_HOUR_IN_SECONDS.mul(6), ONE_HOUR_IN_SECONDS.mul(12)];
+
       const movingAverageDays = new BigNumber(20);
       macoStrategyManager = await managerWrapper.deployMACOStrategyManagerAsync(
         core.address,
@@ -480,6 +493,7 @@ contract('MACOStrategyManager', accounts => {
         factory.address,
         linearAuctionPriceCurve.address,
         movingAverageDays,
+        crossoverConfirmationBounds,
         auctionTimeToPivot,
       );
 
@@ -523,7 +537,7 @@ contract('MACOStrategyManager', accounts => {
           const block = await web3.eth.getBlock('latest');
           const expectedTimestamp = new BigNumber(block.timestamp);
 
-          const actualTimestamp = await macoStrategyManager.lastProposalTimestamp.callAsync();
+          const actualTimestamp = await macoStrategyManager.lastCrossoverConfirmationTimestamp.callAsync();
           expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
         });
 
@@ -577,7 +591,7 @@ contract('MACOStrategyManager', accounts => {
           const block = await web3.eth.getBlock('latest');
           const expectedTimestamp = new BigNumber(block.timestamp);
 
-          const actualTimestamp = await macoStrategyManager.lastProposalTimestamp.callAsync();
+          const actualTimestamp = await macoStrategyManager.lastCrossoverConfirmationTimestamp.callAsync();
           expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
         });
 
@@ -659,6 +673,7 @@ contract('MACOStrategyManager', accounts => {
     let lastPrice: BigNumber;
     let proposalPeriod: BigNumber;
     let auctionTimeToPivot: BigNumber;
+    let crossoverConfirmationBounds: BigNumber[];
 
     before(async () => {
       updatedValues = _.map(new Array(19), function(el, i) {return ether(150 + i); });
@@ -684,6 +699,8 @@ contract('MACOStrategyManager', accounts => {
         new BigNumber(20)
       );
 
+      crossoverConfirmationBounds = [ONE_HOUR_IN_SECONDS.mul(6), ONE_HOUR_IN_SECONDS.mul(12)];
+
       const movingAverageDays = new BigNumber(20);
       macoStrategyManager = await managerWrapper.deployMACOStrategyManagerAsync(
         core.address,
@@ -695,6 +712,7 @@ contract('MACOStrategyManager', accounts => {
         factory.address,
         linearAuctionPriceCurve.address,
         movingAverageDays,
+        crossoverConfirmationBounds,
         auctionTimeToPivot,
       );
 
@@ -1389,7 +1407,7 @@ contract('MACOStrategyManager', accounts => {
 
         describe('but not enough time has passed from initial propose', async () => {
           beforeEach(async () => {
-            subjectTimeFastForward = new BigNumber(ONE_DAY_IN_SECONDS.div(4).sub(2));
+            subjectTimeFastForward = new BigNumber(ONE_HOUR_IN_SECONDS.mul(6).sub(2));
           });
 
           it('should revert', async () => {
@@ -1399,7 +1417,7 @@ contract('MACOStrategyManager', accounts => {
 
         describe('but too much time has passed from initial propose', async () => {
           beforeEach(async () => {
-            subjectTimeFastForward = new BigNumber(ONE_DAY_IN_SECONDS.div(2).add(2));
+            subjectTimeFastForward = new BigNumber(ONE_HOUR_IN_SECONDS.mul(12).add(2));
           });
 
           it('should revert', async () => {
