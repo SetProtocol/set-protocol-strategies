@@ -137,7 +137,7 @@ contract MACOStrategyManager {
 
         require(
             crossoverConfirmationMaxTime >= crossoverConfirmationMinTime,
-            "MACOStrategyManager.constructor: Max time must be greater than min time."
+            "MACOStrategyManager.constructor: Max confirmation time must be greater than min."
         );
 
         require(
