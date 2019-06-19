@@ -324,6 +324,16 @@ contract('MACOStrategyManager', accounts => {
       });
     });
 
+    describe('but max confirmation bound is equal to the min', async () => {
+      beforeEach(async () => {
+        subjectCrossoverConfirmationBounds = [new BigNumber(100), new BigNumber(100)];
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
     describe('but stable asset address does not match stable collateral component', async () => {
       beforeEach(async () => {
         subjectStableAssetAddress = randomTokenAddress;

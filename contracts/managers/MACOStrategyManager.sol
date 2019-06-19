@@ -136,7 +136,7 @@ contract MACOStrategyManager {
         address[] memory initialStableCollateralComponents = ISetToken(_initialStableCollateralAddress).getComponents();
 
         require(
-            crossoverConfirmationMaxTime >= crossoverConfirmationMinTime,
+            crossoverConfirmationMaxTime > crossoverConfirmationMinTime,
             "MACOStrategyManager.constructor: Max confirmation time must be greater than min."
         );
 
