@@ -198,15 +198,15 @@ export class OracleWrapper {
     dailyPriceFeed: HistoricalPriceFeedContract,
     medianizer: MedianContract,
     price: BigNumber,
-    timeOffset: number,
     from: Address = this._contractOwnerAddress
   ): Promise<void> {
     await this._blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS);
 
+    const lastBlock = await web3.eth.getBlock('latest');
     await this.updateMedianizerPriceAsync(
       medianizer,
       price,
-      SetTestUtils.generateTimestamp(timeOffset),
+      lastBlock.timestamp + 1,
     );
 
     await dailyPriceFeed.poke.sendTransactionAsync(
@@ -217,7 +217,6 @@ export class OracleWrapper {
   public async batchUpdateHistoricalPriceFeedAsync(
     dailyPriceFeed: HistoricalPriceFeedContract,
     medianizer: MedianContract,
-    initialTimeOffset: number,
     daysOfData: number,
     priceArray: BigNumber[] = undefined,
     from: Address = this._contractOwnerAddress
@@ -227,14 +226,12 @@ export class OracleWrapper {
       priceArray = Array.from({length: daysOfData}, () => ether(Math.floor(Math.random() * 100) + 100));
     }
 
-    const ONE_DAY_IN_MINUTES = 1440;
     let i: number;
     for (i = 0; i < priceArray.length; i++) {
       await this.updateHistoricalPriceFeedAsync(
         dailyPriceFeed,
         medianizer,
         priceArray[i],
-        initialTimeOffset + ONE_DAY_IN_MINUTES * (i + 1)
       );
     }
 

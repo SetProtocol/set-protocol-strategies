@@ -251,7 +251,6 @@ contract('HistoricalPriceFeed', accounts => {
       updatedPrices = await oracleWrapper.batchUpdateHistoricalPriceFeedAsync(
         historicalPriceFeed,
         ethMedianizer,
-        0,
         20,
       );
 
