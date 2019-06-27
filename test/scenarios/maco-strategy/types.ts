@@ -92,6 +92,7 @@ export interface MACOInitializationParameters {
   movingAverageDays: BigNumber;
   proposalPeriod: BigNumber;
   rebalanceInterval: BigNumber;
+  crossoverConfirmationBounds: BigNumber[];
   auctionTimeToPivot: BigNumber;
   priceDivisor: BigNumber;
   seededValues: BigNumber[];

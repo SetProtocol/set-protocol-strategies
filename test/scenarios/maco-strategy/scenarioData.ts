@@ -233,6 +233,11 @@ function getInitializationData(): MACOInitializationParameters {
     new BigNumber(558 * 10 ** 18),
   ];
 
+  const crossoverConfirmationBounds = [
+    CONSTANTS.SECONDS_PER_DAY.div(4),
+    CONSTANTS.SECONDS_PER_DAY.div(2),
+  ];
+
   return {
     initialTokenPrices,
     initialStableCollateralUnits,
@@ -249,6 +254,7 @@ function getInitializationData(): MACOInitializationParameters {
     auctionTimeToPivot: TIME_TO_PIVOT,
     priceDivisor: PRICE_DIVISOR,
     seededValues,
+    crossoverConfirmationBounds,
   } as MACOInitializationParameters;
 }
 

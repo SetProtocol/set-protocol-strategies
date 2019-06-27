@@ -209,6 +209,7 @@ export class MACOStrategyMultipleRebalanceWrapper {
       this._factory.address,
       this._linearAuctionPriceCurve.address,
       this._rebalanceProgram.initializationParams.movingAverageDays,
+      this._rebalanceProgram.initializationParams.crossoverConfirmationBounds,
       this._rebalanceProgram.initializationParams.auctionTimeToPivot,
     );
 
