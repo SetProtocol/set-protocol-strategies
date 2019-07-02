@@ -18,8 +18,9 @@ pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import { IRebalancingSetToken } from "set-protocol-contracts/contracts/core/interfaces/IRebalancingSetToken.sol";
-import { RebalancingLibrary } from "set-protocol-contracts/contracts/core/lib/RebalancingLibrary.sol";
+// V2 is used to allow the verification of contracts
+import { IRebalancingSetTokenV2 } from "set-protocol-contracts/contracts/core/interfaces/IRebalancingSetTokenV2.sol";
+import { RebalancingLibraryV2 } from "set-protocol-contracts/contracts/core/lib/RebalancingLibraryV2.sol";
 
 import { IMedian } from "../../external/DappHub/interfaces/IMedian.sol";
 
@@ -40,7 +41,7 @@ library FlexibleTimingManagerLibrary {
      * @param  _rebalancingSetInterface      Instance of the Rebalancing Set Token
      */
     function validateManagerPropose(
-        IRebalancingSetToken _rebalancingSetInterface
+        IRebalancingSetTokenV2 _rebalancingSetInterface
     )
         internal
     {
@@ -55,7 +56,7 @@ library FlexibleTimingManagerLibrary {
         // Require that Rebalancing Set Token is in Default state, won't allow for re-proposals
         // because malicious actor could prevent token from ever rebalancing
         require(
-            _rebalancingSetInterface.rebalanceState() == RebalancingLibrary.State.Default,
+            _rebalancingSetInterface.rebalanceState() == RebalancingLibraryV2.State.Default,
             "FlexibleTimingManagerLibrary.proposeNewRebalance: State must be in Default"
         );        
     }
