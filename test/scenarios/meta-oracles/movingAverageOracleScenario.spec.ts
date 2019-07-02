@@ -127,7 +127,6 @@ contract('MovingAverageOracle:Scenario', accounts => {
 
     describe('after one additional day', async () => {
       beforeEach(async () => {
-        const timeOffSet = ONE_DAY_IN_SECONDS.toNumber();
         const newEthPrice = new BigNumber(267140000000000000000);
 
         // Update medianizer and price feed
@@ -135,7 +134,6 @@ contract('MovingAverageOracle:Scenario', accounts => {
           dailyPriceFeed,
           ethMedianizer,
           newEthPrice,
-          timeOffSet,
         );
       });
 

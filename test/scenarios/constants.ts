@@ -38,6 +38,11 @@ export default {
     FULL_UNIT: new BigNumber(10 ** 18),
     INITIAL_FEED_PRICE: new BigNumber(1.28).mul(10 ** 20),
   },
+  USDC: {
+    DECIMALS: 6,
+    FULL_UNIT: new BigNumber(10 ** 18),
+    PRICE: new BigNumber(10 ** 18),
+  },
   DAI: {
     DECIMALS: 18,
     FULL_UNIT: new BigNumber(10 ** 18),

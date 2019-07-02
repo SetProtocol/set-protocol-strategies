@@ -77,6 +77,12 @@ export class ProtocolWrapper {
      return await RebalancingSetTokenFactoryContract.at(address, web3, {});
   }
 
+  public async getDeployedRebalancingSetTokenFactoryTwoAsync(): Promise<RebalancingSetTokenFactoryContract> {
+    const address = await getDeployedAddress(`${RebalancingSetTokenFactory.contractName}-2`);
+
+     return await RebalancingSetTokenFactoryContract.at(address, web3, {});
+  }
+
   public async getDeployedCoreAsync(): Promise<CoreContract> {
     const address = await getDeployedAddress(Core.contractName);
 

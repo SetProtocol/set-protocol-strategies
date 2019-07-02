@@ -92,8 +92,6 @@ contract('MACOStrategyManager', accounts => {
   const managerWrapper = new ManagerWrapper(deployerAccount);
   const oracleWrapper = new OracleWrapper(deployerAccount);
 
-  const SEVEN_DAYS_IN_MINUTES = 7 * 1440;
-
   before(async () => {
     ABIDecoder.addABI(Core.abi);
     ABIDecoder.addABI(MACOStrategyManager.abi);
@@ -372,8 +370,7 @@ contract('MACOStrategyManager', accounts => {
       await oracleWrapper.batchUpdateHistoricalPriceFeedAsync(
         dailyPriceFeed,
         ethMedianizer,
-        SEVEN_DAYS_IN_MINUTES,
-        20,
+        updatedValues.length,
         updatedValues
       );
 
@@ -484,8 +481,7 @@ contract('MACOStrategyManager', accounts => {
       await oracleWrapper.batchUpdateHistoricalPriceFeedAsync(
         dailyPriceFeed,
         ethMedianizer,
-        SEVEN_DAYS_IN_MINUTES,
-        20,
+        updatedValues.length,
         updatedValues
       );
 
@@ -703,8 +699,7 @@ contract('MACOStrategyManager', accounts => {
       await oracleWrapper.batchUpdateHistoricalPriceFeedAsync(
         dailyPriceFeed,
         ethMedianizer,
-        SEVEN_DAYS_IN_MINUTES,
-        20,
+        updatedValues.length,
         updatedValues
       );
 
