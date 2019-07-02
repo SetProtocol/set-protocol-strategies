@@ -20,7 +20,8 @@ pragma experimental "ABIEncoderV2";
 import { ERC20Detailed } from "openzeppelin-solidity/contracts/token/ERC20/ERC20Detailed.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { ICore } from "set-protocol-contracts/contracts/core/interfaces/ICore.sol";
-import { IRebalancingSetToken } from "set-protocol-contracts/contracts/core/interfaces/IRebalancingSetToken.sol";
+// V2 is used to allow the verification of contracts
+import { IRebalancingSetTokenV2 } from "set-protocol-contracts/contracts/core/interfaces/IRebalancingSetTokenV2.sol";
 import { ISetToken } from "set-protocol-contracts/contracts/core/interfaces/ISetToken.sol";
 import { SetTokenLibrary } from "set-protocol-contracts/contracts/core/lib/SetTokenLibrary.sol";
 
@@ -201,7 +202,7 @@ contract MACOStrategyManager {
         );
         
         // Create interface to interact with RebalancingSetToken and check enough time has passed for proposal
-        FlexibleTimingManagerLibrary.validateManagerPropose(IRebalancingSetToken(rebalancingSetTokenAddress));
+        FlexibleTimingManagerLibrary.validateManagerPropose(IRebalancingSetTokenV2(rebalancingSetTokenAddress));
         
         // Get price data from oracles
         (
@@ -230,7 +231,7 @@ contract MACOStrategyManager {
         );
 
         // Create interface to interact with RebalancingSetToken and check not in Proposal state
-        FlexibleTimingManagerLibrary.validateManagerPropose(IRebalancingSetToken(rebalancingSetTokenAddress));
+        FlexibleTimingManagerLibrary.validateManagerPropose(IRebalancingSetTokenV2(rebalancingSetTokenAddress));
 
         // Get price data from oracles
         (
@@ -265,7 +266,7 @@ contract MACOStrategyManager {
         );
 
         // Propose new allocation to Rebalancing Set Token
-        IRebalancingSetToken(rebalancingSetTokenAddress).propose(
+        IRebalancingSetTokenV2(rebalancingSetTokenAddress).propose(
             nextSetAddress,
             auctionLibrary,
             auctionTimeToPivot,
