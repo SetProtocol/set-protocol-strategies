@@ -40,6 +40,7 @@ contract DriftlessHistoricalPriceFeed is
 
     /* ============ State Variables ============ */
     uint256 public updateFrequency;
+    uint256 public updateTolerance;
     uint256 public nextAvailableUpdate;
     string public dataDescription;
     IMedian public medianizerInstance;
@@ -53,7 +54,9 @@ contract DriftlessHistoricalPriceFeed is
      * Stores Historical prices according to passed in oracle address. Updates must be 
      * triggered off chain to be stored in this smart contract.
      *
-     * @param  _updateFrequency           How often new data can be logged, passe=d in seconds
+     * @param  _updateFrequency           How often new data can be logged, passed in seconds
+     * @param  _updateTolerance           If update time exceeds nextAvailable update by this amount
+     *                                    then linearize result, passed in seconds
      * @param  _medianizerAddress         The oracle address to read historical data from
      * @param  _dataDescription           Description of data in Data Bank
      * @param  _seededValues              Array of previous days' Historical price values to seed
@@ -62,6 +65,7 @@ contract DriftlessHistoricalPriceFeed is
      */
     constructor(
         uint256 _updateFrequency,
+        uint256 _updateTolerance,
         address _medianizerAddress,
         string memory _dataDescription,
         uint256[] memory _seededValues
@@ -70,6 +74,7 @@ contract DriftlessHistoricalPriceFeed is
     {
         // Set medianizer address, data description, and instantiate medianizer
         updateFrequency = _updateFrequency;
+        updateTolerance = _updateTolerance;
         dataDescription = _dataDescription;
         medianizerInstance = IMedian(_medianizerAddress);
 
@@ -100,22 +105,26 @@ contract DriftlessHistoricalPriceFeed is
 
     /*
      * Updates linked list with newest data point by querying medianizer. Is eligible to be
-     * called every 24 hours.
+     * called after nextAvailableUpdate timestamp has passed. Because the nextAvailableUpdate occurs
+     * on a predetermined cadence based on the time of deployment, delays in calling poke do not propogate
+     * throughout the whole dataset and the drift caused by previous poke transactions not being mined
+     * exactly on nextAvailableUpdate do not compound as they would if it was required that poke is called
+     * an updateFrequency amount of time after the last poke. 
      */
     function poke()
         external
     {
-        // Make sure 24 hours have passed since last update
+        // Make block timestamp exceeds nextAvailableUpdate
         require(
             block.timestamp >= nextAvailableUpdate,
             "HistoricalPriceFeed: Not enough time passed between updates"
         );
 
-        // Update the timestamp to current block timestamp; Prevents re-entrancy
+        // Update the nextAvailableUpdate to current block timestamp plus updateFrequency; Prevents re-entrancy
         nextAvailableUpdate = nextAvailableUpdate.add(updateFrequency);
 
         // Get current price
-        uint256 newValue = uint256(medianizerInstance.read());
+        uint256 newValue = determineUpdatePrice();
 
         // Update linkedList with new price
         editList(
@@ -192,5 +201,77 @@ contract DriftlessHistoricalPriceFeed is
         outputArray[seededValuesLength] = currentValue;
 
         return outputArray;
+    }
+
+    /*
+     * Determine price to update LinkedList with. If within time tolerance then we take raw value from oracle,
+     * otherwise linearize current oracle price with last logged price to attempt to reduce potential error.
+     *
+     * @returns                     Price to update LinkedList with                  
+     */
+    function determineUpdatePrice()
+        private
+        returns (uint256)
+    {
+        // Get current medianizer value
+        uint256 medianizerValue = uint256(medianizerInstance.read());
+
+        // Since the nextAvailableUpdate timestamp was already update to prevent reentrancy we must subtract
+        // the updateFrequency then add the updateTolerance to get the timestamp after which we linearize
+        // the prices.
+        uint256 updateToleranceTimestamp = nextAvailableUpdate.sub(updateFrequency).add(updateTolerance);
+
+        // If block timestamp is greater than updateToleranceTimestamp we linearize the current price to try to
+        // reduce error
+        if (block.timestamp < updateToleranceTimestamp) {
+            return medianizerValue;
+        } else {
+            return linearizeDelayedPriceUpdate(medianizerValue);
+        }
+    }
+
+    /*
+     * When price update is delayed past the updateTolerance in order to attempt to reduce potential error
+     * linearize the price between the current time and price and the last updated time and price. This is 
+     * done with the following series of equations, modified in this instance to deal handle unsigned integers:
+     *
+     * updateTimeFraction = (updateFrequency/(block.timestamp - previousUpdateTimestamp))
+     *
+     * linearizedPrice = previousLoggedPrice + updateTimeFraction * (currentPrice - previousLoggedPrice)
+     *
+     * Where updateTimeFraction represents the fraction of time passed between the last update and now, spent in
+     * the previous update window. It's worth noting that because we consider updates to occur on their update
+     * timestamp we can make the assumption that the amount of time spent in the previous update window is equal
+     * to the update frequency. 
+     *
+     * @param  _currentPrice        Current price returned by medianizer
+     * @returns                     Linearized price value                  
+     */
+    function linearizeDelayedPriceUpdate(
+        uint256 _currentPrice
+    )
+        private
+        returns(uint256)
+    {
+        // Calculate the previous updates timestamp, due to already updating the timestamp to prevent reentrancy
+        // we must subtract two updateFrequency time periods
+        uint256 previousUpdateTimestamp = nextAvailableUpdate.sub(updateFrequency.mul(2));
+        // Calculate how much time has passed from last update
+        uint256 timeFromLastUpdate = block.timestamp.sub(previousUpdateTimestamp);
+
+        // Get previous price and put into uint256 format
+        uint256[] memory previousLoggedPriceArray = readList(historicalPriceData, 1);
+        uint256 previousLoggedPrice = previousLoggedPriceArray[0];
+        uint256 priceDifference;
+
+        // Because we use unsigned integers we must switch in case the previous price is greater than the current
+        // price. What follows is the implementation of the series of equations defined in javadoc.
+        if (_currentPrice > previousLoggedPrice) {
+            priceDifference = _currentPrice.sub(previousLoggedPrice);
+            return previousLoggedPrice.add(updateFrequency.mul(priceDifference).div(timeFromLastUpdate));
+        } else {
+            priceDifference = previousLoggedPrice.sub(_currentPrice);
+            return previousLoggedPrice.sub(updateFrequency.mul(priceDifference).div(timeFromLastUpdate));
+        }       
     }
 }

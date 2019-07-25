@@ -112,6 +112,7 @@ export class OracleWrapper {
 
   public async deployDriftlessHistoricalPriceFeedAsync(
     updateFrequency: BigNumber,
+    updateTolerance: BigNumber,
     medianizerAddress: Address,
     dataDescription: string,
     seededValues: BigNumber[],
@@ -119,6 +120,7 @@ export class OracleWrapper {
   ): Promise<DriftlessHistoricalPriceFeedContract> {
     const historicalPriceFeed = await DriftlessHistoricalPriceFeed.new(
       updateFrequency,
+      updateTolerance,
       medianizerAddress,
       dataDescription,
       seededValues,
