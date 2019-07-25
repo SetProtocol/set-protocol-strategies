@@ -13,7 +13,7 @@ import { Blockchain } from '@utils/blockchain';
 import { ether } from '@utils/units';
 import { MedianContract } from 'set-protocol-contracts';
 import {
-  DriftlessHistoricalPriceFeedContract,
+  HistoricalPriceFeedv2Contract,
 } from '@utils/contracts';
 import {
   DEFAULT_GAS,
@@ -40,7 +40,7 @@ contract('DriftlessHistoricalPriceFeed', accounts => {
   ] = accounts;
 
   let ethMedianizer: MedianContract;
-  let historicalPriceFeed: DriftlessHistoricalPriceFeedContract;
+  let historicalPriceFeed: HistoricalPriceFeedv2Contract;
 
   const oracleWrapper = new OracleWrapper(deployerAccount);
 
@@ -61,6 +61,7 @@ contract('DriftlessHistoricalPriceFeed', accounts => {
 
     let subjectUpdateFrequency: BigNumber;
     let subjectUpdateTolerance: BigNumber;
+    let subjectMaxDataPoints: BigNumber;
     let subjectMedianizerAddress: Address;
     let subjectDataDescription: string;
     let subjectSeededValues: BigNumber[];
@@ -75,16 +76,18 @@ contract('DriftlessHistoricalPriceFeed', accounts => {
 
       subjectUpdateFrequency = ONE_DAY_IN_SECONDS.div(4);
       subjectUpdateTolerance = subjectUpdateFrequency.div(4);
+      subjectMaxDataPoints = new BigNumber(200);
       subjectMedianizerAddress = ethMedianizer.address;
       subjectDataDescription = '200DailyETHPrice';
       subjectSeededValues = [];
     });
 
-    async function subject(): Promise<DriftlessHistoricalPriceFeedContract> {
-      return oracleWrapper.deployDriftlessHistoricalPriceFeedAsync(
+    async function subject(): Promise<HistoricalPriceFeedv2Contract> {
+      return oracleWrapper.deployHistoricalPriceFeedv2Async(
+        subjectMedianizerAddress,
         subjectUpdateFrequency,
         subjectUpdateTolerance,
-        subjectMedianizerAddress,
+        subjectMaxDataPoints,
         subjectDataDescription,
         subjectSeededValues,
       );
@@ -96,6 +99,22 @@ contract('DriftlessHistoricalPriceFeed', accounts => {
       const actualUpdateFrequency = await historicalPriceFeed.updateFrequency.callAsync();
 
       expect(actualUpdateFrequency).to.be.bignumber.equal(subjectUpdateFrequency);
+    });
+
+    it('sets the correct updateTolerance', async () => {
+      historicalPriceFeed = await subject();
+
+      const actualUpdateTolerance = await historicalPriceFeed.updateTolerance.callAsync();
+
+      expect(actualUpdateTolerance).to.be.bignumber.equal(subjectUpdateTolerance);
+    });
+
+    it('sets the correct max data points', async () => {
+      historicalPriceFeed = await subject();
+
+      const actualMaxDataPoints = await historicalPriceFeed.maxDataPoints.callAsync();
+
+      expect(actualMaxDataPoints).to.be.bignumber.equal(subjectMaxDataPoints);
     });
 
     it('sets the correct medianizer address', async () => {
@@ -174,14 +193,10 @@ contract('DriftlessHistoricalPriceFeed', accounts => {
       updateFrequency = ONE_DAY_IN_SECONDS;
       updateTolerance = updateFrequency.div(4);
       const medianizerAddress = ethMedianizer.address;
-      const dataDescription = '200DailyETHPrice';
-      const seededValues = [];
-      historicalPriceFeed = await oracleWrapper.deployDriftlessHistoricalPriceFeedAsync(
+      historicalPriceFeed = await oracleWrapper.deployHistoricalPriceFeedv2Async(
+        medianizerAddress,
         updateFrequency,
         updateTolerance,
-        medianizerAddress,
-        dataDescription,
-        seededValues
       );
 
       newEthPrice = overrideEthPrice || ether(160);
@@ -296,7 +311,7 @@ contract('DriftlessHistoricalPriceFeed', accounts => {
       });
     });
 
-    describe('when previous update was late so next update happens in less than 24 hours', async () => {
+    describe('when previous update was late but not past updateTolerance so next update happens on time', async () => {
       beforeEach(async () => {
         const laggedUpdateTime = ONE_DAY_IN_SECONDS.add(ONE_HOUR_IN_SECONDS);
         await blockchain.increaseTimeAsync(laggedUpdateTime);
@@ -352,20 +367,12 @@ contract('DriftlessHistoricalPriceFeed', accounts => {
         SetTestUtils.generateTimestamp(1000),
       );
 
-      const updateFrequency = ONE_DAY_IN_SECONDS;
-      const updateTolerance = updateFrequency.div(4);
       const medianizerAddress = ethMedianizer.address;
-      const dataDescription = '200DailyETHPrice';
-      const seededValues = [];
-      historicalPriceFeed = await oracleWrapper.deployDriftlessHistoricalPriceFeedAsync(
-        updateFrequency,
-        updateTolerance,
+      historicalPriceFeed = await oracleWrapper.deployHistoricalPriceFeedv2Async(
         medianizerAddress,
-        dataDescription,
-        seededValues,
       );
 
-      updatedPrices = await oracleWrapper.batchUpdateDriftlessHistoricalPriceFeedAsync(
+      updatedPrices = await oracleWrapper.batchUpdateHistoricalPriceFeedv2Async(
         historicalPriceFeed,
         ethMedianizer,
         20,
@@ -414,17 +421,9 @@ contract('DriftlessHistoricalPriceFeed', accounts => {
         SetTestUtils.generateTimestamp(1000),
       );
 
-      const updateFrequency = ONE_DAY_IN_SECONDS;
-      const updateTolerance = updateFrequency.div(4);
       const medianizerAddress = ethMedianizer.address;
-      const dataDescription = '200DailyETHPrice';
-      const seededValues = [];
-      historicalPriceFeed = await oracleWrapper.deployDriftlessHistoricalPriceFeedAsync(
-        updateFrequency,
-        updateTolerance,
+      historicalPriceFeed = await oracleWrapper.deployHistoricalPriceFeedv2Async(
         medianizerAddress,
-        dataDescription,
-        seededValues,
       );
 
       subjectNewMedianizer = medianizerAccount;

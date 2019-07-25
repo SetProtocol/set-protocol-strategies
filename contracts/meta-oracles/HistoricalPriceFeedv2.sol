@@ -18,29 +18,29 @@ pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import { ReentrancyGuard } from "openzeppelin-solidity/contracts/utils/ReentrancyGuard.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { IMedian } from "../external/DappHub/interfaces/IMedian.sol";
 import { LinkedListLibrary } from "./lib/LinkedListLibrary.sol";
 
 
 /**
- * @title HistoricalPriceFeed
+ * @title HistoricalPriceFeedv2
  * @author Set Protocol
  *
  * Contract used to store Historical price data from an off-chain oracle
  */
-contract DriftlessHistoricalPriceFeed is
+contract HistoricalPriceFeedv2 is
     Ownable,
+    ReentrancyGuard,
     LinkedListLibrary
 {
     using SafeMath for uint256;
 
-    /* ============ Constants ============ */
-    uint256 constant DAYS_IN_DATASET = 200;
-
     /* ============ State Variables ============ */
     uint256 public updateFrequency;
     uint256 public updateTolerance;
+    uint256 public maxDataPoints;
     uint256 public nextAvailableUpdate;
     string public dataDescription;
     IMedian public medianizerInstance;
@@ -50,14 +50,21 @@ contract DriftlessHistoricalPriceFeed is
     /* ============ Constructor ============ */
 
     /*
-     * Historical Price Feed constructor.
+     * HistoricalPriceFeedv2 constructor.
      * Stores Historical prices according to passed in oracle address. Updates must be 
-     * triggered off chain to be stored in this smart contract.
+     * triggered off chain to be stored in this smart contract. This contract negates the probalem
+     * of drift by allowing price feed updates on a predetermined cadence based on the time of deployment,
+     * this mean delays in calling poke do not propogate throughout the whole dataset and the drift caused
+     * by previous poke transactions not being mined exactly on nextAvailableUpdate do not compound
+     * as they would if it was required that poke is called an updateFrequency amount of time after
+     * the last poke.
      *
-     * @param  _updateFrequency           How often new data can be logged, passed in seconds
+     * @param  _updateFrequency           Cadence at which data is allowed to be logged, based off 
+                                          deployment timestamp 
      * @param  _updateTolerance           If update time exceeds nextAvailable update by this amount
      *                                    then linearize result, passed in seconds
-     * @param  _medianizerAddress         The oracle address to read historical data from
+     * @param  _maxDataPoints             The maximum amount of data points the linkedList will hold
+     * @param  _medianizerAddress         The oracle address to read current price from
      * @param  _dataDescription           Description of data in Data Bank
      * @param  _seededValues              Array of previous days' Historical price values to seed
      *                                    initial values in list. Should NOT contain the current
@@ -66,6 +73,7 @@ contract DriftlessHistoricalPriceFeed is
     constructor(
         uint256 _updateFrequency,
         uint256 _updateTolerance,
+        uint256 _maxDataPoints,
         address _medianizerAddress,
         string memory _dataDescription,
         uint256[] memory _seededValues
@@ -75,6 +83,7 @@ contract DriftlessHistoricalPriceFeed is
         // Set medianizer address, data description, and instantiate medianizer
         updateFrequency = _updateFrequency;
         updateTolerance = _updateTolerance;
+        maxDataPoints = _maxDataPoints;
         dataDescription = _dataDescription;
         medianizerInstance = IMedian(_medianizerAddress);
 
@@ -84,7 +93,7 @@ contract DriftlessHistoricalPriceFeed is
         // Define upper data size limit for linked list and input initial value
         initialize(
             historicalPriceData,
-            DAYS_IN_DATASET,
+            _maxDataPoints,
             initialValues[0]
         );
 
@@ -109,22 +118,42 @@ contract DriftlessHistoricalPriceFeed is
      * on a predetermined cadence based on the time of deployment, delays in calling poke do not propogate
      * throughout the whole dataset and the drift caused by previous poke transactions not being mined
      * exactly on nextAvailableUpdate do not compound as they would if it was required that poke is called
-     * an updateFrequency amount of time after the last poke. 
+     * an updateFrequency amount of time after the last poke.
+     *
+     * By way of example, assume updateFrequency of 24 hours and a updateTolerance of 1 hour. At time 1 the
+     * update is missed by one day and when the oracle is finally called the price is 150, the price feed
+     * then linearizes this price to imply a price at t1 equal to 125. Time 2 the update is 10 minutes late but
+     * since it's within the updateTolerance the value isn't linearized. At time 3 everything falls back in line.
+     *
+     * +----------------------+------+-------+-------+-------+
+     * |                      | 0    | 1     | 2     | 3     |
+     * +----------------------+------+-------+-------+-------+
+     * | Expected Update Time | 0:00 | 24:00 | 48:00 | 72:00 |
+     * +----------------------+------+-------+-------+-------+
+     * | Actual Update Time   | 0:00 | 48:00 | 48:10 | 72:00 |
+     * +----------------------+------+-------+-------+-------+
+     * | Logged Px            | 100  | 125   | 151   | 130   |
+     * +----------------------+------+-------+-------+-------+
+     * | Received Oracle Px   | 100  | 150   | 151   | 130   |
+     * +----------------------+------+-------+-------+-------+
+     * | Actual Price         | 100  | 110   | 151   | 130   |
+     * +----------------------+------+-------+-------+-------+
      */
     function poke()
         external
+        nonReentrant
     {
-        // Make block timestamp exceeds nextAvailableUpdate
+        // Make sure block timestamp exceeds nextAvailableUpdate
         require(
             block.timestamp >= nextAvailableUpdate,
-            "HistoricalPriceFeed: Not enough time passed between updates"
+            "HistoricalPriceFeed.poke: Not enough time elapsed since last update"
         );
-
-        // Update the nextAvailableUpdate to current block timestamp plus updateFrequency; Prevents re-entrancy
-        nextAvailableUpdate = nextAvailableUpdate.add(updateFrequency);
 
         // Get current price
         uint256 newValue = determineUpdatePrice();
+
+        // Update the nextAvailableUpdate to current block timestamp plus updateFrequency
+        nextAvailableUpdate = nextAvailableUpdate.add(updateFrequency);
 
         // Update linkedList with new price
         editList(
@@ -216,10 +245,9 @@ contract DriftlessHistoricalPriceFeed is
         // Get current medianizer value
         uint256 medianizerValue = uint256(medianizerInstance.read());
 
-        // Since the nextAvailableUpdate timestamp was already update to prevent reentrancy we must subtract
-        // the updateFrequency then add the updateTolerance to get the timestamp after which we linearize
+        // Add the updateTolerance to the nextAvailableTimestamp to get the timestamp after which we linearize
         // the prices.
-        uint256 updateToleranceTimestamp = nextAvailableUpdate.sub(updateFrequency).add(updateTolerance);
+        uint256 updateToleranceTimestamp = nextAvailableUpdate.add(updateTolerance);
 
         // If block timestamp is greater than updateToleranceTimestamp we linearize the current price to try to
         // reduce error
@@ -253,9 +281,8 @@ contract DriftlessHistoricalPriceFeed is
         private
         returns(uint256)
     {
-        // Calculate the previous updates timestamp, due to already updating the timestamp to prevent reentrancy
-        // we must subtract two updateFrequency time periods
-        uint256 previousUpdateTimestamp = nextAvailableUpdate.sub(updateFrequency.mul(2));
+        // Calculate the previous update's timestamp
+        uint256 previousUpdateTimestamp = nextAvailableUpdate.sub(updateFrequency);
         // Calculate how much time has passed from last update
         uint256 timeFromLastUpdate = block.timestamp.sub(previousUpdateTimestamp);
 
