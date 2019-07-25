@@ -22,7 +22,7 @@ import { getWeb3 } from '../web3Helper';
 import { FeedCreatedArgs } from '../contract_logs/oracle';
 
 const web3 = getWeb3();
-const HistoricalPriceFeedV2 = artifacts.require('HistoricalPriceFeedv2');
+const HistoricalPriceFeedV2 = artifacts.require('HistoricalPriceFeedV2');
 const HistoricalPriceFeed = artifacts.require('HistoricalPriceFeed');
 const FeedFactory = artifacts.require('FeedFactory');
 const Median = artifacts.require('Median');
