@@ -13,7 +13,7 @@ import { Blockchain } from '@utils/blockchain';
 import { ether } from '@utils/units';
 import { MedianContract } from 'set-protocol-contracts';
 import {
-  HistoricalPriceFeedv2Contract,
+  HistoricalPriceFeedV2Contract,
 } from '@utils/contracts';
 import {
   DEFAULT_GAS,
@@ -40,7 +40,7 @@ contract('DriftlessHistoricalPriceFeed', accounts => {
   ] = accounts;
 
   let ethMedianizer: MedianContract;
-  let historicalPriceFeed: HistoricalPriceFeedv2Contract;
+  let historicalPriceFeed: HistoricalPriceFeedV2Contract;
 
   const oracleWrapper = new OracleWrapper(deployerAccount);
 
@@ -82,8 +82,8 @@ contract('DriftlessHistoricalPriceFeed', accounts => {
       subjectSeededValues = [];
     });
 
-    async function subject(): Promise<HistoricalPriceFeedv2Contract> {
-      return oracleWrapper.deployHistoricalPriceFeedv2Async(
+    async function subject(): Promise<HistoricalPriceFeedV2Contract> {
+      return oracleWrapper.deployHistoricalPriceFeedV2Async(
         subjectMedianizerAddress,
         subjectUpdateFrequency,
         subjectUpdateTolerance,
@@ -193,7 +193,7 @@ contract('DriftlessHistoricalPriceFeed', accounts => {
       updateFrequency = ONE_DAY_IN_SECONDS;
       updateTolerance = updateFrequency.div(4);
       const medianizerAddress = ethMedianizer.address;
-      historicalPriceFeed = await oracleWrapper.deployHistoricalPriceFeedv2Async(
+      historicalPriceFeed = await oracleWrapper.deployHistoricalPriceFeedV2Async(
         medianizerAddress,
         updateFrequency,
         updateTolerance,
@@ -368,11 +368,11 @@ contract('DriftlessHistoricalPriceFeed', accounts => {
       );
 
       const medianizerAddress = ethMedianizer.address;
-      historicalPriceFeed = await oracleWrapper.deployHistoricalPriceFeedv2Async(
+      historicalPriceFeed = await oracleWrapper.deployHistoricalPriceFeedV2Async(
         medianizerAddress,
       );
 
-      updatedPrices = await oracleWrapper.batchUpdateHistoricalPriceFeedv2Async(
+      updatedPrices = await oracleWrapper.batchUpdateHistoricalPriceFeedV2Async(
         historicalPriceFeed,
         ethMedianizer,
         20,
@@ -422,7 +422,7 @@ contract('DriftlessHistoricalPriceFeed', accounts => {
       );
 
       const medianizerAddress = ethMedianizer.address;
-      historicalPriceFeed = await oracleWrapper.deployHistoricalPriceFeedv2Async(
+      historicalPriceFeed = await oracleWrapper.deployHistoricalPriceFeedV2Async(
         medianizerAddress,
       );
 

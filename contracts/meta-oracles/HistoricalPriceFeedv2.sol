@@ -20,17 +20,18 @@ pragma experimental "ABIEncoderV2";
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { ReentrancyGuard } from "openzeppelin-solidity/contracts/utils/ReentrancyGuard.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+
 import { IMedian } from "../external/DappHub/interfaces/IMedian.sol";
 import { LinkedListLibrary } from "./lib/LinkedListLibrary.sol";
 
 
 /**
- * @title HistoricalPriceFeedv2
+ * @title HistoricalPriceFeedV2
  * @author Set Protocol
  *
  * Contract used to store Historical price data from an off-chain oracle
  */
-contract HistoricalPriceFeedv2 is
+contract HistoricalPriceFeedV2 is
     Ownable,
     ReentrancyGuard,
     LinkedListLibrary
@@ -50,11 +51,11 @@ contract HistoricalPriceFeedv2 is
     /* ============ Constructor ============ */
 
     /*
-     * HistoricalPriceFeedv2 constructor.
+     * HistoricalPriceFeedV2 constructor.
      * Stores Historical prices according to passed in oracle address. Updates must be 
-     * triggered off chain to be stored in this smart contract. This contract negates the probalem
-     * of drift by allowing price feed updates on a predetermined cadence based on the time of deployment,
-     * this mean delays in calling poke do not propogate throughout the whole dataset and the drift caused
+     * triggered off chain to be stored in this smart contract. This contract negates the problem
+     * of drift by allowing price feed updates on a predetermined cadence based on the time of deployment.
+     * This means delays in calling poke do not propogate throughout the whole dataset and the drift caused
      * by previous poke transactions not being mined exactly on nextAvailableUpdate do not compound
      * as they would if it was required that poke is called an updateFrequency amount of time after
      * the last poke.
@@ -123,7 +124,8 @@ contract HistoricalPriceFeedv2 is
      * By way of example, assume updateFrequency of 24 hours and a updateTolerance of 1 hour. At time 1 the
      * update is missed by one day and when the oracle is finally called the price is 150, the price feed
      * then linearizes this price to imply a price at t1 equal to 125. Time 2 the update is 10 minutes late but
-     * since it's within the updateTolerance the value isn't linearized. At time 3 everything falls back in line.
+     * since it's within the updateTolerance the value isn't linearized. For more information on linearization see
+     * the linearizeDeplayedPriceUpdate function. At time 3 everything falls back in line.
      *
      * +----------------------+------+-------+-------+-------+
      * |                      | 0    | 1     | 2     | 3     |
