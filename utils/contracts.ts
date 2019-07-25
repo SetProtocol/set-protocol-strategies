@@ -1,6 +1,7 @@
 import { BaseContract } from '../types/base_contract';
 import { BTCDaiRebalancingManagerContract } from '../types/generated/b_t_c_dai_rebalancing_manager';
 import { BTCETHRebalancingManagerContract } from '../types/generated/b_t_c_e_t_h_rebalancing_manager';
+import { HistoricalPriceFeedV2Contract } from '../types/generated/historical_price_feed_v2';
 import { HistoricalPriceFeedContract } from '../types/generated/historical_price_feed';
 import { ETHDaiRebalancingManagerContract } from '../types/generated/e_t_h_dai_rebalancing_manager';
 import { MACOStrategyManagerContract } from '../types/generated/m_a_c_o_strategy_manager';
@@ -19,6 +20,7 @@ export {
   ETHDaiRebalancingManagerContract,
   MACOStrategyManagerContract,
   HistoricalPriceFeedContract,
+  HistoricalPriceFeedV2Contract,
   FeedFactoryContract,
   FlexibleTimingManagerLibraryMockContract,
   LinkedListLibraryMockContract,
