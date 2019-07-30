@@ -38,7 +38,6 @@ contract LinearizedPriceDataSource is
     using SafeMath for uint256;
 
     /* ============ State Variables ============ */
-    // 
     uint256 public interpolationThreshold; 
     string public dataDescription;
     IMedian public medianizerInstance;
@@ -65,7 +64,6 @@ contract LinearizedPriceDataSource is
     )
         public
     {
-        // 
         interpolationThreshold = _interpolationThreshold;
         medianizerInstance = IMedian(_medianizerAddress);
         dataDescription = _dataDescription;
