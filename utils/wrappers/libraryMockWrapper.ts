@@ -1,5 +1,7 @@
 import { Address } from 'set-protocol-utils';
+import { BigNumber } from 'bignumber.js';
 import {
+  DataFeedMockContract,
   FlexibleTimingManagerLibraryMockContract,
   LinkedListLibraryMockContract,
   ManagerLibraryMockContract,
@@ -8,11 +10,16 @@ import {
 import {
   getWeb3,
 } from '../web3Helper';
+import {
+  DEFAULT_GAS,
+  ONE_DAY_IN_SECONDS,
+} from '@utils/constants';
 
 const web3 = getWeb3();
+const DataFeedMock = artifacts.require('DataFeedMock');
+const FlexibleTimingManagerLibraryMock = artifacts.require('FlexibleTimingManagerLibraryMock');
 const LinkedListLibraryMock = artifacts.require('LinkedListLibraryMock');
 const ManagerLibraryMock = artifacts.require('ManagerLibraryMock');
-const FlexibleTimingManagerLibraryMock = artifacts.require('FlexibleTimingManagerLibraryMock');
 const PriceFeedMock = artifacts.require('PriceFeedMock');
 
 
@@ -62,6 +69,29 @@ export class LibraryMockWrapper {
 
     return new PriceFeedMockContract(
       new web3.eth.Contract(priceFeedTruffle.abi, priceFeedTruffle.address),
+      { from },
+    );
+  }
+
+  public async deployDataFeedMockAsync(
+    dataSourceAddress: Address,
+    updatePeriod: BigNumber,
+    maxDataPoints: BigNumber,
+    dataDescription: string,
+    seededValues: BigNumber[],
+    from: Address = this._contractOwnerAddress
+  ): Promise<DataFeedMockContract> {
+    const dataFeed = await DataFeedMock.new(
+      updatePeriod,
+      maxDataPoints,
+      dataSourceAddress,
+      dataDescription,
+      seededValues,
+      { from },
+    );
+
+    return new DataFeedMockContract(
+      new web3.eth.Contract(dataFeed.abi, dataFeed.address),
       { from },
     );
   }

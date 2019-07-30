@@ -15,17 +15,20 @@ import { ether } from '@utils/units';
 import { MedianContract } from 'set-protocol-contracts';
 import {
   LinearizedPriceDataSourceContract,
+  DataFeedMockContract,
 } from '@utils/contracts';
 import {
   DEFAULT_GAS,
   ONE_DAY_IN_SECONDS,
   ONE_HOUR_IN_SECONDS,
+  ZERO,
 } from '@utils/constants';
 import { expectRevertError } from '@utils/tokenAssertions';
 import { getWeb3 } from '@utils/web3Helper';
-import { LogMedianizerUpdated } from '@utils/contract_logs/lineraizedPriceDataSource';
+import { LogMedianizerUpdated } from '@utils/contract_logs/linearizedPriceDataSource';
 
 import { OracleWrapper } from '@utils/wrappers/oracleWrapper';
+import { LibraryMockWrapper } from '@utils/wrappers/libraryMockWrapper';
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
@@ -44,9 +47,10 @@ contract('LinearizedPriceDataSource', accounts => {
   ] = accounts;
 
   let ethMedianizer: MedianContract;
-  let historicalPriceFeed: LinearizedPriceDataSourceContract;
+  let linearizedDataSource: LinearizedPriceDataSourceContract;
 
   const oracleWrapper = new OracleWrapper(deployerAccount);
+  const libraryMockWrapper = new LibraryMockWrapper(deployerAccount);
 
   before(async () => {
     ABIDecoder.addABI(LinearizedPriceDataSource.abi);
@@ -82,7 +86,7 @@ contract('LinearizedPriceDataSource', accounts => {
         SetTestUtils.generateTimestamp(1000),
       );
 
-      subjectUpdateTolerance = subjectUpdatePeriod.div(4);
+      subjectUpdateTolerance = ONE_DAY_IN_SECONDS;
       subjectMedianizerAddress = ethMedianizer.address;
       subjectDataDescription = '200DailyETHPrice';
     });
@@ -96,206 +100,88 @@ contract('LinearizedPriceDataSource', accounts => {
     }
 
     it('sets the correct updateTolerance', async () => {
-      historicalPriceFeed = await subject();
+      linearizedDataSource = await subject();
 
-      const actualUpdateTolerance = await historicalPriceFeed.updateTolerance.callAsync();
+      const actualUpdateTolerance = await linearizedDataSource.updateTolerance.callAsync();
 
       expect(actualUpdateTolerance).to.be.bignumber.equal(subjectUpdateTolerance);
     });
 
     it('sets the correct medianizer address', async () => {
-      historicalPriceFeed = await subject();
+      linearizedDataSource = await subject();
 
-      const actualMedianizerAddress = await historicalPriceFeed.medianizerInstance.callAsync();
+      const actualMedianizerAddress = await linearizedDataSource.medianizerInstance.callAsync();
 
       expect(actualMedianizerAddress).to.equal(subjectMedianizerAddress);
     });
 
     it('sets the correct data description', async () => {
-      historicalPriceFeed = await subject();
+      linearizedDataSource = await subject();
 
-      const actualDataDescription = await historicalPriceFeed.dataDescription.callAsync();
+      const actualDataDescription = await linearizedDataSource.dataDescription.callAsync();
 
       expect(actualDataDescription).to.equal(subjectDataDescription);
     });
   });
 
-  describe('#read', async () => {
+  describe.only('#read', async () => {
     let initialEthPrice: BigNumber;
     let newEthPrice: BigNumber;
-    let updatePeriod: BigNumber;
     let updateTolerance: BigNumber;
 
-    let overrideEthPrice: BigNumber = undefined;
+    let updatePeriod;
+    let nextAvailableUpdate;
+    let seedValues: BigNumber[] = [ether(100)];
+    const maxDataPoints = new BigNumber(200);
+    const dataDescription = 'ETH Daily Price';
+
+    let dataFeedMock: DataFeedMockContract;
+
     let subjectTimeFastForward: BigNumber;
 
     beforeEach(async () => {
-      initialEthPrice = ether(150);
-      await oracleWrapper.updateMedianizerPriceAsync(
-        ethMedianizer,
-        initialEthPrice,
-        SetTestUtils.generateTimestamp(1000),
-      );
-
-      updatePeriod = ONE_DAY_IN_SECONDS;
-      updateTolerance = updatePeriod.div(4);
-      const medianizerAddress = ethMedianizer.address;
-      historicalPriceFeed = await oracleWrapper.deployLinearizedPriceDataSourceAsync(
-        medianizerAddress,
-        updatePeriod,
-        updateTolerance,
-      );
-
-      newEthPrice = overrideEthPrice || ether(160);
+      newEthPrice = ether(160);
       await oracleWrapper.updateMedianizerPriceAsync(
         ethMedianizer,
         newEthPrice,
         SetTestUtils.generateTimestamp(1000)
       );
 
+      updateTolerance = ONE_DAY_IN_SECONDS;
+      const medianizerAddress = ethMedianizer.address;
+      linearizedDataSource = await oracleWrapper.deployLinearizedPriceDataSourceAsync(
+        medianizerAddress,
+        updateTolerance,
+      );
+
+      updatePeriod = ONE_DAY_IN_SECONDS;
+      dataFeedMock = await libraryMockWrapper.deployDataFeedMockAsync(
+        linearizedDataSource.address,
+        updatePeriod,
+        maxDataPoints,
+        dataDescription,
+        seedValues,
+      );
+
       subjectTimeFastForward = ONE_DAY_IN_SECONDS;
     });
 
-    async function subject(): Promise<string> {
+    async function subject(): Promise<BigNumber> {
       await blockchain.increaseTimeAsync(subjectTimeFastForward);
-      return historicalPriceFeed.read.sendTransactionAsync(
-        { gas: DEFAULT_GAS}
-      );
+      return dataFeedMock.testCallDataSource.callAsync();
     }
 
-    it('updates the historicalPriceFeed with the correct price', async () => {
-      await subject();
+    it('updates the linearizedDataSource with the correct price', async () => {
+      const actualPrice = await subject();
 
-      const actualNewPrice = await historicalPriceFeed.read.callAsync(new BigNumber(2));
-      const expectedNewPrice = [newEthPrice, initialEthPrice];
+      const expectedPrice = newEthPrice;
 
-      expect(JSON.stringify(actualNewPrice)).to.equal(JSON.stringify(expectedNewPrice));
+      expect(actualPrice).to.bignumber.equal(expectedPrice);
     });
 
-    it('sets the nextAvailableUpdate timestamp to previous timestamp plus 24 hours', async () => {
-      const previousTimestamp = await historicalPriceFeed.nextAvailableUpdate.callAsync();
-
-      await subject();
-
-      const actualTimestamp = await historicalPriceFeed.nextAvailableUpdate.callAsync();
-      const expectedTimestamp = previousTimestamp.add(ONE_DAY_IN_SECONDS);
-      expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
-    });
-
-    describe('when update occured after the updateTolerance and price increases', async () => {
+    describe('when the update time has not been passed', async () => {
       beforeEach(async () => {
-        subjectTimeFastForward = updatePeriod.add(updateTolerance);
-      });
-
-      it('updates the historicalPriceFeed with the correct linearized price', async () => {
-        const nextAvailableUpdate = await historicalPriceFeed.nextAvailableUpdate.callAsync();
-        const lastUpdateTimestamp = nextAvailableUpdate.sub(ONE_DAY_IN_SECONDS);
-
-        await subject();
-
-        const pokeBlock = await web3.eth.getBlock('latest');
-        const pokeBlockTimestamp = new BigNumber(pokeBlock.timestamp);
-
-        const actualNewPrice = await historicalPriceFeed.read.callAsync(new BigNumber(2));
-        const timeFromExpectedUpdate = pokeBlockTimestamp.sub(nextAvailableUpdate);
-        const timeFromLastUpdate = pokeBlockTimestamp.sub(lastUpdateTimestamp);
-        const linearizedEthPrice = newEthPrice
-                                     .mul(updatePeriod)
-                                     .add(initialEthPrice.mul(timeFromExpectedUpdate))
-                                     .div(timeFromLastUpdate)
-                                     .round(0, 3);
-        const expectedNewPrice = [linearizedEthPrice, initialEthPrice];
-
-        expect(JSON.stringify(actualNewPrice)).to.equal(JSON.stringify(expectedNewPrice));
-      });
-
-      it('sets the nextAvailableUpdate timestamp to previous timestamp plus 24 hours', async () => {
-        const previousTimestamp = await historicalPriceFeed.nextAvailableUpdate.callAsync();
-
-        await subject();
-
-        const actualTimestamp = await historicalPriceFeed.nextAvailableUpdate.callAsync();
-        const expectedTimestamp = previousTimestamp.add(ONE_DAY_IN_SECONDS);
-        expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
-      });
-    });
-
-    describe('when update occured after the updateTolerance and price decreases', async () => {
-      before(async () => {
-        overrideEthPrice = ether(140);
-      });
-
-      beforeEach(async () => {
-        subjectTimeFastForward = updatePeriod.add(updateTolerance);
-      });
-
-      it('updates the historicalPriceFeed with the correct linearized price', async () => {
-        const nextAvailableUpdate = await historicalPriceFeed.nextAvailableUpdate.callAsync();
-        const lastUpdateTimestamp = nextAvailableUpdate.sub(ONE_DAY_IN_SECONDS);
-
-        await subject();
-
-        const pokeBlock = await web3.eth.getBlock('latest');
-        const pokeBlockTimestamp = new BigNumber(pokeBlock.timestamp);
-
-        const actualNewPrice = await historicalPriceFeed.read.callAsync(new BigNumber(2));
-        const timeFromExpectedUpdate = pokeBlockTimestamp.sub(nextAvailableUpdate);
-        const timeFromLastUpdate = pokeBlockTimestamp.sub(lastUpdateTimestamp);
-        const linearizedEthPrice = newEthPrice
-                                     .mul(updatePeriod)
-                                     .add(initialEthPrice.mul(timeFromExpectedUpdate))
-                                     .div(timeFromLastUpdate)
-                                     .round(0, 3);
-        const expectedNewPrice = [linearizedEthPrice, initialEthPrice];
-
-        expect(JSON.stringify(actualNewPrice)).to.equal(JSON.stringify(expectedNewPrice));
-      });
-
-      it('sets the nextAvailableUpdate timestamp to previous timestamp plus 24 hours', async () => {
-        const previousTimestamp = await historicalPriceFeed.nextAvailableUpdate.callAsync();
-
-        await subject();
-
-        const actualTimestamp = await historicalPriceFeed.nextAvailableUpdate.callAsync();
-        const expectedTimestamp = previousTimestamp.add(ONE_DAY_IN_SECONDS);
-        expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
-      });
-    });
-
-    describe('when previous update was late but not past updateTolerance so next update happens on time', async () => {
-      beforeEach(async () => {
-        const laggedUpdateTime = ONE_DAY_IN_SECONDS.add(ONE_HOUR_IN_SECONDS);
-        await blockchain.increaseTimeAsync(laggedUpdateTime);
-        await historicalPriceFeed.poke.sendTransactionAsync(
-          { gas: DEFAULT_GAS}
-        );
-
-        subjectTimeFastForward = ONE_DAY_IN_SECONDS.sub(ONE_HOUR_IN_SECONDS).add(1);
-      });
-
-      it('updates the historicalPriceFeed with the correct price', async () => {
-        await subject();
-
-        const actualNewPrice = await historicalPriceFeed.read.callAsync(new BigNumber(3));
-        const expectedNewPrice = [newEthPrice, newEthPrice, initialEthPrice];
-
-        expect(JSON.stringify(actualNewPrice)).to.equal(JSON.stringify(expectedNewPrice));
-      });
-
-      it('sets the nextAvailableUpdate timestamp to previous timestamp plus 24 hours', async () => {
-        const previousTimestamp = await historicalPriceFeed.nextAvailableUpdate.callAsync();
-
-        await subject();
-
-        const actualTimestamp = await historicalPriceFeed.nextAvailableUpdate.callAsync();
-        const expectedTimestamp = previousTimestamp.add(ONE_DAY_IN_SECONDS);
-        expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
-      });
-    });
-
-    describe('when not enough time has passed to update', async () => {
-      beforeEach(async () => {
-        subjectTimeFastForward = new BigNumber(1);
+        subjectTimeFastForward = ZERO;
       });
 
       it('should revert', async () => {
@@ -319,7 +205,7 @@ contract('LinearizedPriceDataSource', accounts => {
       );
 
       const medianizerAddress = ethMedianizer.address;
-      historicalPriceFeed = await oracleWrapper.deployLinearizedPriceDataSourceAsync(
+      linearizedDataSource = await oracleWrapper.deployLinearizedPriceDataSourceAsync(
         medianizerAddress,
       );
 
@@ -328,7 +214,7 @@ contract('LinearizedPriceDataSource', accounts => {
     });
 
     async function subject(): Promise<string> {
-      return historicalPriceFeed.changeMedianizer.sendTransactionAsync(
+      return linearizedDataSource.changeMedianizer.sendTransactionAsync(
         subjectNewMedianizer,
         {
           from: subjectCaller,
@@ -340,7 +226,7 @@ contract('LinearizedPriceDataSource', accounts => {
     it('updates the medianizer address', async () => {
       await subject();
 
-      const actualMedianizerAddress = await historicalPriceFeed.medianizerInstance.callAsync();
+      const actualMedianizerAddress = await linearizedDataSource.medianizerInstance.callAsync();
 
       expect(actualMedianizerAddress).to.equal(subjectNewMedianizer);
     });
@@ -351,7 +237,7 @@ contract('LinearizedPriceDataSource', accounts => {
       const formattedLogs = await setTestUtils.getLogsFromTxHash(txHash);
       const expectedLogs = LogMedianizerUpdated(
         subjectNewMedianizer,
-        historicalPriceFeed.address
+        linearizedDataSource.address
       );
 
       await SetTestUtils.assertLogEquivalence(formattedLogs, expectedLogs);

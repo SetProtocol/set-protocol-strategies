@@ -57,6 +57,7 @@ contract LinearizedPriceDataSource is
         // Set medianizer address, data description, and instantiate medianizer
         updateTolerance = _updateTolerance;
         medianizerInstance = IMedian(_medianizerAddress);
+        dataDescription = _dataDescription;
     }
 
     /* ============ External ============ */
@@ -64,18 +65,22 @@ contract LinearizedPriceDataSource is
     /*
      * The sender must be a DataSource
      *
-     * @param  _dataDays       Number of days of data being queried
      * @returns                Array of historical price data of length _dataDays                   
      */
-    function read(
-        uint256 _dataDays
-    )
+    function read()
         external
         returns (uint256)
     {
         // Add the updateTolerance to the nextAvailableTimestamp to get the timestamp after which we linearize
         // the prices.
         uint256 nextAvailableUpdate = IDataFeed(msg.sender).nextAvailableUpdate();
+
+        // Make sure block timestamp exceeds nextAvailableUpdate
+        require(
+            block.timestamp >= nextAvailableUpdate,
+            "LinearizedPriceDataSource.read: Not enough time elapsed since last update"
+        );
+
         uint256 updateToleranceTimestamp = nextAvailableUpdate.add(updateTolerance);
 
         // Get current medianizer value

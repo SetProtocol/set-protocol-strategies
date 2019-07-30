@@ -12,6 +12,7 @@ import {
   HistoricalPriceFeedV2Contract,
   FeedFactoryContract,
   HistoricalPriceFeedContract,
+  LinearizedPriceDataSourceContract,
   MovingAverageOracleContract,
   PriceFeedContract,
 } from '../contracts';
@@ -27,8 +28,10 @@ const DataFeed = artifacts.require('DataFeed');
 const HistoricalPriceFeedV2 = artifacts.require('HistoricalPriceFeedV2');
 const HistoricalPriceFeed = artifacts.require('HistoricalPriceFeed');
 const FeedFactory = artifacts.require('FeedFactory');
+const LinearizedPriceDataSource = artifacts.require('LinearizedPriceDataSource');
 const Median = artifacts.require('Median');
 const MovingAverageOracle = artifacts.require('MovingAverageOracle');
+
 
 const { SetProtocolTestUtils: SetTestUtils, SetProtocolUtils: SetUtils } = setProtocolUtils;
 const setTestUtils = new SetTestUtils(web3);
@@ -110,6 +113,25 @@ export class OracleWrapper {
 
     return new DataFeedContract(
       new web3.eth.Contract(historicalPriceFeed.abi, historicalPriceFeed.address),
+      { from },
+    );
+  }
+
+  public async deployLinearizedPriceDataSourceAsync(
+    medianizerInstance: Address,
+    updateTolerance: BigNumber = ONE_DAY_IN_SECONDS,
+    dataDescription: string = '200DailyETHPrice',
+    from: Address = this._contractOwnerAddress
+  ): Promise<LinearizedPriceDataSourceContract> {
+    const linearizedPriceDataSource = await LinearizedPriceDataSource.new(
+      updateTolerance,
+      medianizerInstance,
+      dataDescription,
+      { from },
+    );
+
+    return new LinearizedPriceDataSourceContract(
+      new web3.eth.Contract(linearizedPriceDataSource.abi, linearizedPriceDataSource.address),
       { from },
     );
   }
@@ -254,7 +276,7 @@ export class OracleWrapper {
   ): Promise<void> {
     await this._blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS);
 
-    await this.updatePriceFeedAsync(
+      await this.updatePriceFeedAsync(
       priceFeed,
       price,
       SetTestUtils.generateTimestamp(ONE_DAY_IN_SECONDS.mul(2).toNumber()),
