@@ -10,10 +10,6 @@ import {
 import {
   getWeb3,
 } from '../web3Helper';
-import {
-  DEFAULT_GAS,
-  ONE_DAY_IN_SECONDS,
-} from '@utils/constants';
 
 const web3 = getWeb3();
 const DataFeedMock = artifacts.require('DataFeedMock');

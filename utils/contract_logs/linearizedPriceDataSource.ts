@@ -11,4 +11,4 @@ import { Address, Log } from 'set-protocol-utils';
       newMedianizerAddress,
     },
   }];
-} 
+}

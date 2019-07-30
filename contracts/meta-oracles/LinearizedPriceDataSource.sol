@@ -41,7 +41,7 @@ contract LinearizedPriceDataSource is
 
     /* ============ Events ============ */
 
-     event LogMedianizerUpdated(
+    event LogMedianizerUpdated(
         address newMedianizerAddress
     );
 
@@ -65,7 +65,7 @@ contract LinearizedPriceDataSource is
     /*
      * The sender must be a DataSource
      *
-     * @returns                Array of historical price data of length _dataDays                   
+     * @returns                Returns 
      */
     function read()
         external

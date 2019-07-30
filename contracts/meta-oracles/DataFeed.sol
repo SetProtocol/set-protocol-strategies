@@ -170,12 +170,6 @@ contract DataFeed is
             outputArray[i] = _seededValues[i];
         }
 
-        // Get current value from dataSource
-        uint256 currentValue = uint256(dataSource.read());
-
-        // Add currentValue to outputArray
-        outputArray[seededValuesLength] = currentValue;
-
         return outputArray;
     }
 }
