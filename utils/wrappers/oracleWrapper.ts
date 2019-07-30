@@ -246,6 +246,49 @@ export class OracleWrapper {
     );
   }
 
+  public async updateDataFeedAsync(
+    dataFeed: DataFeedContract,
+    priceFeed: PriceFeedContract,
+    price: BigNumber,
+    from: Address = this._contractOwnerAddress
+  ): Promise<void> {
+    await this._blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS);
+
+    await this.updatePriceFeedAsync(
+      priceFeed,
+      price,
+      SetTestUtils.generateTimestamp(ONE_DAY_IN_SECONDS.mul(2).toNumber()),
+    );
+
+    await dataFeed.poke.sendTransactionAsync(
+      { gas: DEFAULT_GAS},
+    );
+  }
+
+  public async batchUpdateDataFeedAsync(
+    dataFeed: DataFeedContract,
+    priceFeed: PriceFeedContract,
+    daysOfData: number,
+    priceArray: BigNumber[] = undefined,
+    from: Address = this._contractOwnerAddress
+  ): Promise<BigNumber[]> {
+
+    if (!priceArray) {
+      priceArray = Array.from({length: daysOfData}, () => ether(Math.floor(Math.random() * 100) + 100));
+    }
+
+    let i: number;
+    for (i = 0; i < priceArray.length; i++) {
+      await this.updateDataFeedAsync(
+        dataFeed,
+        priceFeed,
+        priceArray[i],
+      );
+    }
+
+    return priceArray;
+  }
+
   public async updateHistoricalPriceFeedAsync(
     dailyPriceFeed: HistoricalPriceFeedContract,
     medianizer: MedianContract,

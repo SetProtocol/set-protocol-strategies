@@ -16,8 +16,10 @@ contract PriceFeedMock {
 
     function read()
         external
+        view
         returns (uint256)
     {
-        return uint256(IPriceFeed(priceFeed).read());
+        IPriceFeed source = IPriceFeed(priceFeed);
+        return uint256(source.read());
     }
 }

@@ -3,6 +3,7 @@ import {
   FlexibleTimingManagerLibraryMockContract,
   LinkedListLibraryMockContract,
   ManagerLibraryMockContract,
+  PriceFeedMockContract,
 } from '../contracts';
 import {
   getWeb3,
@@ -12,6 +13,7 @@ const web3 = getWeb3();
 const LinkedListLibraryMock = artifacts.require('LinkedListLibraryMock');
 const ManagerLibraryMock = artifacts.require('ManagerLibraryMock');
 const FlexibleTimingManagerLibraryMock = artifacts.require('FlexibleTimingManagerLibraryMock');
+const PriceFeedMock = artifacts.require('PriceFeedMock');
 
 
 export class LibraryMockWrapper {
@@ -45,6 +47,21 @@ export class LibraryMockWrapper {
 
     return new FlexibleTimingManagerLibraryMockContract(
       new web3.eth.Contract(managerLibraryMockContract.abi, managerLibraryMockContract.address),
+      { from },
+    );
+  }
+
+  public async deployPriceFeedMockAsync(
+    priceFeed: Address,
+    from: Address = this._contractOwnerAddress
+  ): Promise<PriceFeedMockContract> {
+    const priceFeedTruffle = await PriceFeedMock.new(
+      priceFeed,
+      { from },
+    );
+
+    return new PriceFeedMockContract(
+      new web3.eth.Contract(priceFeedTruffle.abi, priceFeedTruffle.address),
       { from },
     );
   }
