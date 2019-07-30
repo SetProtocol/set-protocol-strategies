@@ -261,11 +261,13 @@ contract('HistoricalPriceFeedV2', accounts => {
         const pokeBlockTimestamp = new BigNumber(pokeBlock.timestamp);
 
         const actualNewPrice = await historicalPriceFeed.read.callAsync(new BigNumber(2));
-        const linearizedEthPrice = initialEthPrice.add(
-          newEthPrice.sub(initialEthPrice)
-          .mul(updatePeriod)
-          .div(pokeBlockTimestamp.sub(lastUpdateTimestamp)).round(0, 3)
-        );
+        const timeFromExpectedUpdate = pokeBlockTimestamp.sub(nextAvailableUpdate);
+        const timeFromLastUpdate = pokeBlockTimestamp.sub(lastUpdateTimestamp);
+        const linearizedEthPrice = newEthPrice
+                                     .mul(updatePeriod)
+                                     .add(initialEthPrice.mul(timeFromExpectedUpdate))
+                                     .div(timeFromLastUpdate)
+                                     .round(0, 3);
         const expectedNewPrice = [linearizedEthPrice, initialEthPrice];
 
         expect(JSON.stringify(actualNewPrice)).to.equal(JSON.stringify(expectedNewPrice));
@@ -301,11 +303,13 @@ contract('HistoricalPriceFeedV2', accounts => {
         const pokeBlockTimestamp = new BigNumber(pokeBlock.timestamp);
 
         const actualNewPrice = await historicalPriceFeed.read.callAsync(new BigNumber(2));
-        const linearizedEthPrice = initialEthPrice.sub(
-          initialEthPrice.sub(newEthPrice)
-          .mul(updatePeriod)
-          .div(pokeBlockTimestamp.sub(lastUpdateTimestamp)).round(0, 3)
-        );
+        const timeFromExpectedUpdate = pokeBlockTimestamp.sub(nextAvailableUpdate);
+        const timeFromLastUpdate = pokeBlockTimestamp.sub(lastUpdateTimestamp);
+        const linearizedEthPrice = newEthPrice
+                                     .mul(updatePeriod)
+                                     .add(initialEthPrice.mul(timeFromExpectedUpdate))
+                                     .div(timeFromLastUpdate)
+                                     .round(0, 3);
         const expectedNewPrice = [linearizedEthPrice, initialEthPrice];
 
         expect(JSON.stringify(actualNewPrice)).to.equal(JSON.stringify(expectedNewPrice));
