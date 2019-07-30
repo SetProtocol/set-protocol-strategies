@@ -38,10 +38,19 @@ contract HistoricalPriceFeedV2 is
 {
     using SafeMath for uint256;
 
+    /* ============ Events ============ */
+
+    event LogMedianizerUpdated(
+        address newMedianizerAddress
+    );
+
     /* ============ State Variables ============ */
-    uint256 public updateFrequency;
+    // How often the price feed can be updated in seconds
+    uint256 public updatePeriod;
+    // How far after nextAvailableUpdate timestamp has passed before interpolation is used (in seconds)
     uint256 public updateTolerance;
     uint256 public maxDataPoints;
+    // Timestamp in seconds of next available update time
     uint256 public nextAvailableUpdate;
     string public dataDescription;
     IMedian public medianizerInstance;
@@ -55,24 +64,24 @@ contract HistoricalPriceFeedV2 is
      * Stores Historical prices according to passed in oracle address. Updates must be 
      * triggered off chain to be stored in this smart contract. This contract negates the problem
      * of drift by allowing price feed updates on a predetermined cadence based on the time of deployment.
-     * This means delays in calling poke do not propogate throughout the whole dataset and the drift caused
+     * This means delays in calling poke do not propagate throughout the whole dataset and the drift caused
      * by previous poke transactions not being mined exactly on nextAvailableUpdate do not compound
-     * as they would if it was required that poke is called an updateFrequency amount of time after
+     * as they would if it was required that poke is called an updatePeriod amount of time after
      * the last poke.
      *
-     * @param  _updateFrequency           Cadence at which data is allowed to be logged, based off 
-                                          deployment timestamp 
+     * @param  _updatePeriod              Cadence (in seconds) at which data is allowed to be logged,
+                                          based off deployment timestamp 
      * @param  _updateTolerance           If update time exceeds nextAvailable update by this amount
-     *                                    then linearize result, passed in seconds
+     *                                    then linearly interpolate result, passed in seconds
      * @param  _maxDataPoints             The maximum amount of data points the linkedList will hold
      * @param  _medianizerAddress         The oracle address to read current price from
-     * @param  _dataDescription           Description of data in Data Bank
-     * @param  _seededValues              Array of previous days' Historical price values to seed
-     *                                    initial values in list. Should NOT contain the current
-     *                                    days price.
+     * @param  _dataDescription           Description of data in Price Feed
+     * @param  _seededValues              Array of previous time periods' Historical price values to
+     *                                    seed initial values in list. Should NOT contain the current
+     *                                    days time period price.
      */
     constructor(
-        uint256 _updateFrequency,
+        uint256 _updatePeriod,
         uint256 _updateTolerance,
         uint256 _maxDataPoints,
         address _medianizerAddress,
@@ -82,7 +91,7 @@ contract HistoricalPriceFeedV2 is
         public
     {
         // Set medianizer address, data description, and instantiate medianizer
-        updateFrequency = _updateFrequency;
+        updatePeriod = _updatePeriod;
         updateTolerance = _updateTolerance;
         maxDataPoints = _maxDataPoints;
         dataDescription = _dataDescription;
@@ -108,7 +117,7 @@ contract HistoricalPriceFeedV2 is
         }
 
         // Set next available update timestamp
-        nextAvailableUpdate = block.timestamp.add(updateFrequency);
+        nextAvailableUpdate = block.timestamp.add(updatePeriod);
     }
 
     /* ============ External ============ */
@@ -119,13 +128,13 @@ contract HistoricalPriceFeedV2 is
      * on a predetermined cadence based on the time of deployment, delays in calling poke do not propogate
      * throughout the whole dataset and the drift caused by previous poke transactions not being mined
      * exactly on nextAvailableUpdate do not compound as they would if it was required that poke is called
-     * an updateFrequency amount of time after the last poke.
+     * an updatePeriod amount of time after the last poke.
      *
-     * By way of example, assume updateFrequency of 24 hours and a updateTolerance of 1 hour. At time 1 the
+     * By way of example, assume updatePeriod of 24 hours and a updateTolerance of 1 hour. At time 1 the
      * update is missed by one day and when the oracle is finally called the price is 150, the price feed
-     * then linearizes this price to imply a price at t1 equal to 125. Time 2 the update is 10 minutes late but
-     * since it's within the updateTolerance the value isn't linearized. For more information on linearization see
-     * the linearizeDeplayedPriceUpdate function. At time 3 everything falls back in line.
+     * then interpolates this price to imply a price at t1 equal to 125. Time 2 the update is 10 minutes late but
+     * since it's within the updateTolerance the value isn't interpolated. For more information on linearization see
+     * the interpolateDelayedPriceUpdate function. At time 3 everything falls back in line.
      *
      * +----------------------+------+-------+-------+-------+
      * |                      | 0    | 1     | 2     | 3     |
@@ -154,8 +163,8 @@ contract HistoricalPriceFeedV2 is
         // Get current price
         uint256 newValue = determineUpdatePrice();
 
-        // Update the nextAvailableUpdate to current block timestamp plus updateFrequency
-        nextAvailableUpdate = nextAvailableUpdate.add(updateFrequency);
+        // Update the nextAvailableUpdate to current nextAvailableUpdate plus updatePeriod
+        nextAvailableUpdate = nextAvailableUpdate.add(updatePeriod);
 
         // Update linkedList with new price
         editList(
@@ -198,6 +207,8 @@ contract HistoricalPriceFeedV2 is
         onlyOwner
     {
         medianizerInstance = IMedian(_newMedianizerAddress);
+
+        emit LogMedianizerUpdated(_newMedianizerAddress);
     }
 
 
@@ -214,11 +225,9 @@ contract HistoricalPriceFeedV2 is
         uint256[] memory _seededValues
     )
         private
+        view
         returns (uint256[] memory)
     {
-        // Get current value from medianizer
-        uint256 currentValue = uint256(medianizerInstance.read());
-
         // Instantiate outputArray
         uint256 seededValuesLength = _seededValues.length;
         uint256[] memory outputArray = new uint256[](seededValuesLength.add(1));
@@ -228,6 +237,9 @@ contract HistoricalPriceFeedV2 is
             outputArray[i] = _seededValues[i];
         }
 
+        // Get current value from medianizer
+        uint256 currentValue = uint256(medianizerInstance.read());
+
         // Add currentValue to outputArray
         outputArray[seededValuesLength] = currentValue;
 
@@ -236,38 +248,42 @@ contract HistoricalPriceFeedV2 is
 
     /*
      * Determine price to update LinkedList with. If within time tolerance then we take raw value from oracle,
-     * otherwise linearize current oracle price with last logged price to attempt to reduce potential error.
+     * otherwise linearly interpolate current oracle price with last logged price to attempt to reduce potential
+     * error.
      *
      * @returns                     Price to update LinkedList with                  
      */
     function determineUpdatePrice()
         private
+        view
         returns (uint256)
     {
         // Get current medianizer value
         uint256 medianizerValue = uint256(medianizerInstance.read());
 
-        // Add the updateTolerance to the nextAvailableTimestamp to get the timestamp after which we linearize
+        // Add the updateTolerance to the nextAvailableTimestamp to get the timestamp after which we interpolate
         // the prices.
         uint256 updateToleranceTimestamp = nextAvailableUpdate.add(updateTolerance);
 
-        // If block timestamp is greater than updateToleranceTimestamp we linearize the current price to try to
-        // reduce error
+        // If block timestamp is greater than updateToleranceTimestamp we interpoldate the current price to try to
+        // reduce error. Interpolation is intended to be used as a last resort in case there is a substantive delay
+        // in updating the timestamp. The price feed is intended to log raw data from the medianizer and not perform
+        // and transformations unless absolutely necessary.
         if (block.timestamp < updateToleranceTimestamp) {
             return medianizerValue;
         } else {
-            return linearizeDelayedPriceUpdate(medianizerValue);
+            return interpolateDelayedPriceUpdate(medianizerValue);
         }
     }
 
     /*
      * When price update is delayed past the updateTolerance in order to attempt to reduce potential error
-     * linearize the price between the current time and price and the last updated time and price. This is 
-     * done with the following series of equations, modified in this instance to deal handle unsigned integers:
+     * linearly interpolate the price between the current time and price and the last updated time and price. This 
+     * is done with the following series of equations, modified in this instance to deal handle unsigned integers:
      *
-     * updateTimeFraction = (updateFrequency/(block.timestamp - previousUpdateTimestamp))
+     * updateTimeFraction = (updatePeriod/(block.timestamp - previousUpdateTimestamp))
      *
-     * linearizedPrice = previousLoggedPrice + updateTimeFraction * (currentPrice - previousLoggedPrice)
+     * interpolatedPrice = previousLoggedPrice + updateTimeFraction * (currentPrice - previousLoggedPrice)
      *
      * Where updateTimeFraction represents the fraction of time passed between the last update and now, spent in
      * the previous update window. It's worth noting that because we consider updates to occur on their update
@@ -275,32 +291,30 @@ contract HistoricalPriceFeedV2 is
      * to the update frequency. 
      *
      * @param  _currentPrice        Current price returned by medianizer
-     * @returns                     Linearized price value                  
+     * @returns                     Interpolated price value                  
      */
-    function linearizeDelayedPriceUpdate(
+    function interpolateDelayedPriceUpdate(
         uint256 _currentPrice
     )
         private
+        view
         returns(uint256)
     {
-        // Calculate the previous update's timestamp
-        uint256 previousUpdateTimestamp = nextAvailableUpdate.sub(updateFrequency);
-        // Calculate how much time has passed from last update
+        // Calculate timestamp corresponding to last updated price
+        uint256 previousUpdateTimestamp = nextAvailableUpdate.sub(updatePeriod);
+        // Calculate how much time has passed from timestamp corresponding to last update
         uint256 timeFromLastUpdate = block.timestamp.sub(previousUpdateTimestamp);
+        // Calculate how much time has passed from last expected update
+        uint256 timeFromExpectedUpdate = block.timestamp.sub(nextAvailableUpdate);
 
         // Get previous price and put into uint256 format
         uint256[] memory previousLoggedPriceArray = readList(historicalPriceData, 1);
         uint256 previousLoggedPrice = previousLoggedPriceArray[0];
-        uint256 priceDifference;
 
-        // Because we use unsigned integers we must switch in case the previous price is greater than the current
-        // price. What follows is the implementation of the series of equations defined in javadoc.
-        if (_currentPrice > previousLoggedPrice) {
-            priceDifference = _currentPrice.sub(previousLoggedPrice);
-            return previousLoggedPrice.add(updateFrequency.mul(priceDifference).div(timeFromLastUpdate));
-        } else {
-            priceDifference = previousLoggedPrice.sub(_currentPrice);
-            return previousLoggedPrice.sub(updateFrequency.mul(priceDifference).div(timeFromLastUpdate));
-        }       
+        // Linearly interpolate between last updated price (with corresponding timestamp) and current price (with
+        // current timestamp) to imply price at the timestamp we are updating
+        return _currentPrice.mul(updatePeriod)
+            .add(previousLoggedPrice.mul(timeFromExpectedUpdate))
+            .div(timeFromLastUpdate);      
     }
 }

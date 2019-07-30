@@ -1,6 +1,7 @@
 require('module-alias/register');
 
 import * as _ from 'lodash';
+import * as ABIDecoder from 'abi-decoder';
 import * as chai from 'chai';
 import * as setProtocolUtils from 'set-protocol-utils';
 
@@ -22,17 +23,20 @@ import {
 } from '@utils/constants';
 import { expectRevertError } from '@utils/tokenAssertions';
 import { getWeb3 } from '@utils/web3Helper';
+import { LogMedianizerUpdated } from '@utils/contract_logs/historicalPriceFeedV2';
 
 import { OracleWrapper } from '@utils/wrappers/oracleWrapper';
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
 const web3 = getWeb3();
+const HistoricalPriceFeedV2 = artifacts.require('HistoricalPriceFeedV2');
 const { expect } = chai;
 const blockchain = new Blockchain(web3);
 const { SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
+const setTestUtils = new SetTestUtils(web3);
 
-contract('DriftlessHistoricalPriceFeed', accounts => {
+contract('HistoricalPriceFeedV2', accounts => {
   const [
     deployerAccount,
     medianizerAccount,
@@ -44,6 +48,13 @@ contract('DriftlessHistoricalPriceFeed', accounts => {
 
   const oracleWrapper = new OracleWrapper(deployerAccount);
 
+  before(async () => {
+    ABIDecoder.addABI(HistoricalPriceFeedV2.abi);
+  });
+
+  after(async () => {
+    ABIDecoder.removeABI(HistoricalPriceFeedV2.abi);
+  });
 
   beforeEach(async () => {
     blockchain.saveSnapshotAsync();
@@ -59,7 +70,7 @@ contract('DriftlessHistoricalPriceFeed', accounts => {
   describe('#constructor', async () => {
     let ethPrice: BigNumber;
 
-    let subjectUpdateFrequency: BigNumber;
+    let subjectUpdatePeriod: BigNumber;
     let subjectUpdateTolerance: BigNumber;
     let subjectMaxDataPoints: BigNumber;
     let subjectMedianizerAddress: Address;
@@ -74,8 +85,8 @@ contract('DriftlessHistoricalPriceFeed', accounts => {
         SetTestUtils.generateTimestamp(1000),
       );
 
-      subjectUpdateFrequency = ONE_DAY_IN_SECONDS.div(4);
-      subjectUpdateTolerance = subjectUpdateFrequency.div(4);
+      subjectUpdatePeriod = ONE_DAY_IN_SECONDS.div(4);
+      subjectUpdateTolerance = subjectUpdatePeriod.div(4);
       subjectMaxDataPoints = new BigNumber(200);
       subjectMedianizerAddress = ethMedianizer.address;
       subjectDataDescription = '200DailyETHPrice';
@@ -85,7 +96,7 @@ contract('DriftlessHistoricalPriceFeed', accounts => {
     async function subject(): Promise<HistoricalPriceFeedV2Contract> {
       return oracleWrapper.deployHistoricalPriceFeedV2Async(
         subjectMedianizerAddress,
-        subjectUpdateFrequency,
+        subjectUpdatePeriod,
         subjectUpdateTolerance,
         subjectMaxDataPoints,
         subjectDataDescription,
@@ -93,12 +104,12 @@ contract('DriftlessHistoricalPriceFeed', accounts => {
       );
     }
 
-    it('sets the correct updateFrequency', async () => {
+    it('sets the correct updatePeriod', async () => {
       historicalPriceFeed = await subject();
 
-      const actualUpdateFrequency = await historicalPriceFeed.updateFrequency.callAsync();
+      const actualUpdatePeriod = await historicalPriceFeed.updatePeriod.callAsync();
 
-      expect(actualUpdateFrequency).to.be.bignumber.equal(subjectUpdateFrequency);
+      expect(actualUpdatePeriod).to.be.bignumber.equal(subjectUpdatePeriod);
     });
 
     it('sets the correct updateTolerance', async () => {
@@ -137,7 +148,7 @@ contract('DriftlessHistoricalPriceFeed', accounts => {
       historicalPriceFeed = await subject();
 
       const block = await web3.eth.getBlock('latest');
-      const expectedTimestamp = new BigNumber(block.timestamp).add(subjectUpdateFrequency);
+      const expectedTimestamp = new BigNumber(block.timestamp).add(subjectUpdatePeriod);
 
       const actualTimestamp = await historicalPriceFeed.nextAvailableUpdate.callAsync();
 
@@ -176,7 +187,7 @@ contract('DriftlessHistoricalPriceFeed', accounts => {
   describe('#poke', async () => {
     let initialEthPrice: BigNumber;
     let newEthPrice: BigNumber;
-    let updateFrequency: BigNumber;
+    let updatePeriod: BigNumber;
     let updateTolerance: BigNumber;
 
     let overrideEthPrice: BigNumber = undefined;
@@ -190,12 +201,12 @@ contract('DriftlessHistoricalPriceFeed', accounts => {
         SetTestUtils.generateTimestamp(1000),
       );
 
-      updateFrequency = ONE_DAY_IN_SECONDS;
-      updateTolerance = updateFrequency.div(4);
+      updatePeriod = ONE_DAY_IN_SECONDS;
+      updateTolerance = updatePeriod.div(4);
       const medianizerAddress = ethMedianizer.address;
       historicalPriceFeed = await oracleWrapper.deployHistoricalPriceFeedV2Async(
         medianizerAddress,
-        updateFrequency,
+        updatePeriod,
         updateTolerance,
       );
 
@@ -237,7 +248,7 @@ contract('DriftlessHistoricalPriceFeed', accounts => {
 
     describe('when update occured after the updateTolerance and price increases', async () => {
       beforeEach(async () => {
-        subjectTimeFastForward = updateFrequency.add(updateTolerance);
+        subjectTimeFastForward = updatePeriod.add(updateTolerance);
       });
 
       it('updates the historicalPriceFeed with the correct linearized price', async () => {
@@ -252,7 +263,7 @@ contract('DriftlessHistoricalPriceFeed', accounts => {
         const actualNewPrice = await historicalPriceFeed.read.callAsync(new BigNumber(2));
         const linearizedEthPrice = initialEthPrice.add(
           newEthPrice.sub(initialEthPrice)
-          .mul(updateFrequency)
+          .mul(updatePeriod)
           .div(pokeBlockTimestamp.sub(lastUpdateTimestamp)).round(0, 3)
         );
         const expectedNewPrice = [linearizedEthPrice, initialEthPrice];
@@ -277,7 +288,7 @@ contract('DriftlessHistoricalPriceFeed', accounts => {
       });
 
       beforeEach(async () => {
-        subjectTimeFastForward = updateFrequency.add(updateTolerance);
+        subjectTimeFastForward = updatePeriod.add(updateTolerance);
       });
 
       it('updates the historicalPriceFeed with the correct linearized price', async () => {
@@ -292,7 +303,7 @@ contract('DriftlessHistoricalPriceFeed', accounts => {
         const actualNewPrice = await historicalPriceFeed.read.callAsync(new BigNumber(2));
         const linearizedEthPrice = initialEthPrice.sub(
           initialEthPrice.sub(newEthPrice)
-          .mul(updateFrequency)
+          .mul(updatePeriod)
           .div(pokeBlockTimestamp.sub(lastUpdateTimestamp)).round(0, 3)
         );
         const expectedNewPrice = [linearizedEthPrice, initialEthPrice];
@@ -446,6 +457,18 @@ contract('DriftlessHistoricalPriceFeed', accounts => {
       const actualMedianizerAddress = await historicalPriceFeed.medianizerInstance.callAsync();
 
       expect(actualMedianizerAddress).to.equal(subjectNewMedianizer);
+    });
+
+    it('emits correct LogMedianizerUpdated event', async () => {
+      const txHash = await subject();
+
+      const formattedLogs = await setTestUtils.getLogsFromTxHash(txHash);
+      const expectedLogs = LogMedianizerUpdated(
+        subjectNewMedianizer,
+        historicalPriceFeed.address
+      );
+
+      await SetTestUtils.assertLogEquivalence(formattedLogs, expectedLogs);
     });
 
     describe('when non owner calls', async () => {
