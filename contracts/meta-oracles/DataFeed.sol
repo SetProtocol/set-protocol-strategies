@@ -51,7 +51,6 @@ contract DataFeed is
     /* ============ Constructor ============ */
 
     /*
-     * DataFeed constructor.
      * Stores time-series prices in a LinkedList and updated using data from a specific data source. 
      * Updates must be triggered off chain to be stored in this smart contract.
      *
@@ -101,6 +100,9 @@ contract DataFeed is
 
     /* ============ External ============ */
 
+    /*
+     * Updates linked list with newest data point by querying the dataSource.
+     */
     function poke()
         external
         nonReentrant

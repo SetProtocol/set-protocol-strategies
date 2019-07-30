@@ -28,9 +28,9 @@ import { IDataFeed } from "./interfaces/IDataFeed.sol";
  * @title LinearizedPriceDataSource
  * @author Set Protocol
  *
- * This DataSource is intended and returns
- * the current value of the Medianizer Oracle. It is intended to be read by a DataFeed smart contract
- * with 
+ * This DataSource returns the current value of the Medianizer Oracle. If the interpolationThreshold
+ * is reached, then returns a linearly interpolated value.
+ * It is intended to be read by a DataFeed smart contract.
  */
 contract LinearizedPriceDataSource is
     Ownable
@@ -38,7 +38,8 @@ contract LinearizedPriceDataSource is
     using SafeMath for uint256;
 
     /* ============ State Variables ============ */
-    uint256 public interpolationThreshold;
+    // 
+    uint256 public interpolationThreshold; 
     string public dataDescription;
     IMedian public medianizerInstance;
 
@@ -50,6 +51,13 @@ contract LinearizedPriceDataSource is
 
     /* ============ Constructor ============ */
 
+    /*
+     * Set interpolationThreshold, data description, and instantiate medianizer
+     *
+     * @param  _interpolationThreshold    The minimum time in seconds where interpolation is enabled
+     * @param  _medianizerAddress         The address to read current data from
+     * @param  _dataDescription           Description of contract for Etherscan / other applications
+     */
     constructor(
         uint256 _interpolationThreshold,
         address _medianizerAddress,
@@ -57,7 +65,7 @@ contract LinearizedPriceDataSource is
     )
         public
     {
-        // Set interpolationThreshold, data description, and instantiate medianizer
+        // 
         interpolationThreshold = _interpolationThreshold;
         medianizerInstance = IMedian(_medianizerAddress);
         dataDescription = _dataDescription;
@@ -70,6 +78,13 @@ contract LinearizedPriceDataSource is
      * the interpolationThreshold, then the current price is retrieved and interpolated based on
      * the previous value and the time that has elapsed since the intended update value.
      * Note: The sender must be a DataSource contract.
+     *
+     * Returns with newest data point by querying medianizer. Is eligible to be
+     * called after nextAvailableUpdate timestamp has passed. Because the nextAvailableUpdate occurs
+     * on a predetermined cadence based on the time of deployment, delays in calling poke do not propogate
+     * throughout the whole dataset and the drift caused by previous poke transactions not being mined
+     * exactly on nextAvailableUpdate do not compound as they would if it was required that poke is called
+     * an updatePeriod amount of time after the last poke.
      *
      * @returns                Returns the datapoint from the Medianizer contract
      */
@@ -131,6 +146,26 @@ contract LinearizedPriceDataSource is
      * the previous update window. It's worth noting that because we consider updates to occur on their update
      * timestamp we can make the assumption that the amount of time spent in the previous update window is equal
      * to the update frequency. 
+     * 
+     * By way of example, assume updatePeriod of 24 hours and a updateTolerance of 1 hour. At time 1 the
+     * update is missed by one day and when the oracle is finally called the price is 150, the price feed
+     * then interpolates this price to imply a price at t1 equal to 125. Time 2 the update is 10 minutes late but
+     * since it's within the updateTolerance the value isn't interpolated. For more information on linearization see
+     * the interpolateDelayedPriceUpdate function. At time 3 everything falls back in line.
+     *
+     * +----------------------+------+-------+-------+-------+
+     * |                      | 0    | 1     | 2     | 3     |
+     * +----------------------+------+-------+-------+-------+
+     * | Expected Update Time | 0:00 | 24:00 | 48:00 | 72:00 |
+     * +----------------------+------+-------+-------+-------+
+     * | Actual Update Time   | 0:00 | 48:00 | 48:10 | 72:00 |
+     * +----------------------+------+-------+-------+-------+
+     * | Logged Px            | 100  | 125   | 151   | 130   |
+     * +----------------------+------+-------+-------+-------+
+     * | Received Oracle Px   | 100  | 150   | 151   | 130   |
+     * +----------------------+------+-------+-------+-------+
+     * | Actual Price         | 100  | 110   | 151   | 130   |
+     * +---------     
      *
      * @param  _currentPrice        Current price returned by medianizer
      * @returns                     Interpolated price value                  
