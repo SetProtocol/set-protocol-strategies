@@ -140,7 +140,7 @@ contract('LinearizedPriceDataSource', accounts => {
     let subjectTimeFastForward: BigNumber;
 
     beforeEach(async () => {
-      newEthPrice = ether(160);
+      newEthPrice = ether(200);
       await oracleWrapper.updateMedianizerPriceAsync(
         ethMedianizer,
         newEthPrice,
@@ -186,6 +186,18 @@ contract('LinearizedPriceDataSource', accounts => {
 
       it('should revert', async () => {
         await expectRevertError(subject());
+      });
+    });
+
+    describe('when the timestamp has surpassed the update tolerance timestamp', async () => {
+      // When the time passed last update equals the update period, then should be about 1x interpolation
+      // in terms of the delta from the current value and previous value
+      beforeEach(async () => {
+        subjectTimeFastForward = ONE_DAY_IN_SECONDS.mul(3);
+      });
+
+      it('should return the interpolated value', async () => {
+        
       });
     });
   });
