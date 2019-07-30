@@ -1,6 +1,6 @@
 pragma solidity 0.5.7;
 
-import { IPriceFeed } from "../external/DappHub/interfaces/IPriceFeed.sol";
+import { IMedian } from "../external/DappHub/interfaces/IMedian.sol";
 
 // Mock contract implementation of PriceFeed functions
 contract PriceFeedMock {
@@ -19,7 +19,7 @@ contract PriceFeedMock {
         view
         returns (uint256)
     {
-        IPriceFeed source = IPriceFeed(priceFeed);
+        IMedian source = IMedian(priceFeed);
         return uint256(source.read());
     }
 }
