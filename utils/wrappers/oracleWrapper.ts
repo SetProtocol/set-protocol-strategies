@@ -8,6 +8,7 @@ import { Blockchain } from '@utils/blockchain';
 import { ether } from '@utils/units';
 
 import {
+  DataFeedContract,
   HistoricalPriceFeedV2Contract,
   FeedFactoryContract,
   HistoricalPriceFeedContract,
@@ -22,6 +23,7 @@ import { getWeb3 } from '../web3Helper';
 import { FeedCreatedArgs } from '../contract_logs/oracle';
 
 const web3 = getWeb3();
+const DataFeed = artifacts.require('DataFeed');
 const HistoricalPriceFeedV2 = artifacts.require('HistoricalPriceFeedV2');
 const HistoricalPriceFeed = artifacts.require('HistoricalPriceFeed');
 const FeedFactory = artifacts.require('FeedFactory');
@@ -85,6 +87,29 @@ export class OracleWrapper {
 
     return new MedianContract(
       new web3.eth.Contract(medianizer.abi, medianizer.address),
+      { from },
+    );
+  }
+
+  public async deployDataFeedAsync(
+    dataSourceAddress: Address,
+    updatePeriod: BigNumber = ONE_DAY_IN_SECONDS,
+    maxDataPoints: BigNumber = new BigNumber(200),
+    dataDescription: string = '200DailyETHPrice',
+    seededValues: BigNumber[] = [],
+    from: Address = this._contractOwnerAddress
+  ): Promise<DataFeedContract> {
+    const historicalPriceFeed = await DataFeed.new(
+      updatePeriod,
+      maxDataPoints,
+      dataSourceAddress,
+      dataDescription,
+      seededValues,
+      { from },
+    );
+
+    return new DataFeedContract(
+      new web3.eth.Contract(historicalPriceFeed.abi, historicalPriceFeed.address),
       { from },
     );
   }
