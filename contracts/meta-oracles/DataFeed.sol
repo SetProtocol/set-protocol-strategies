@@ -37,7 +37,7 @@ contract DataFeed is
     using SafeMath for uint256;
 
     /* ============ State Variables ============ */
-    uint256 public updateFrequency;
+    uint256 public updatePeriod;
     uint256 public maxDataPoints;
     uint256 public nextAvailableUpdate;
     string public dataDescription;
@@ -50,14 +50,9 @@ contract DataFeed is
     /*
      * DataFeed constructor.
      * Stores Historical prices according to passed in oracle address. Updates must be 
-     * triggered off chain to be stored in this smart contract. This contract negates the problem
-     * of drift by allowing price feed updates on a predetermined cadence based on the time of deployment.
-     * This means delays in calling poke do not propogate throughout the whole dataset and the drift caused
-     * by previous poke transactions not being mined exactly on nextAvailableUpdate do not compound
-     * as they would if it was required that poke is called an updateFrequency amount of time after
-     * the last poke.
+     * triggered off chain to be stored in this smart contract.
      *
-     * @param  _updateFrequency           Cadence at which data is allowed to be logged, based off 
+     * @param  _updatePeriod           Cadence at which data is allowed to be logged, based off 
                                           deployment timestamp 
      * @param  _maxDataPoints             The maximum amount of data points the linkedList will hold
      * @param  _dataSourceAddress         The oracle address to read current price from
@@ -67,7 +62,7 @@ contract DataFeed is
      *                                    days price.
      */
     constructor(
-        uint256 _updateFrequency,
+        uint256 _updatePeriod,
         uint256 _maxDataPoints,
         address _dataSourceAddress,
         string memory _dataDescription,
@@ -76,7 +71,7 @@ contract DataFeed is
         public
     {
         // Set medianizer address, data description, and instantiate medianizer
-        updateFrequency = _updateFrequency;
+        updatePeriod = _updatePeriod;
         maxDataPoints = _maxDataPoints;
         dataDescription = _dataDescription;
         dataSource = IDataSource(_dataSourceAddress);
@@ -101,7 +96,7 @@ contract DataFeed is
         }
 
         // Set next available update timestamp
-        nextAvailableUpdate = block.timestamp.add(updateFrequency);
+        nextAvailableUpdate = block.timestamp.add(updatePeriod);
     }
 
     /* ============ External ============ */
@@ -119,8 +114,8 @@ contract DataFeed is
         // Get current price
         uint256 newValue = dataSource.read();
 
-        // Update the nextAvailableUpdate to current block timestamp plus updateFrequency
-        nextAvailableUpdate = nextAvailableUpdate.add(updateFrequency);
+        // Update the nextAvailableUpdate to current block timestamp plus updatePeriod
+        nextAvailableUpdate = nextAvailableUpdate.add(updatePeriod);
 
         // Update linkedList with new price
         editList(
@@ -175,9 +170,10 @@ contract DataFeed is
             outputArray[i] = _seededValues[i];
         }
 
-        // Add currentValue to outputArray
         // Get current value from dataSource
         uint256 currentValue = uint256(dataSource.read());
+
+        // Add currentValue to outputArray
         outputArray[seededValuesLength] = currentValue;
 
         return outputArray;

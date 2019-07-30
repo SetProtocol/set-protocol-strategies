@@ -21,7 +21,7 @@ import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { IMedian } from "../external/DappHub/interfaces/IMedian.sol";
-import { IHistoricalPriceFeed } from "./interfaces/IHistoricalPriceFeed.sol";
+import { IDataFeed } from "./interfaces/IDataFeed.sol";
 
 
 /**
@@ -38,6 +38,12 @@ contract LinearizedPriceDataSource is
     uint256 public updateTolerance;
     string public dataDescription;
     IMedian public medianizerInstance;
+
+    /* ============ Events ============ */
+
+     event LogMedianizerUpdated(
+        address newMedianizerAddress
+    );
 
     /* ============ Constructor ============ */
 
@@ -56,9 +62,7 @@ contract LinearizedPriceDataSource is
     /* ============ External ============ */
 
     /*
-     * Query linked list for specified days of data. Will revert if number of days
-     * passed exceeds amount of days collected. Will revert if not enough days of
-     * data logged.
+     * The sender must be a DataSource
      *
      * @param  _dataDays       Number of days of data being queried
      * @returns                Array of historical price data of length _dataDays                   
@@ -69,20 +73,20 @@ contract LinearizedPriceDataSource is
         external
         returns (uint256)
     {
-        // Get current medianizer value
-        uint256 medianizerValue = uint256(medianizerInstance.read());
-
         // Add the updateTolerance to the nextAvailableTimestamp to get the timestamp after which we linearize
         // the prices.
-        uint256 nextAvailableUpdate = IHistoricalPriceFeed(msg.sender).nextAvailableUpdate();
+        uint256 nextAvailableUpdate = IDataFeed(msg.sender).nextAvailableUpdate();
         uint256 updateToleranceTimestamp = nextAvailableUpdate.add(updateTolerance);
+
+        // Get current medianizer value
+        uint256 medianizerValue = uint256(medianizerInstance.read());
 
         // If block timestamp is greater than updateToleranceTimestamp we linearize the current price to try to
         // reduce error
         if (block.timestamp < updateToleranceTimestamp) {
             return medianizerValue;
         } else {
-            return linearizeDelayedPriceUpdate(medianizerValue);
+            return interpolateDelayedPriceUpdate(medianizerValue);
         }
     }
 
@@ -99,16 +103,18 @@ contract LinearizedPriceDataSource is
         onlyOwner
     {
         medianizerInstance = IMedian(_newMedianizerAddress);
+
+        emit LogMedianizerUpdated(_newMedianizerAddress);
     }
 
     /*
      * When price update is delayed past the updateTolerance in order to attempt to reduce potential error
-     * linearize the price between the current time and price and the last updated time and price. This is 
-     * done with the following series of equations, modified in this instance to deal handle unsigned integers:
+     * linearly interpolate the price between the current time and price and the last updated time and price. This 
+     * is done with the following series of equations, modified in this instance to deal handle unsigned integers:
      *
-     * updateTimeFraction = (updateFrequency/(block.timestamp - previousUpdateTimestamp))
+     * updateTimeFraction = (updatePeriod/(block.timestamp - previousUpdateTimestamp))
      *
-     * linearizedPrice = previousLoggedPrice + updateTimeFraction * (currentPrice - previousLoggedPrice)
+     * interpolatedPrice = previousLoggedPrice + updateTimeFraction * (currentPrice - previousLoggedPrice)
      *
      * Where updateTimeFraction represents the fraction of time passed between the last update and now, spent in
      * the previous update window. It's worth noting that because we consider updates to occur on their update
@@ -116,35 +122,34 @@ contract LinearizedPriceDataSource is
      * to the update frequency. 
      *
      * @param  _currentPrice        Current price returned by medianizer
-     * @returns                     Linearized price value                  
+     * @returns                     Interpolated price value                  
      */
-    function linearizeDelayedPriceUpdate(
+    function interpolateDelayedPriceUpdate(
         uint256 _currentPrice
     )
         private
+        view
         returns(uint256)
     {
-        // Calculate the previous update's timestamp
-        IHistoricalPriceFeed dataFeed = IHistoricalPriceFeed(msg.sender);
-        uint256 updateFrequency = dataFeed.updateFrequency();
+        IDataFeed dataFeed = IDataFeed(msg.sender);
+        uint256 updatePeriod = dataFeed.updatePeriod();
+        uint256 nextAvailableUpdate = dataFeed.nextAvailableUpdate();
 
-        uint256 previousUpdateTimestamp = dataFeed.nextAvailableUpdate().sub(updateFrequency);
-        // Calculate how much time has passed from last update
+        // Calculate timestamp corresponding to last updated price
+        uint256 previousUpdateTimestamp = nextAvailableUpdate.sub(updatePeriod);
+        // Calculate how much time has passed from timestamp corresponding to last update
         uint256 timeFromLastUpdate = block.timestamp.sub(previousUpdateTimestamp);
+        // Calculate how much time has passed from last expected update
+        uint256 timeFromExpectedUpdate = block.timestamp.sub(nextAvailableUpdate);
 
         // Get previous price and put into uint256 format
         uint256[] memory previousLoggedPriceArray = dataFeed.read(1);
         uint256 previousLoggedPrice = previousLoggedPriceArray[0];
-        uint256 priceDifference;
 
-        // Because we use unsigned integers we must switch in case the previous price is greater than the current
-        // price. What follows is the implementation of the series of equations defined in javadoc.
-        if (_currentPrice > previousLoggedPrice) {
-            priceDifference = _currentPrice.sub(previousLoggedPrice);
-            return previousLoggedPrice.add(updateFrequency.mul(priceDifference).div(timeFromLastUpdate));
-        } else {
-            priceDifference = previousLoggedPrice.sub(_currentPrice);
-            return previousLoggedPrice.sub(updateFrequency.mul(priceDifference).div(timeFromLastUpdate));
-        }       
+        // Linearly interpolate between last updated price (with corresponding timestamp) and current price (with
+        // current timestamp) to imply price at the timestamp we are updating
+        return _currentPrice.mul(updatePeriod)
+            .add(previousLoggedPrice.mul(timeFromExpectedUpdate))
+            .div(timeFromLastUpdate);      
     }
 }
