@@ -82,7 +82,7 @@ contract LinearizedPriceDataSource is
      * on a predetermined cadence based on the time of deployment, delays in calling poke do not propogate
      * throughout the whole dataset and the drift caused by previous poke transactions not being mined
      * exactly on nextAvailableUpdate do not compound as they would if it was required that poke is called
-     * an updatePeriod amount of time after the last poke.
+     * an updateInterval amount of time after the last poke.
      *
      * @returns                Returns the datapoint from the Medianizer contract
      */
@@ -91,12 +91,6 @@ contract LinearizedPriceDataSource is
         returns (uint256)
     {
         uint256 nextEarliestUpdate = IDataFeed(msg.sender).nextEarliestUpdate();
-
-        // Make sure block timestamp exceeds nextEarliestUpdate
-        require(
-            block.timestamp >= nextEarliestUpdate,
-            "LinearizedPriceDataSource.read: Not enough time elapsed since last update"
-        );
 
         // Add the interpolationThreshold to the nextEarliestUpdate to get the timestamp after which we linearize
         // the prices.
@@ -134,7 +128,7 @@ contract LinearizedPriceDataSource is
     /*
      * When price update is delayed past the interpolationThreshold in order to attempt to reduce potential error
      * linearly interpolate the price between the current time and price and the last updated time and price. This 
-     * is done with the following series of equations, modified in this instance to deal handle unsigned integers:
+     * is done with the following series of equations, modified in this instance to deal unsigned integers:
      *
      * updateTimeFraction = (updateInterval/(block.timestamp - previousUpdateTimestamp))
      *
@@ -145,11 +139,11 @@ contract LinearizedPriceDataSource is
      * timestamp we can make the assumption that the amount of time spent in the previous update window is equal
      * to the update frequency. 
      * 
-     * By way of example, assume updatePeriod of 24 hours and a updateTolerance of 1 hour. At time 1 the
+     * By way of example, assume updateInterval of 24 hours and a interpolationThreshold of 1 hour. At time 1 the
      * update is missed by one day and when the oracle is finally called the price is 150, the price feed
      * then interpolates this price to imply a price at t1 equal to 125. Time 2 the update is 10 minutes late but
-     * since it's within the updateTolerance the value isn't interpolated. For more information on linearization see
-     * the interpolateDelayedPriceUpdate function. At time 3 everything falls back in line.
+     * since it's within the interpolationThreshold the value isn't interpolated. At time 3 everything 
+     * falls back in line.
      *
      * +----------------------+------+-------+-------+-------+
      * |                      | 0    | 1     | 2     | 3     |

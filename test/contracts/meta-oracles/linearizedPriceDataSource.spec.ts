@@ -20,7 +20,6 @@ import {
 import {
   DEFAULT_GAS,
   ONE_DAY_IN_SECONDS,
-  ZERO,
 } from '@utils/constants';
 import { expectRevertError } from '@utils/tokenAssertions';
 import { getWeb3 } from '@utils/web3Helper';
@@ -176,17 +175,6 @@ contract('LinearizedPriceDataSource', accounts => {
       const expectedPrice = newEthPrice;
 
       expect(actualPrice).to.bignumber.equal(expectedPrice);
-    });
-
-    describe('when the update time has not been passed', async () => {
-
-      beforeEach(async () => {
-        subjectTimeFastForward = ZERO;
-      });
-
-      it('should revert', async () => {
-        await expectRevertError(subject());
-      });
     });
 
     describe('when the timestamp has surpassed the interpolationThreshold and price increases', async () => {
