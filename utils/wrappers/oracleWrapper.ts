@@ -96,14 +96,14 @@ export class OracleWrapper {
 
   public async deployDataFeedAsync(
     dataSourceAddress: Address,
-    updatePeriod: BigNumber = ONE_DAY_IN_SECONDS,
+    updateInterval: BigNumber = ONE_DAY_IN_SECONDS,
     maxDataPoints: BigNumber = new BigNumber(200),
     dataDescription: string = '200DailyETHPrice',
     seededValues: BigNumber[] = [],
     from: Address = this._contractOwnerAddress
   ): Promise<DataFeedContract> {
     const historicalPriceFeed = await DataFeed.new(
-      updatePeriod,
+      updateInterval,
       maxDataPoints,
       dataSourceAddress,
       dataDescription,

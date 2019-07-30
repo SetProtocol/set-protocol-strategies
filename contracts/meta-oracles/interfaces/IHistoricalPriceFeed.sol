@@ -44,15 +44,4 @@ interface IHistoricalPriceFeed {
         external
         view
         returns (address);
-
-    function nextAvailableUpdate()
-        external
-        view
-        returns (uint256);
-
-    function updateFrequency()
-        external
-        view
-        returns (uint256);
-
 }
