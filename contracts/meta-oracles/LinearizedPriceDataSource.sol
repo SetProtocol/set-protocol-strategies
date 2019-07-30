@@ -28,6 +28,9 @@ import { IDataFeed } from "./interfaces/IDataFeed.sol";
  * @title LinearizedPriceDataSource
  * @author Set Protocol
  *
+ * This DataSource is intended and returns
+ * the current value of the Medianizer Oracle. It is intended to be read by a DataFeed smart contract
+ * with 
  */
 contract LinearizedPriceDataSource is
     Ownable
@@ -35,7 +38,7 @@ contract LinearizedPriceDataSource is
     using SafeMath for uint256;
 
     /* ============ State Variables ============ */
-    uint256 public updateTolerance;
+    uint256 public interpolationThreshold;
     string public dataDescription;
     IMedian public medianizerInstance;
 
@@ -48,14 +51,14 @@ contract LinearizedPriceDataSource is
     /* ============ Constructor ============ */
 
     constructor(
-        uint256 _updateTolerance,
+        uint256 _interpolationThreshold,
         address _medianizerAddress,
         string memory _dataDescription
     )
         public
     {
-        // Set medianizer address, data description, and instantiate medianizer
-        updateTolerance = _updateTolerance;
+        // Set interpolationThreshold, data description, and instantiate medianizer
+        interpolationThreshold = _interpolationThreshold;
         medianizerInstance = IMedian(_medianizerAddress);
         dataDescription = _dataDescription;
     }
@@ -63,32 +66,35 @@ contract LinearizedPriceDataSource is
     /* ============ External ============ */
 
     /*
-     * The sender must be a DataSource
+     * Returns the data from the Medianizer contract. If the current timestamp has surpassed
+     * the interpolationThreshold, then the current price is retrieved and interpolated based on
+     * the previous value and the time that has elapsed since the intended update value.
+     * Note: The sender must be a DataSource contract.
      *
-     * @returns                Returns 
+     * @returns                Returns the datapoint from the Medianizer contract
      */
     function read()
         external
         returns (uint256)
     {
-        // Add the updateTolerance to the nextAvailableTimestamp to get the timestamp after which we linearize
-        // the prices.
-        uint256 nextAvailableUpdate = IDataFeed(msg.sender).nextAvailableUpdate();
+        uint256 nextEarliestUpdate = IDataFeed(msg.sender).nextEarliestUpdate();
 
-        // Make sure block timestamp exceeds nextAvailableUpdate
+        // Make sure block timestamp exceeds nextEarliestUpdate
         require(
-            block.timestamp >= nextAvailableUpdate,
+            block.timestamp >= nextEarliestUpdate,
             "LinearizedPriceDataSource.read: Not enough time elapsed since last update"
         );
 
-        uint256 updateToleranceTimestamp = nextAvailableUpdate.add(updateTolerance);
+        // Add the interpolationThreshold to the nextEarliestUpdate to get the timestamp after which we linearize
+        // the prices.
+        uint256 interpolationThresholdTimestamp = nextEarliestUpdate.add(interpolationThreshold);
 
         // Get current medianizer value
         uint256 medianizerValue = uint256(medianizerInstance.read());
 
-        // If block timestamp is greater than updateToleranceTimestamp we linearize the current price to try to
+        // If block timestamp is greater than interpolationThresholdTimestamp we linearize the current price to try to
         // reduce error
-        if (block.timestamp < updateToleranceTimestamp) {
+        if (block.timestamp < interpolationThresholdTimestamp) {
             return medianizerValue;
         } else {
             return interpolateDelayedPriceUpdate(medianizerValue);
@@ -113,11 +119,11 @@ contract LinearizedPriceDataSource is
     }
 
     /*
-     * When price update is delayed past the updateTolerance in order to attempt to reduce potential error
+     * When price update is delayed past the interpolationThreshold in order to attempt to reduce potential error
      * linearly interpolate the price between the current time and price and the last updated time and price. This 
      * is done with the following series of equations, modified in this instance to deal handle unsigned integers:
      *
-     * updateTimeFraction = (updatePeriod/(block.timestamp - previousUpdateTimestamp))
+     * updateTimeFraction = (updateInterval/(block.timestamp - previousUpdateTimestamp))
      *
      * interpolatedPrice = previousLoggedPrice + updateTimeFraction * (currentPrice - previousLoggedPrice)
      *
@@ -137,15 +143,15 @@ contract LinearizedPriceDataSource is
         returns(uint256)
     {
         IDataFeed dataFeed = IDataFeed(msg.sender);
-        uint256 updatePeriod = dataFeed.updatePeriod();
-        uint256 nextAvailableUpdate = dataFeed.nextAvailableUpdate();
+        uint256 updateInterval = dataFeed.updateInterval();
+        uint256 nextEarliestUpdate = dataFeed.nextEarliestUpdate();
 
         // Calculate timestamp corresponding to last updated price
-        uint256 previousUpdateTimestamp = nextAvailableUpdate.sub(updatePeriod);
+        uint256 previousUpdateTimestamp = nextEarliestUpdate.sub(updateInterval);
         // Calculate how much time has passed from timestamp corresponding to last update
         uint256 timeFromLastUpdate = block.timestamp.sub(previousUpdateTimestamp);
         // Calculate how much time has passed from last expected update
-        uint256 timeFromExpectedUpdate = block.timestamp.sub(nextAvailableUpdate);
+        uint256 timeFromExpectedUpdate = block.timestamp.sub(nextEarliestUpdate);
 
         // Get previous price and put into uint256 format
         uint256[] memory previousLoggedPriceArray = dataFeed.read(1);
@@ -153,7 +159,7 @@ contract LinearizedPriceDataSource is
 
         // Linearly interpolate between last updated price (with corresponding timestamp) and current price (with
         // current timestamp) to imply price at the timestamp we are updating
-        return _currentPrice.mul(updatePeriod)
+        return _currentPrice.mul(updateInterval)
             .add(previousLoggedPrice.mul(timeFromExpectedUpdate))
             .div(timeFromLastUpdate);      
     }

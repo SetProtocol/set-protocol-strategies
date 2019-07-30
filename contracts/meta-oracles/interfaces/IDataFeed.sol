@@ -37,12 +37,12 @@ interface IDataFeed {
         view
         returns (uint256[] memory);
 
-    function nextAvailableUpdate()
+    function nextEarliestUpdate()
         external
         view
         returns (uint256);
 
-    function updatePeriod()
+    function updateInterval()
         external
         view
         returns (uint256);

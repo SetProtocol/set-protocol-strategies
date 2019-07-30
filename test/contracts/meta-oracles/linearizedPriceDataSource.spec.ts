@@ -71,12 +71,12 @@ contract('LinearizedPriceDataSource', accounts => {
   });
 
   describe('#constructor', async () => {
-    let subjectUpdateTolerance: BigNumber;
+    let subjectInterpolationThreshold: BigNumber;
     let subjectMedianizerAddress: Address;
     let subjectDataDescription: string;
 
     beforeEach(async () => {
-      subjectUpdateTolerance = ONE_DAY_IN_SECONDS;
+      subjectInterpolationThreshold = ONE_DAY_IN_SECONDS;
       subjectMedianizerAddress = ethMedianizer.address;
       subjectDataDescription = '200DailyETHPrice';
     });
@@ -84,17 +84,17 @@ contract('LinearizedPriceDataSource', accounts => {
     async function subject(): Promise<LinearizedPriceDataSourceContract> {
       return oracleWrapper.deployLinearizedPriceDataSourceAsync(
         subjectMedianizerAddress,
-        subjectUpdateTolerance,
+        subjectInterpolationThreshold,
         subjectDataDescription,
       );
     }
 
-    it('sets the correct updateTolerance', async () => {
+    it('sets the correct interpolationThreshold', async () => {
       linearizedDataSource = await subject();
 
-      const actualUpdateTolerance = await linearizedDataSource.updateTolerance.callAsync();
+      const actualInterpolationThreshold = await linearizedDataSource.interpolationThreshold.callAsync();
 
-      expect(actualUpdateTolerance).to.be.bignumber.equal(subjectUpdateTolerance);
+      expect(actualInterpolationThreshold).to.be.bignumber.equal(subjectInterpolationThreshold);
     });
 
     it('sets the correct medianizer address', async () => {
@@ -116,8 +116,8 @@ contract('LinearizedPriceDataSource', accounts => {
 
   describe('#read', async () => {
     let newEthPrice: BigNumber;
-    let updateTolerance: BigNumber;
-    let updatePeriod;
+    let interpolationThreshold: BigNumber;
+    let updateInterval;
 
     const seedValues: BigNumber[] = [ether(100)];
     const maxDataPoints = new BigNumber(200);
@@ -137,17 +137,17 @@ contract('LinearizedPriceDataSource', accounts => {
         SetTestUtils.generateTimestamp(1000)
       );
 
-      updateTolerance = ONE_DAY_IN_SECONDS;
+      interpolationThreshold = ONE_DAY_IN_SECONDS;
       const medianizerAddress = ethMedianizer.address;
       linearizedDataSource = await oracleWrapper.deployLinearizedPriceDataSourceAsync(
         medianizerAddress,
-        updateTolerance,
+        interpolationThreshold,
       );
 
-      updatePeriod = ONE_DAY_IN_SECONDS;
+      updateInterval = ONE_DAY_IN_SECONDS;
       dataFeedMock = await libraryMockWrapper.deployDataFeedMockAsync(
         linearizedDataSource.address,
-        updatePeriod,
+        updateInterval,
         maxDataPoints,
         dataDescription,
         seedValues,
@@ -189,14 +189,14 @@ contract('LinearizedPriceDataSource', accounts => {
       });
     });
 
-    describe('when the timestamp has surpassed the updateTolerance and price increases', async () => {
+    describe('when the timestamp has surpassed the interpolationThreshold and price increases', async () => {
       beforeEach(async () => {
         subjectTimeFastForward = ONE_DAY_IN_SECONDS.mul(3);
       });
 
       it('returns with the correct interpolated value', async () => {
-        const nextAvailableUpdate = await dataFeedMock.nextAvailableUpdate.callAsync();
-        const lastUpdateTimestamp = nextAvailableUpdate.sub(updatePeriod);
+        const nextEarliestUpdate = await dataFeedMock.nextEarliestUpdate.callAsync();
+        const lastUpdateTimestamp = nextEarliestUpdate.sub(updateInterval);
 
         const actualNewPrice = await subject();
 
@@ -204,10 +204,10 @@ contract('LinearizedPriceDataSource', accounts => {
         const pokeBlockTimestamp = new BigNumber(pokeBlock.timestamp);
 
         const [initialEthPrice] = await dataFeedMock.read.callAsync(new BigNumber(1));
-        const timeFromExpectedUpdate = pokeBlockTimestamp.sub(nextAvailableUpdate);
+        const timeFromExpectedUpdate = pokeBlockTimestamp.sub(nextEarliestUpdate);
         const timeFromLastUpdate = pokeBlockTimestamp.sub(lastUpdateTimestamp);
         const expectedNewPrice = newEthPrice
-                                     .mul(updatePeriod)
+                                     .mul(updateInterval)
                                      .add(initialEthPrice.mul(timeFromExpectedUpdate))
                                      .div(timeFromLastUpdate)
                                      .round(0, 3);
@@ -216,7 +216,7 @@ contract('LinearizedPriceDataSource', accounts => {
       });
     });
 
-    describe('when the timestamp has surpassed the updateTolerance and price decreases', async () => {
+    describe('when the timestamp has surpassed the interpolationThreshold and price decreases', async () => {
       before(async () => {
         customEtherPrice = new BigNumber(50);
       });
@@ -230,8 +230,8 @@ contract('LinearizedPriceDataSource', accounts => {
       });
 
       it('returns with the correct interpolated value', async () => {
-        const nextAvailableUpdate = await dataFeedMock.nextAvailableUpdate.callAsync();
-        const lastUpdateTimestamp = nextAvailableUpdate.sub(updatePeriod);
+        const nextEarliestUpdate = await dataFeedMock.nextEarliestUpdate.callAsync();
+        const lastUpdateTimestamp = nextEarliestUpdate.sub(updateInterval);
 
         const actualNewPrice = await subject();
 
@@ -239,10 +239,10 @@ contract('LinearizedPriceDataSource', accounts => {
         const pokeBlockTimestamp = new BigNumber(pokeBlock.timestamp);
 
         const [initialEthPrice] = await dataFeedMock.read.callAsync(new BigNumber(1));
-        const timeFromExpectedUpdate = pokeBlockTimestamp.sub(nextAvailableUpdate);
+        const timeFromExpectedUpdate = pokeBlockTimestamp.sub(nextEarliestUpdate);
         const timeFromLastUpdate = pokeBlockTimestamp.sub(lastUpdateTimestamp);
         const expectedNewPrice = newEthPrice
-                                     .mul(updatePeriod)
+                                     .mul(updateInterval)
                                      .add(initialEthPrice.mul(timeFromExpectedUpdate))
                                      .div(timeFromLastUpdate)
                                      .round(0, 3);
