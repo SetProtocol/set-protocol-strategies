@@ -221,10 +221,11 @@ contract('DataFeed', accounts => {
     });
 
     it('sets the nextEarliestUpdate timestamp to the block timestamp', async () => {
+      const previousTimestamp = await dataFeed.nextEarliestUpdate.callAsync();
+
       await subject();
 
-      const block = await web3.eth.getBlock('latest');
-      const expectedTimestamp = new BigNumber(block.timestamp).plus(updateInterval);
+      const expectedTimestamp = previousTimestamp.plus(updateInterval);
 
       const actualTimestamp = await dataFeed.nextEarliestUpdate.callAsync();
 
