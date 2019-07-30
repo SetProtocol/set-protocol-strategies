@@ -129,14 +129,6 @@ contract('DataFeed', accounts => {
     it('sets the nextEarliestUpdate timestamp to the block timestamp', async () => {
       dataFeed = await subject();
 
-      // Send dummy transaction to advance block
-      await web3.eth.sendTransaction({
-        from: deployerAccount,
-        to: deployerAccount,
-        value: ether(1).toString(),
-        gas: DEFAULT_GAS,
-      });
-
       const block = await web3.eth.getBlock('latest');
       const expectedTimestamp = new BigNumber(block.timestamp).plus(subjectUpdateInterval);
 

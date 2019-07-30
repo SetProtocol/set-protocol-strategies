@@ -75,7 +75,7 @@ contract LinearizedPriceDataSource is
      * Returns the data from the Medianizer contract. If the current timestamp has surpassed
      * the interpolationThreshold, then the current price is retrieved and interpolated based on
      * the previous value and the time that has elapsed since the intended update value.
-     * Note: The sender must be a DataSource contract.
+     * Note: Sender must adhere to IDataFeed interface or function will revert
      *
      * Returns with newest data point by querying medianizer. Is eligible to be
      * called after nextAvailableUpdate timestamp has passed. Because the nextAvailableUpdate occurs

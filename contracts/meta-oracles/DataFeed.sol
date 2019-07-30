@@ -29,7 +29,7 @@ import { LinkedListLibrary } from "./lib/LinkedListLibrary.sol";
  * @author Set Protocol
  *
  * Contract used to store time-series data from a specified DataSource. Intended time-series data
- * is stored in a circular Linked List data structure with a maximum number of data points. It's
+ * is stored in a circular Linked List data structure with a maximum number of data points. Its
  * enforces a minimum duration between each update. New data is appended by calling the poke function,
  * which reads data from a specified data source.
  */
@@ -59,7 +59,7 @@ contract DataFeed is
      * @param  _maxDataPoints             The maximum amount of data points the linkedList will hold
      * @param  _dataSourceAddress         The address to read current data from
      * @param  _dataDescription           Description of time-series data for Etherscan / other applications
-     * @param  _seededValues              Array of previous days' Historical price values to seed
+     * @param  _seededValues              Array of previous timeseries values to seed
      *                                    initial values in list. The last value should contain 
      *                                    the most current piece of data
      */
@@ -72,7 +72,7 @@ contract DataFeed is
     )
         public
     {
-        // Set medianizer address, data description, and instantiate dataSource
+        // Set updateInterval, maxDataPoints, data description, and instantiate dataSource
         updateInterval = _updateInterval;
         maxDataPoints = _maxDataPoints;
         dataDescription = _dataDescription;
