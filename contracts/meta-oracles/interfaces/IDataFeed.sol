@@ -20,7 +20,7 @@ pragma solidity 0.5.7;
  * @title IDataFeed
  * @author Set Protocol
  *
- * Interface for interacting with HistoricalPriceFeed contract
+ * Interface for interacting with DataFeed contract
  */
 interface IDataFeed {
 
