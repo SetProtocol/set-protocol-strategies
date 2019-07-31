@@ -169,9 +169,9 @@ contract LinearizedPriceDataSource is
         view
         returns(uint256)
     {
-        ITimeSeriesFeed dataFeed = ITimeSeriesFeed(msg.sender);
-        uint256 updateInterval = dataFeed.updateInterval();
-        uint256 nextEarliestUpdate = dataFeed.nextEarliestUpdate();
+        ITimeSeriesFeed timeSeriesFeed = ITimeSeriesFeed(msg.sender);
+        uint256 updateInterval = timeSeriesFeed.updateInterval();
+        uint256 nextEarliestUpdate = timeSeriesFeed.nextEarliestUpdate();
 
         // Calculate timestamp corresponding to last updated price
         uint256 previousUpdateTimestamp = nextEarliestUpdate.sub(updateInterval);
@@ -181,7 +181,7 @@ contract LinearizedPriceDataSource is
         uint256 timeFromExpectedUpdate = block.timestamp.sub(nextEarliestUpdate);
 
         // Get previous price and put into uint256 format
-        uint256[] memory previousLoggedPriceArray = dataFeed.read(1);
+        uint256[] memory previousLoggedPriceArray = timeSeriesFeed.read(1);
         uint256 previousLoggedPrice = previousLoggedPriceArray[0];
 
         // Linearly interpolate between last updated price (with corresponding timestamp) and current price (with
