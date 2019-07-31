@@ -126,15 +126,15 @@ contract LinearizedPriceDataSource is
     }
 
     /*
-     * When price update is delayed past the interpolationThreshold in order to attempt to reduce potential error
-     * linearly interpolate the price between the current time and price and the last updated time and price. This 
+     * When the update time has surpassed the currentTime + interpolationThreshold, linearly interpolate the 
+     * price between the current time and price and the last updated time and price to reduce potential error. This
      * is done with the following series of equations, modified in this instance to deal unsigned integers:
      *
      * updateTimeFraction = (updateInterval/(block.timestamp - previousUpdateTimestamp))
      *
      * interpolatedPrice = previousLoggedPrice + updateTimeFraction * (currentPrice - previousLoggedPrice)
      *
-     * Where updateTimeFraction represents the fraction of time passed between the last update and now, spent in
+     * Where updateTimeFraction represents the fraction of time passed between the last update and now spent in
      * the previous update window. It's worth noting that because we consider updates to occur on their update
      * timestamp we can make the assumption that the amount of time spent in the previous update window is equal
      * to the update frequency. 
@@ -157,7 +157,7 @@ contract LinearizedPriceDataSource is
      * | Received Oracle Px   | 100  | 150   | 151   | 130   |
      * +----------------------+------+-------+-------+-------+
      * | Actual Price         | 100  | 110   | 151   | 130   |
-     * +---------     
+     * +------------------------------------------------------     
      *
      * @param  _currentPrice        Current price returned by medianizer
      * @returns                     Interpolated price value                  
