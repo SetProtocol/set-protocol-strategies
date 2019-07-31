@@ -17,12 +17,12 @@
 pragma solidity 0.5.7;
 
 /**
- * @title IDataFeed
+ * @title ITimeSeriesFeed
  * @author Set Protocol
  *
- * Interface for interacting with DataFeed contract
+ * Interface for interacting with TimeSeriesFeed contract
  */
-interface IDataFeed {
+interface ITimeSeriesFeed {
 
     /*
      * Query linked list for specified days of data. Will revert if number of days

@@ -15,7 +15,7 @@ import { ether } from '@utils/units';
 import { MedianContract } from 'set-protocol-contracts';
 import {
   LinearizedPriceDataSourceContract,
-  DataFeedMockContract,
+  TimeSeriesFeedMockContract,
 } from '@utils/contracts';
 import {
   DEFAULT_GAS,
@@ -122,7 +122,7 @@ contract('LinearizedPriceDataSource', accounts => {
     const maxDataPoints = new BigNumber(200);
     const dataDescription = 'ETH Daily Price';
 
-    let dataFeedMock: DataFeedMockContract;
+    let timeSeriesFeedMock: TimeSeriesFeedMockContract;
 
     let subjectTimeFastForward: BigNumber;
 
@@ -144,7 +144,7 @@ contract('LinearizedPriceDataSource', accounts => {
       );
 
       updateInterval = ONE_DAY_IN_SECONDS;
-      dataFeedMock = await libraryMockWrapper.deployDataFeedMockAsync(
+      timeSeriesFeedMock = await libraryMockWrapper.deployTimeSeriesFeedMockAsync(
         linearizedDataSource.address,
         updateInterval,
         maxDataPoints,
@@ -166,7 +166,7 @@ contract('LinearizedPriceDataSource', accounts => {
         gas: DEFAULT_GAS,
       });
 
-      return dataFeedMock.testCallDataSource.callAsync();
+      return timeSeriesFeedMock.testCallDataSource.callAsync();
     }
 
     it('updates the linearizedDataSource with the correct price', async () => {
@@ -183,7 +183,7 @@ contract('LinearizedPriceDataSource', accounts => {
       });
 
       it('returns with the correct interpolated value', async () => {
-        const nextEarliestUpdate = await dataFeedMock.nextEarliestUpdate.callAsync();
+        const nextEarliestUpdate = await timeSeriesFeedMock.nextEarliestUpdate.callAsync();
         const lastUpdateTimestamp = nextEarliestUpdate.sub(updateInterval);
 
         const actualNewPrice = await subject();
@@ -191,7 +191,7 @@ contract('LinearizedPriceDataSource', accounts => {
         const pokeBlock = await web3.eth.getBlock('latest');
         const pokeBlockTimestamp = new BigNumber(pokeBlock.timestamp);
 
-        const [initialEthPrice] = await dataFeedMock.read.callAsync(new BigNumber(1));
+        const [initialEthPrice] = await timeSeriesFeedMock.read.callAsync(new BigNumber(1));
         const timeFromExpectedUpdate = pokeBlockTimestamp.sub(nextEarliestUpdate);
         const timeFromLastUpdate = pokeBlockTimestamp.sub(lastUpdateTimestamp);
         const expectedNewPrice = newEthPrice
@@ -218,7 +218,7 @@ contract('LinearizedPriceDataSource', accounts => {
       });
 
       it('returns with the correct interpolated value', async () => {
-        const nextEarliestUpdate = await dataFeedMock.nextEarliestUpdate.callAsync();
+        const nextEarliestUpdate = await timeSeriesFeedMock.nextEarliestUpdate.callAsync();
         const lastUpdateTimestamp = nextEarliestUpdate.sub(updateInterval);
 
         const actualNewPrice = await subject();
@@ -226,7 +226,7 @@ contract('LinearizedPriceDataSource', accounts => {
         const pokeBlock = await web3.eth.getBlock('latest');
         const pokeBlockTimestamp = new BigNumber(pokeBlock.timestamp);
 
-        const [initialEthPrice] = await dataFeedMock.read.callAsync(new BigNumber(1));
+        const [initialEthPrice] = await timeSeriesFeedMock.read.callAsync(new BigNumber(1));
         const timeFromExpectedUpdate = pokeBlockTimestamp.sub(nextEarliestUpdate);
         const timeFromLastUpdate = pokeBlockTimestamp.sub(lastUpdateTimestamp);
         const expectedNewPrice = newEthPrice

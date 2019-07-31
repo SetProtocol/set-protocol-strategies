@@ -25,7 +25,7 @@ import { LinkedListLibrary } from "./lib/LinkedListLibrary.sol";
 
 
 /**
- * @title DataFeed
+ * @title TimeSeriesFeed
  * @author Set Protocol
  *
  * Contract used to store time-series data from a specified DataSource. Intended time-series data
@@ -33,7 +33,7 @@ import { LinkedListLibrary } from "./lib/LinkedListLibrary.sol";
  * enforces a minimum duration between each update. New data is appended by calling the poke function,
  * which reads data from a specified data source.
  */
-contract DataFeed is
+contract TimeSeriesFeed is
     ReentrancyGuard,
     LinkedListLibrary
 {
@@ -51,7 +51,7 @@ contract DataFeed is
     /* ============ Constructor ============ */
 
     /*
-     * Stores time-series prices in a LinkedList and updated using data from a specific data source. 
+     * Stores time-series values in a LinkedList and updated using data from a specific data source. 
      * Updates must be triggered off chain to be stored in this smart contract.
      *
      * @param  _updateInterval            Cadence at which data is allowed to be logged, based off 
@@ -110,7 +110,7 @@ contract DataFeed is
         // Make sure block timestamp exceeds nextEarliestUpdate
         require(
             block.timestamp >= nextEarliestUpdate,
-            "DataFeed.poke: Not enough time elapsed since last update"
+            "TimeSeriesFeed.poke: Not enough time elapsed since last update"
         );
 
         // Get the most current data point

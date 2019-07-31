@@ -8,7 +8,7 @@ import { Blockchain } from '@utils/blockchain';
 import { ether } from '@utils/units';
 
 import {
-  DataFeedContract,
+  TimeSeriesFeedContract,
   FeedFactoryContract,
   HistoricalPriceFeedContract,
   LinearizedPriceDataSourceContract,
@@ -23,7 +23,7 @@ import { getWeb3 } from '../web3Helper';
 import { FeedCreatedArgs } from '../contract_logs/oracle';
 
 const web3 = getWeb3();
-const DataFeed = artifacts.require('DataFeed');
+const TimeSeriesFeed = artifacts.require('TimeSeriesFeed');
 const HistoricalPriceFeed = artifacts.require('HistoricalPriceFeed');
 const FeedFactory = artifacts.require('FeedFactory');
 const LinearizedPriceDataSource = artifacts.require('LinearizedPriceDataSource');
@@ -92,15 +92,15 @@ export class OracleWrapper {
     );
   }
 
-  public async deployDataFeedAsync(
+  public async deployTimeSeriesFeedAsync(
     dataSourceAddress: Address,
     updateInterval: BigNumber = ONE_DAY_IN_SECONDS,
     maxDataPoints: BigNumber = new BigNumber(200),
     dataDescription: string = '200DailyETHPrice',
     seededValues: BigNumber[] = [],
     from: Address = this._contractOwnerAddress
-  ): Promise<DataFeedContract> {
-    const historicalPriceFeed = await DataFeed.new(
+  ): Promise<TimeSeriesFeedContract> {
+    const historicalPriceFeed = await TimeSeriesFeed.new(
       updateInterval,
       maxDataPoints,
       dataSourceAddress,
@@ -109,7 +109,7 @@ export class OracleWrapper {
       { from },
     );
 
-    return new DataFeedContract(
+    return new TimeSeriesFeedContract(
       new web3.eth.Contract(historicalPriceFeed.abi, historicalPriceFeed.address),
       { from },
     );
@@ -241,8 +241,8 @@ export class OracleWrapper {
     );
   }
 
-  public async updateDataFeedAsync(
-    dataFeed: DataFeedContract,
+  public async updateTimeSeriesFeedAsync(
+    timeSeriesFeed: TimeSeriesFeedContract,
     priceFeed: PriceFeedContract,
     price: BigNumber,
     from: Address = this._contractOwnerAddress
@@ -255,13 +255,13 @@ export class OracleWrapper {
       SetTestUtils.generateTimestamp(ONE_DAY_IN_SECONDS.mul(2).toNumber()),
     );
 
-    await dataFeed.poke.sendTransactionAsync(
+    await timeSeriesFeed.poke.sendTransactionAsync(
       { gas: DEFAULT_GAS},
     );
   }
 
-  public async batchUpdateDataFeedAsync(
-    dataFeed: DataFeedContract,
+  public async batchUpdateTimeSeriesFeedAsync(
+    timeSeriesFeed: TimeSeriesFeedContract,
     priceFeed: PriceFeedContract,
     daysOfData: number,
     priceArray: BigNumber[] = undefined,
@@ -274,8 +274,8 @@ export class OracleWrapper {
 
     let i: number;
     for (i = 0; i < priceArray.length; i++) {
-      await this.updateDataFeedAsync(
-        dataFeed,
+      await this.updateTimeSeriesFeedAsync(
+        timeSeriesFeed,
         priceFeed,
         priceArray[i],
       );
