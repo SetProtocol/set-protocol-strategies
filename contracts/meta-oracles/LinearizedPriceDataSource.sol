@@ -21,7 +21,7 @@ import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { IMedian } from "../external/DappHub/interfaces/IMedian.sol";
-import { IDataFeed } from "./interfaces/IDataFeed.sol";
+import { ITimeSeriesFeed } from "./interfaces/ITimeSeriesFeed.sol";
 
 
 /**
@@ -75,7 +75,7 @@ contract LinearizedPriceDataSource is
      * Returns the data from the Medianizer contract. If the current timestamp has surpassed
      * the interpolationThreshold, then the current price is retrieved and interpolated based on
      * the previous value and the time that has elapsed since the intended update value.
-     * Note: Sender must adhere to IDataFeed interface or function will revert
+     * Note: Sender must adhere to ITimeSeriesFeed interface or function will revert
      *
      * Returns with newest data point by querying medianizer. Is eligible to be
      * called after nextAvailableUpdate timestamp has passed. Because the nextAvailableUpdate occurs
@@ -90,7 +90,7 @@ contract LinearizedPriceDataSource is
         external
         returns (uint256)
     {
-        uint256 nextEarliestUpdate = IDataFeed(msg.sender).nextEarliestUpdate();
+        uint256 nextEarliestUpdate = ITimeSeriesFeed(msg.sender).nextEarliestUpdate();
 
         // Add the interpolationThreshold to the nextEarliestUpdate to get the timestamp after which we linearize
         // the prices.
@@ -169,9 +169,9 @@ contract LinearizedPriceDataSource is
         view
         returns(uint256)
     {
-        IDataFeed dataFeed = IDataFeed(msg.sender);
-        uint256 updateInterval = dataFeed.updateInterval();
-        uint256 nextEarliestUpdate = dataFeed.nextEarliestUpdate();
+        ITimeSeriesFeed timeSeriesFeed = ITimeSeriesFeed(msg.sender);
+        uint256 updateInterval = timeSeriesFeed.updateInterval();
+        uint256 nextEarliestUpdate = timeSeriesFeed.nextEarliestUpdate();
 
         // Calculate timestamp corresponding to last updated price
         uint256 previousUpdateTimestamp = nextEarliestUpdate.sub(updateInterval);
@@ -181,7 +181,7 @@ contract LinearizedPriceDataSource is
         uint256 timeFromExpectedUpdate = block.timestamp.sub(nextEarliestUpdate);
 
         // Get previous price and put into uint256 format
-        uint256[] memory previousLoggedPriceArray = dataFeed.read(1);
+        uint256[] memory previousLoggedPriceArray = timeSeriesFeed.read(1);
         uint256 previousLoggedPrice = previousLoggedPriceArray[0];
 
         // Linearly interpolate between last updated price (with corresponding timestamp) and current price (with

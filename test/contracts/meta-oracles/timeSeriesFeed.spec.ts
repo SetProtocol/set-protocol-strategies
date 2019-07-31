@@ -13,7 +13,7 @@ import { BigNumberSetup } from '@utils/bigNumberSetup';
 import { Blockchain } from '@utils/blockchain';
 import { ether } from '@utils/units';
 import {
-  DataFeedContract,
+  TimeSeriesFeedContract,
   PriceFeedContract,
   PriceFeedMockContract,
   FeedFactoryContract,
@@ -36,12 +36,12 @@ const blockchain = new Blockchain(web3);
 const { SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
 const FeedFactory = artifacts.require('FeedFactory');
 
-contract('DataFeed', accounts => {
+contract('TimeSeriesFeed', accounts => {
   const [
     deployerAccount,
   ] = accounts;
 
-  let dataFeed: DataFeedContract;
+  let timeSeriesFeed: TimeSeriesFeedContract;
   let priceFeedFactory: FeedFactoryContract;
   let priceFeed: PriceFeedContract;
   let priceFeedMock: PriceFeedMockContract;
@@ -84,8 +84,8 @@ contract('DataFeed', accounts => {
       subjectSeededValues = [ether(150)];
     });
 
-    async function subject(): Promise<DataFeedContract> {
-      return oracleWrapper.deployDataFeedAsync(
+    async function subject(): Promise<TimeSeriesFeedContract> {
+      return oracleWrapper.deployTimeSeriesFeedAsync(
         subjectDataSourceAddress,
         subjectUpdateInterval,
         subjectMaxDataPoints,
@@ -95,53 +95,53 @@ contract('DataFeed', accounts => {
     }
 
     it('sets the correct updateInterval', async () => {
-      dataFeed = await subject();
+      timeSeriesFeed = await subject();
 
-      const actualUpdateFrequency = await dataFeed.updateInterval.callAsync();
+      const actualUpdateFrequency = await timeSeriesFeed.updateInterval.callAsync();
 
       expect(actualUpdateFrequency).to.be.bignumber.equal(subjectUpdateInterval);
     });
 
     it('sets the correct dataSource address', async () => {
-      dataFeed = await subject();
+      timeSeriesFeed = await subject();
 
-      const actualDataSourceAddress = await dataFeed.dataSource.callAsync();
+      const actualDataSourceAddress = await timeSeriesFeed.dataSource.callAsync();
 
       expect(actualDataSourceAddress).to.equal(subjectDataSourceAddress);
     });
 
     it('sets the correct maxDataPoints', async () => {
-      dataFeed = await subject();
+      timeSeriesFeed = await subject();
 
-      const actualMaxDataPoints = await dataFeed.maxDataPoints.callAsync();
+      const actualMaxDataPoints = await timeSeriesFeed.maxDataPoints.callAsync();
 
       expect(actualMaxDataPoints).to.bignumber.equal(subjectMaxDataPoints);
     });
 
     it('sets the correct data description', async () => {
-      dataFeed = await subject();
+      timeSeriesFeed = await subject();
 
-      const actualDataDescription = await dataFeed.dataDescription.callAsync();
+      const actualDataDescription = await timeSeriesFeed.dataDescription.callAsync();
 
       expect(actualDataDescription).to.equal(subjectDataDescription);
     });
 
     it('sets the nextEarliestUpdate timestamp to the block timestamp', async () => {
-      dataFeed = await subject();
+      timeSeriesFeed = await subject();
 
       const block = await web3.eth.getBlock('latest');
       const expectedTimestamp = new BigNumber(block.timestamp).plus(subjectUpdateInterval);
 
-      const actualTimestamp = await dataFeed.nextEarliestUpdate.callAsync();
+      const actualTimestamp = await timeSeriesFeed.nextEarliestUpdate.callAsync();
 
       expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
     });
 
     it('sets the correct price array', async () => {
-      dataFeed = await subject();
+      timeSeriesFeed = await subject();
 
       const daysOfData = new BigNumber(1);
-      const actualPriceArray = await dataFeed.read.callAsync(daysOfData);
+      const actualPriceArray = await timeSeriesFeed.read.callAsync(daysOfData);
 
       const expectedPriceArray = subjectSeededValues;
 
@@ -154,10 +154,10 @@ contract('DataFeed', accounts => {
       });
 
       it('should set the correct price array with 4 values', async () => {
-        dataFeed = await subject();
+        timeSeriesFeed = await subject();
 
         const daysOfData = new BigNumber(3);
-        const actualPriceArray = await dataFeed.read.callAsync(daysOfData);
+        const actualPriceArray = await timeSeriesFeed.read.callAsync(daysOfData);
 
         const expectedPriceArray = subjectSeededValues.reverse();
 
@@ -186,7 +186,7 @@ contract('DataFeed', accounts => {
       const sourceDataAddress = priceFeedMock.address;
       const dataDescription = '200DailyETHPrice';
       const seededValues = [initialEthPrice];
-      dataFeed = await oracleWrapper.deployDataFeedAsync(
+      timeSeriesFeed = await oracleWrapper.deployTimeSeriesFeedAsync(
         sourceDataAddress,
         updateInterval,
         maxDataPoints,
@@ -206,28 +206,28 @@ contract('DataFeed', accounts => {
 
     async function subject(): Promise<string> {
       await blockchain.increaseTimeAsync(subjectTimeFastForward);
-      return dataFeed.poke.sendTransactionAsync(
+      return timeSeriesFeed.poke.sendTransactionAsync(
         { gas: DEFAULT_GAS}
       );
     }
 
-    it('updates the dataFeed with the correct price', async () => {
+    it('updates the timeSeriesFeed with the correct price', async () => {
       await subject();
 
-      const actualNewPrice = await dataFeed.read.callAsync(new BigNumber(2));
+      const actualNewPrice = await timeSeriesFeed.read.callAsync(new BigNumber(2));
       const expectedNewPrice = [newEthPrice, initialEthPrice];
 
       expect(JSON.stringify(actualNewPrice)).to.equal(JSON.stringify(expectedNewPrice));
     });
 
     it('sets the nextEarliestUpdate timestamp to the block timestamp', async () => {
-      const previousTimestamp = await dataFeed.nextEarliestUpdate.callAsync();
+      const previousTimestamp = await timeSeriesFeed.nextEarliestUpdate.callAsync();
 
       await subject();
 
       const expectedTimestamp = previousTimestamp.plus(updateInterval);
 
-      const actualTimestamp = await dataFeed.nextEarliestUpdate.callAsync();
+      const actualTimestamp = await timeSeriesFeed.nextEarliestUpdate.callAsync();
 
       expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
     });
@@ -262,7 +262,7 @@ contract('DataFeed', accounts => {
       const sourceDataAddress = priceFeedMock.address;
       const dataDescription = '200DailyETHPrice';
       const seededValues = [ethPrice];
-      dataFeed = await oracleWrapper.deployDataFeedAsync(
+      timeSeriesFeed = await oracleWrapper.deployTimeSeriesFeedAsync(
         sourceDataAddress,
         updateInterval,
         maxDataPoints,
@@ -270,8 +270,8 @@ contract('DataFeed', accounts => {
         seededValues,
       );
 
-      updatedPrices = await oracleWrapper.batchUpdateDataFeedAsync(
-        dataFeed,
+      updatedPrices = await oracleWrapper.batchUpdateTimeSeriesFeedAsync(
+        timeSeriesFeed,
         priceFeed,
         20,
       );
@@ -280,7 +280,7 @@ contract('DataFeed', accounts => {
     });
 
     async function subject(): Promise<BigNumber[]> {
-      return dataFeed.read.callAsync(
+      return timeSeriesFeed.read.callAsync(
         subjectDataDays,
         { gas: DEFAULT_GAS}
       );

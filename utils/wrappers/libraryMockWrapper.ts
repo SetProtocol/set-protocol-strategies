@@ -1,7 +1,7 @@
 import { Address } from 'set-protocol-utils';
 import { BigNumber } from 'bignumber.js';
 import {
-  DataFeedMockContract,
+  TimeSeriesFeedMockContract,
   FlexibleTimingManagerLibraryMockContract,
   LinkedListLibraryMockContract,
   ManagerLibraryMockContract,
@@ -12,7 +12,7 @@ import {
 } from '../web3Helper';
 
 const web3 = getWeb3();
-const DataFeedMock = artifacts.require('DataFeedMock');
+const TimeSeriesFeedMock = artifacts.require('TimeSeriesFeedMock');
 const FlexibleTimingManagerLibraryMock = artifacts.require('FlexibleTimingManagerLibraryMock');
 const LinkedListLibraryMock = artifacts.require('LinkedListLibraryMock');
 const ManagerLibraryMock = artifacts.require('ManagerLibraryMock');
@@ -69,15 +69,15 @@ export class LibraryMockWrapper {
     );
   }
 
-  public async deployDataFeedMockAsync(
+  public async deployTimeSeriesFeedMockAsync(
     dataSourceAddress: Address,
     updatePeriod: BigNumber,
     maxDataPoints: BigNumber,
     dataDescription: string,
     seededValues: BigNumber[],
     from: Address = this._contractOwnerAddress
-  ): Promise<DataFeedMockContract> {
-    const dataFeed = await DataFeedMock.new(
+  ): Promise<TimeSeriesFeedMockContract> {
+    const timeSeriesFeed = await TimeSeriesFeedMock.new(
       updatePeriod,
       maxDataPoints,
       dataSourceAddress,
@@ -86,8 +86,8 @@ export class LibraryMockWrapper {
       { from },
     );
 
-    return new DataFeedMockContract(
-      new web3.eth.Contract(dataFeed.abi, dataFeed.address),
+    return new TimeSeriesFeedMockContract(
+      new web3.eth.Contract(timeSeriesFeed.abi, timeSeriesFeed.address),
       { from },
     );
   }

@@ -12,7 +12,7 @@ import { Blockchain } from '@utils/blockchain';
 import { ether } from '@utils/units';
 import { MedianContract } from 'set-protocol-contracts';
 import {
-  DataFeedContract,
+  TimeSeriesFeedContract,
   LinearizedPriceDataSourceContract,
 } from '@utils/contracts';
 import {
@@ -32,12 +32,12 @@ const { expect } = chai;
 const blockchain = new Blockchain(web3);
 const { SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
 
-contract('DataFeed with DataSource', accounts => {
+contract('TimeSeriesFeed with DataSource', accounts => {
   const [
     deployerAccount,
   ] = accounts;
 
-  let dataFeed: DataFeedContract;
+  let timeSeriesFeed: TimeSeriesFeedContract;
   let dataSource: LinearizedPriceDataSourceContract;
   let ethMedianizer: MedianContract;
 
@@ -67,13 +67,13 @@ contract('DataFeed with DataSource', accounts => {
       interpolationThreshold,
     );
 
-    // Deploy DataFeed
+    // Deploy TimeSeriesFeed
     updateInterval = ONE_DAY_IN_SECONDS;
     const maxDataPoints = new BigNumber(200);
     const sourceDataAddress = dataSource.address;
     const dataDescription = '200DailyETHPrice';
     const seededValues = [initialEthPrice];
-    dataFeed = await oracleWrapper.deployDataFeedAsync(
+    timeSeriesFeed = await oracleWrapper.deployTimeSeriesFeedAsync(
       sourceDataAddress,
       updateInterval,
       maxDataPoints,
@@ -86,7 +86,7 @@ contract('DataFeed with DataSource', accounts => {
     blockchain.revertAsync();
   });
 
-  describe('#dataFeed.poke with DataSource connected', async () => {
+  describe('#timeSeriesFeed.poke with DataSource connected', async () => {
     let newEthPrice: BigNumber;
 
     let subjectTimeFastForward: BigNumber;
@@ -106,26 +106,26 @@ contract('DataFeed with DataSource', accounts => {
 
     async function subject(): Promise<string> {
       await blockchain.increaseTimeAsync(subjectTimeFastForward);
-      return dataFeed.poke.sendTransactionAsync(
+      return timeSeriesFeed.poke.sendTransactionAsync(
         { gas: DEFAULT_GAS}
       );
     }
 
-    it('updates the dataFeed with the correct price', async () => {
+    it('updates the timeSeriesFeed with the correct price', async () => {
       await subject();
 
-      const actualNewPrice = await dataFeed.read.callAsync(new BigNumber(2));
+      const actualNewPrice = await timeSeriesFeed.read.callAsync(new BigNumber(2));
       const expectedNewPrice = [newEthPrice, initialEthPrice];
 
       expect(JSON.stringify(actualNewPrice)).to.equal(JSON.stringify(expectedNewPrice));
     });
 
     it('sets the nextEarliestUpdate timestamp to previous timestamp plus 24 hours', async () => {
-      const previousTimestamp = await dataFeed.nextEarliestUpdate.callAsync();
+      const previousTimestamp = await timeSeriesFeed.nextEarliestUpdate.callAsync();
 
       await subject();
 
-      const actualTimestamp = await dataFeed.nextEarliestUpdate.callAsync();
+      const actualTimestamp = await timeSeriesFeed.nextEarliestUpdate.callAsync();
       const expectedTimestamp = previousTimestamp.add(ONE_DAY_IN_SECONDS);
       expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
     });
@@ -135,8 +135,8 @@ contract('DataFeed with DataSource', accounts => {
         subjectTimeFastForward = updateInterval.add(interpolationThreshold);
       });
 
-      it('updates the dataFeed with the correct linearized price', async () => {
-        const nextEarliestUpdate = await dataFeed.nextEarliestUpdate.callAsync();
+      it('updates the timeSeriesFeed with the correct linearized price', async () => {
+        const nextEarliestUpdate = await timeSeriesFeed.nextEarliestUpdate.callAsync();
         const lastUpdateTimestamp = nextEarliestUpdate.sub(ONE_DAY_IN_SECONDS);
 
         await subject();
@@ -144,7 +144,7 @@ contract('DataFeed with DataSource', accounts => {
         const pokeBlock = await web3.eth.getBlock('latest');
         const pokeBlockTimestamp = new BigNumber(pokeBlock.timestamp);
 
-        const actualNewPrice = await dataFeed.read.callAsync(new BigNumber(2));
+        const actualNewPrice = await timeSeriesFeed.read.callAsync(new BigNumber(2));
         const timeFromExpectedUpdate = pokeBlockTimestamp.sub(nextEarliestUpdate);
         const timeFromLastUpdate = pokeBlockTimestamp.sub(lastUpdateTimestamp);
         const linearizedEthPrice = newEthPrice
@@ -158,11 +158,11 @@ contract('DataFeed with DataSource', accounts => {
       });
 
       it('sets the nextEarliestUpdate timestamp to previous timestamp plus 24 hours', async () => {
-        const previousTimestamp = await dataFeed.nextEarliestUpdate.callAsync();
+        const previousTimestamp = await timeSeriesFeed.nextEarliestUpdate.callAsync();
 
         await subject();
 
-        const actualTimestamp = await dataFeed.nextEarliestUpdate.callAsync();
+        const actualTimestamp = await timeSeriesFeed.nextEarliestUpdate.callAsync();
         const expectedTimestamp = previousTimestamp.add(ONE_DAY_IN_SECONDS);
         expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
       });
@@ -178,8 +178,8 @@ contract('DataFeed with DataSource', accounts => {
         subjectTimeFastForward = updateInterval.add(interpolationThreshold);
       });
 
-      it('updates the dataFeed with the correct linearized price', async () => {
-        const nextEarliestUpdate = await dataFeed.nextEarliestUpdate.callAsync();
+      it('updates the timeSeriesFeed with the correct linearized price', async () => {
+        const nextEarliestUpdate = await timeSeriesFeed.nextEarliestUpdate.callAsync();
         const lastUpdateTimestamp = nextEarliestUpdate.sub(ONE_DAY_IN_SECONDS);
 
         await subject();
@@ -187,7 +187,7 @@ contract('DataFeed with DataSource', accounts => {
         const pokeBlock = await web3.eth.getBlock('latest');
         const pokeBlockTimestamp = new BigNumber(pokeBlock.timestamp);
 
-        const actualNewPrice = await dataFeed.read.callAsync(new BigNumber(2));
+        const actualNewPrice = await timeSeriesFeed.read.callAsync(new BigNumber(2));
         const timeFromExpectedUpdate = pokeBlockTimestamp.sub(nextEarliestUpdate);
         const timeFromLastUpdate = pokeBlockTimestamp.sub(lastUpdateTimestamp);
         const linearizedEthPrice = newEthPrice
@@ -201,11 +201,11 @@ contract('DataFeed with DataSource', accounts => {
       });
 
       it('sets the nextEarliestUpdate timestamp to previous timestamp plus 24 hours', async () => {
-        const previousTimestamp = await dataFeed.nextEarliestUpdate.callAsync();
+        const previousTimestamp = await timeSeriesFeed.nextEarliestUpdate.callAsync();
 
         await subject();
 
-        const actualTimestamp = await dataFeed.nextEarliestUpdate.callAsync();
+        const actualTimestamp = await timeSeriesFeed.nextEarliestUpdate.callAsync();
         const expectedTimestamp = previousTimestamp.add(ONE_DAY_IN_SECONDS);
         expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
       });
@@ -216,28 +216,28 @@ contract('DataFeed with DataSource', accounts => {
       beforeEach(async () => {
         const laggedUpdateTime = ONE_DAY_IN_SECONDS.add(ONE_HOUR_IN_SECONDS);
         await blockchain.increaseTimeAsync(laggedUpdateTime);
-        await dataFeed.poke.sendTransactionAsync(
+        await timeSeriesFeed.poke.sendTransactionAsync(
           { gas: DEFAULT_GAS}
         );
 
         subjectTimeFastForward = ONE_DAY_IN_SECONDS.sub(ONE_HOUR_IN_SECONDS).add(1);
       });
 
-      it('updates the dataFeed with the correct price', async () => {
+      it('updates the timeSeriesFeed with the correct price', async () => {
         await subject();
 
-        const actualNewPrice = await dataFeed.read.callAsync(new BigNumber(3));
+        const actualNewPrice = await timeSeriesFeed.read.callAsync(new BigNumber(3));
         const expectedNewPrice = [newEthPrice, newEthPrice, initialEthPrice];
 
         expect(JSON.stringify(actualNewPrice)).to.equal(JSON.stringify(expectedNewPrice));
       });
 
       it('sets the nextEarliestUpdate timestamp to previous timestamp plus 24 hours', async () => {
-        const previousTimestamp = await dataFeed.nextEarliestUpdate.callAsync();
+        const previousTimestamp = await timeSeriesFeed.nextEarliestUpdate.callAsync();
 
         await subject();
 
-        const actualTimestamp = await dataFeed.nextEarliestUpdate.callAsync();
+        const actualTimestamp = await timeSeriesFeed.nextEarliestUpdate.callAsync();
         const expectedTimestamp = previousTimestamp.add(ONE_DAY_IN_SECONDS);
         expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
       });
