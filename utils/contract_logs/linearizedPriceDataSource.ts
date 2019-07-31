@@ -1,6 +1,6 @@
 import { Address, Log } from 'set-protocol-utils';
 
-export function LogMedianizerUpdated(
+ export function LogMedianizerUpdated(
   newMedianizerAddress: Address,
   contractAddress: Address
 ): Log[] {

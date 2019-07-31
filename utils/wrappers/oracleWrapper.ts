@@ -8,9 +8,10 @@ import { Blockchain } from '@utils/blockchain';
 import { ether } from '@utils/units';
 
 import {
-  HistoricalPriceFeedV2Contract,
+  DataFeedContract,
   FeedFactoryContract,
   HistoricalPriceFeedContract,
+  LinearizedPriceDataSourceContract,
   MovingAverageOracleContract,
   PriceFeedContract,
 } from '../contracts';
@@ -22,11 +23,13 @@ import { getWeb3 } from '../web3Helper';
 import { FeedCreatedArgs } from '../contract_logs/oracle';
 
 const web3 = getWeb3();
-const HistoricalPriceFeedV2 = artifacts.require('HistoricalPriceFeedV2');
+const DataFeed = artifacts.require('DataFeed');
 const HistoricalPriceFeed = artifacts.require('HistoricalPriceFeed');
 const FeedFactory = artifacts.require('FeedFactory');
+const LinearizedPriceDataSource = artifacts.require('LinearizedPriceDataSource');
 const Median = artifacts.require('Median');
 const MovingAverageOracle = artifacts.require('MovingAverageOracle');
+
 
 const { SetProtocolTestUtils: SetTestUtils, SetProtocolUtils: SetUtils } = setProtocolUtils;
 const setTestUtils = new SetTestUtils(web3);
@@ -89,6 +92,48 @@ export class OracleWrapper {
     );
   }
 
+  public async deployDataFeedAsync(
+    dataSourceAddress: Address,
+    updateInterval: BigNumber = ONE_DAY_IN_SECONDS,
+    maxDataPoints: BigNumber = new BigNumber(200),
+    dataDescription: string = '200DailyETHPrice',
+    seededValues: BigNumber[] = [],
+    from: Address = this._contractOwnerAddress
+  ): Promise<DataFeedContract> {
+    const historicalPriceFeed = await DataFeed.new(
+      updateInterval,
+      maxDataPoints,
+      dataSourceAddress,
+      dataDescription,
+      seededValues,
+      { from },
+    );
+
+    return new DataFeedContract(
+      new web3.eth.Contract(historicalPriceFeed.abi, historicalPriceFeed.address),
+      { from },
+    );
+  }
+
+  public async deployLinearizedPriceDataSourceAsync(
+    medianizerInstance: Address,
+    updateTolerance: BigNumber = ONE_DAY_IN_SECONDS,
+    dataDescription: string = '200DailyETHPrice',
+    from: Address = this._contractOwnerAddress
+  ): Promise<LinearizedPriceDataSourceContract> {
+    const linearizedPriceDataSource = await LinearizedPriceDataSource.new(
+      updateTolerance,
+      medianizerInstance,
+      dataDescription,
+      { from },
+    );
+
+    return new LinearizedPriceDataSourceContract(
+      new web3.eth.Contract(linearizedPriceDataSource.abi, linearizedPriceDataSource.address),
+      { from },
+    );
+  }
+
   public async deployHistoricalPriceFeedAsync(
     updateFrequency: BigNumber,
     medianizerAddress: Address,
@@ -105,31 +150,6 @@ export class OracleWrapper {
     );
 
     return new HistoricalPriceFeedContract(
-      new web3.eth.Contract(historicalPriceFeed.abi, historicalPriceFeed.address),
-      { from },
-    );
-  }
-
-  public async deployHistoricalPriceFeedV2Async(
-    medianizerAddress: Address,
-    updateFrequency: BigNumber = ONE_DAY_IN_SECONDS,
-    updateTolerance: BigNumber = ONE_DAY_IN_SECONDS.div(4),
-    maxDataPoints: BigNumber = new BigNumber(200),
-    dataDescription: string = '200DailyETHPrice',
-    seededValues: BigNumber[] = [],
-    from: Address = this._contractOwnerAddress
-  ): Promise<HistoricalPriceFeedV2Contract> {
-    const historicalPriceFeed = await HistoricalPriceFeedV2.new(
-      updateFrequency,
-      updateTolerance,
-      maxDataPoints,
-      medianizerAddress,
-      dataDescription,
-      seededValues,
-      { from },
-    );
-
-    return new HistoricalPriceFeedV2Contract(
       new web3.eth.Contract(historicalPriceFeed.abi, historicalPriceFeed.address),
       { from },
     );
@@ -221,6 +241,49 @@ export class OracleWrapper {
     );
   }
 
+  public async updateDataFeedAsync(
+    dataFeed: DataFeedContract,
+    priceFeed: PriceFeedContract,
+    price: BigNumber,
+    from: Address = this._contractOwnerAddress
+  ): Promise<void> {
+    await this._blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS);
+
+      await this.updatePriceFeedAsync(
+      priceFeed,
+      price,
+      SetTestUtils.generateTimestamp(ONE_DAY_IN_SECONDS.mul(2).toNumber()),
+    );
+
+    await dataFeed.poke.sendTransactionAsync(
+      { gas: DEFAULT_GAS},
+    );
+  }
+
+  public async batchUpdateDataFeedAsync(
+    dataFeed: DataFeedContract,
+    priceFeed: PriceFeedContract,
+    daysOfData: number,
+    priceArray: BigNumber[] = undefined,
+    from: Address = this._contractOwnerAddress
+  ): Promise<BigNumber[]> {
+
+    if (!priceArray) {
+      priceArray = Array.from({length: daysOfData}, () => ether(Math.floor(Math.random() * 100) + 100));
+    }
+
+    let i: number;
+    for (i = 0; i < priceArray.length; i++) {
+      await this.updateDataFeedAsync(
+        dataFeed,
+        priceFeed,
+        priceArray[i],
+      );
+    }
+
+    return priceArray;
+  }
+
   public async updateHistoricalPriceFeedAsync(
     dailyPriceFeed: HistoricalPriceFeedContract,
     medianizer: MedianContract,
@@ -256,50 +319,6 @@ export class OracleWrapper {
     let i: number;
     for (i = 0; i < priceArray.length; i++) {
       await this.updateHistoricalPriceFeedAsync(
-        dailyPriceFeed,
-        medianizer,
-        priceArray[i],
-      );
-    }
-
-    return priceArray;
-  }
-
-  public async updateHistoricalPriceFeedV2Async(
-    dailyPriceFeed: HistoricalPriceFeedV2Contract,
-    medianizer: MedianContract,
-    price: BigNumber,
-    from: Address = this._contractOwnerAddress
-  ): Promise<void> {
-    await this._blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS);
-
-    const lastBlock = await web3.eth.getBlock('latest');
-    await this.updateMedianizerPriceAsync(
-      medianizer,
-      price,
-      lastBlock.timestamp + 1,
-    );
-
-    await dailyPriceFeed.poke.sendTransactionAsync(
-      { gas: DEFAULT_GAS},
-    );
-  }
-
-  public async batchUpdateHistoricalPriceFeedV2Async(
-    dailyPriceFeed: HistoricalPriceFeedV2Contract,
-    medianizer: MedianContract,
-    daysOfData: number,
-    priceArray: BigNumber[] = undefined,
-    from: Address = this._contractOwnerAddress
-  ): Promise<BigNumber[]> {
-
-    if (!priceArray) {
-      priceArray = Array.from({length: daysOfData}, () => ether(Math.floor(Math.random() * 100) + 100));
-    }
-
-    let i: number;
-    for (i = 0; i < priceArray.length; i++) {
-      await this.updateHistoricalPriceFeedV2Async(
         dailyPriceFeed,
         medianizer,
         priceArray[i],
