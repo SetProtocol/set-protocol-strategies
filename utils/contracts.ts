@@ -7,7 +7,6 @@ export { ETHDaiRebalancingManagerContract } from '../types/generated/e_t_h_dai_r
 export { FeedFactoryContract } from '../types/generated/feed_factory';
 export { FlexibleTimingManagerLibraryMockContract } from '../types/generated/flexible_timing_manager_library_mock';
 export { HistoricalPriceFeedContract } from '../types/generated/historical_price_feed';
-export { HistoricalPriceFeedV2Contract } from '../types/generated/historical_price_feed_v2';
 export { LinkedListLibraryMockContract } from '../types/generated/linked_list_library_mock';
 export { LinearizedPriceDataSourceContract } from '../types/generated/linearized_price_data_source';
 export { MACOStrategyManagerContract } from '../types/generated/m_a_c_o_strategy_manager';
