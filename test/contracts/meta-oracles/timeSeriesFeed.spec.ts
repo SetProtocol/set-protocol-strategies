@@ -13,10 +13,10 @@ import { BigNumberSetup } from '@utils/bigNumberSetup';
 import { Blockchain } from '@utils/blockchain';
 import { ether } from '@utils/units';
 import {
-  TimeSeriesFeedContract,
-  PriceFeedContract,
-  PriceFeedMockContract,
   FeedFactoryContract,
+  LinearizedPriceDataSourceContract,
+  PriceFeedContract,
+  TimeSeriesFeedContract,
 } from '@utils/contracts';
 import {
   DEFAULT_GAS,
@@ -26,7 +26,6 @@ import { expectRevertError } from '@utils/tokenAssertions';
 import { getWeb3 } from '@utils/web3Helper';
 
 import { OracleWrapper } from '@utils/wrappers/oracleWrapper';
-import { LibraryMockWrapper } from '@utils/wrappers/libraryMockWrapper';
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
@@ -44,10 +43,9 @@ contract('TimeSeriesFeed', accounts => {
   let timeSeriesFeed: TimeSeriesFeedContract;
   let priceFeedFactory: FeedFactoryContract;
   let priceFeed: PriceFeedContract;
-  let priceFeedMock: PriceFeedMockContract;
+  let dataSource: LinearizedPriceDataSourceContract;
 
   const oracleWrapper = new OracleWrapper(deployerAccount);
-  const libraryMockWrapper = new LibraryMockWrapper(deployerAccount);
 
   before(async () => {
     ABIDecoder.addABI(FeedFactory.abi);
@@ -62,7 +60,9 @@ contract('TimeSeriesFeed', accounts => {
 
     priceFeedFactory = await oracleWrapper.deployFeedFactoryAsync();
     priceFeed = await oracleWrapper.deployPriceFeedAsync(priceFeedFactory);
-    priceFeedMock = await libraryMockWrapper.deployPriceFeedMockAsync(priceFeed.address);
+    dataSource = await oracleWrapper.deployLinearizedPriceDataSourceAsync(
+      priceFeed.address,
+    );
   });
 
   afterEach(async () => {
@@ -79,7 +79,7 @@ contract('TimeSeriesFeed', accounts => {
     beforeEach(async () => {
       subjectUpdateInterval = ONE_DAY_IN_SECONDS.div(4);
       subjectMaxDataPoints = new BigNumber(200);
-      subjectDataSourceAddress = priceFeedMock.address;
+      subjectDataSourceAddress = dataSource.address;
       subjectDataDescription = '200DailyETHPrice';
       subjectSeededValues = [ether(150)];
     });
@@ -164,6 +164,16 @@ contract('TimeSeriesFeed', accounts => {
         expect(JSON.stringify(actualPriceArray)).to.equal(JSON.stringify(expectedPriceArray));
       });
     });
+
+    describe('when no seeded values are passed', async () => {
+      beforeEach(async () => {
+        subjectSeededValues = [];
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
   });
 
   describe('#poke', async () => {
@@ -183,7 +193,7 @@ contract('TimeSeriesFeed', accounts => {
 
       updateInterval = ONE_DAY_IN_SECONDS;
       const maxDataPoints = new BigNumber(200);
-      const sourceDataAddress = priceFeedMock.address;
+      const sourceDataAddress = dataSource.address;
       const dataDescription = '200DailyETHPrice';
       const seededValues = [initialEthPrice];
       timeSeriesFeed = await oracleWrapper.deployTimeSeriesFeedAsync(
@@ -259,7 +269,7 @@ contract('TimeSeriesFeed', accounts => {
 
       const updateInterval = ONE_DAY_IN_SECONDS;
       const maxDataPoints = new BigNumber(200);
-      const sourceDataAddress = priceFeedMock.address;
+      const sourceDataAddress = dataSource.address;
       const dataDescription = '200DailyETHPrice';
       const seededValues = [ethPrice];
       timeSeriesFeed = await oracleWrapper.deployTimeSeriesFeedAsync(

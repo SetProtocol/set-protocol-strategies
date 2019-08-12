@@ -24,7 +24,11 @@ pragma solidity 0.5.7;
  */
 interface IDataSource {
 
-    function read()
+    function read(
+        uint256 _timeFromExpectedUpdate,
+        uint256 _updateInterval,
+        uint256 _previousLoggedPrice
+    )
         external
         view
         returns (uint256);

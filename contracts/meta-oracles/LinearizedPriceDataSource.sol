@@ -21,7 +21,7 @@ import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { IMedian } from "../external/DappHub/interfaces/IMedian.sol";
-import { ITimeSeriesFeed } from "./interfaces/ITimeSeriesFeed.sol";
+import { IDataSource } from "./interfaces/IDataSource.sol";
 
 
 /**
@@ -33,11 +33,13 @@ import { ITimeSeriesFeed } from "./interfaces/ITimeSeriesFeed.sol";
  * It is intended to be read by a DataFeed smart contract.
  */
 contract LinearizedPriceDataSource is
-    Ownable
+    Ownable,
+    IDataSource
 {
     using SafeMath for uint256;
 
     /* ============ State Variables ============ */
+    // Amount of time after which read interpolates price result, in seconds
     uint256 public interpolationThreshold; 
     string public dataDescription;
     IMedian public medianizerInstance;
@@ -45,7 +47,7 @@ contract LinearizedPriceDataSource is
     /* ============ Events ============ */
 
     event LogMedianizerUpdated(
-        address newMedianizerAddress
+        address indexed newMedianizerAddress
     );
 
     /* ============ Constructor ============ */
@@ -59,7 +61,7 @@ contract LinearizedPriceDataSource is
      */
     constructor(
         uint256 _interpolationThreshold,
-        address _medianizerAddress,
+        IMedian _medianizerAddress,
         string memory _dataDescription
     )
         public
@@ -75,7 +77,6 @@ contract LinearizedPriceDataSource is
      * Returns the data from the Medianizer contract. If the current timestamp has surpassed
      * the interpolationThreshold, then the current price is retrieved and interpolated based on
      * the previous value and the time that has elapsed since the intended update value.
-     * Note: Sender must adhere to ITimeSeriesFeed interface or function will revert
      *
      * Returns with newest data point by querying medianizer. Is eligible to be
      * called after nextAvailableUpdate timestamp has passed. Because the nextAvailableUpdate occurs
@@ -84,27 +85,34 @@ contract LinearizedPriceDataSource is
      * exactly on nextAvailableUpdate do not compound as they would if it was required that poke is called
      * an updateInterval amount of time after the last poke.
      *
-     * @returns                Returns the datapoint from the Medianizer contract
+     * @param  _timeFromExpectedUpdate   Time passed from expected update
+     * @param  _updateInterval           Update interval of TimeSeriesFeed
+     * @param  _previousLoggedPrice      Previously logged price from TimeSeriesFeed
+     * @returns                          Returns the datapoint from the Medianizer contract
      */
-    function read()
+    function read(
+        uint256 _timeFromExpectedUpdate,
+        uint256 _updateInterval,
+        uint256 _previousLoggedPrice
+    )
         external
+        view
         returns (uint256)
     {
-        uint256 nextEarliestUpdate = ITimeSeriesFeed(msg.sender).nextEarliestUpdate();
-
-        // Add the interpolationThreshold to the nextEarliestUpdate to get the timestamp after which we linearize
-        // the prices.
-        uint256 interpolationThresholdTimestamp = nextEarliestUpdate.add(interpolationThreshold);
-
         // Get current medianizer value
         uint256 medianizerValue = uint256(medianizerInstance.read());
 
-        // If block timestamp is greater than interpolationThresholdTimestamp we linearize the current price to try to
-        // reduce error
-        if (block.timestamp < interpolationThresholdTimestamp) {
+        // If block timeFromExpectedUpdate is greater than interpolationThreshold we linearize
+        // the current price to try to reduce error
+        if (_timeFromExpectedUpdate < interpolationThreshold) {
             return medianizerValue;
         } else {
-            return interpolateDelayedPriceUpdate(medianizerValue);
+            return interpolateDelayedPriceUpdate(
+                medianizerValue,
+                _updateInterval,
+                _timeFromExpectedUpdate,
+                _previousLoggedPrice
+            );
         }
     }
 
@@ -120,6 +128,12 @@ contract LinearizedPriceDataSource is
         external
         onlyOwner
     {
+        // Check to make sure new Medianizer address is passed
+        require(
+            _newMedianizerAddress != address(medianizerInstance),
+            "LinearizedPriceDataSource.changeMedianizer: Must give new medianizer address."
+        );
+
         medianizerInstance = IMedian(_newMedianizerAddress);
 
         emit LogMedianizerUpdated(_newMedianizerAddress);
@@ -130,9 +144,7 @@ contract LinearizedPriceDataSource is
      * price between the current time and price and the last updated time and price to reduce potential error. This
      * is done with the following series of equations, modified in this instance to deal unsigned integers:
      *
-     * updateTimeFraction = (updateInterval/(block.timestamp - previousUpdateTimestamp))
-     *
-     * interpolatedPrice = previousLoggedPrice + updateTimeFraction * (currentPrice - previousLoggedPrice)
+     * price = (currentPrice * updateInterval + previousLoggedPrice * timeFromExpectedUpdate) / timeFromLastUpdate 
      *
      * Where updateTimeFraction represents the fraction of time passed between the last update and now spent in
      * the previous update window. It's worth noting that because we consider updates to occur on their update
@@ -159,35 +171,29 @@ contract LinearizedPriceDataSource is
      * | Actual Price         | 100  | 110   | 151   | 130   |
      * +------------------------------------------------------     
      *
-     * @param  _currentPrice        Current price returned by medianizer
-     * @returns                     Interpolated price value                  
+     * @param  _currentPrice                Current price returned by medianizer
+     * @param  _updateInterval              Update interval of TimeSeriesFeed
+     * @param  _timeFromExpectedUpdate      Time passed from expected update
+     * @param  _previousLoggedPrice         Previously logged price from TimeSeriesFeed
+     * @returns                             Interpolated price value                  
      */
     function interpolateDelayedPriceUpdate(
-        uint256 _currentPrice
+        uint256 _currentPrice,
+        uint256 _updateInterval,
+        uint256 _timeFromExpectedUpdate,
+        uint256 _previousLoggedPrice
     )
         private
         view
         returns(uint256)
     {
-        ITimeSeriesFeed timeSeriesFeed = ITimeSeriesFeed(msg.sender);
-        uint256 updateInterval = timeSeriesFeed.updateInterval();
-        uint256 nextEarliestUpdate = timeSeriesFeed.nextEarliestUpdate();
-
-        // Calculate timestamp corresponding to last updated price
-        uint256 previousUpdateTimestamp = nextEarliestUpdate.sub(updateInterval);
         // Calculate how much time has passed from timestamp corresponding to last update
-        uint256 timeFromLastUpdate = block.timestamp.sub(previousUpdateTimestamp);
-        // Calculate how much time has passed from last expected update
-        uint256 timeFromExpectedUpdate = block.timestamp.sub(nextEarliestUpdate);
-
-        // Get previous price and put into uint256 format
-        uint256[] memory previousLoggedPriceArray = timeSeriesFeed.read(1);
-        uint256 previousLoggedPrice = previousLoggedPriceArray[0];
+        uint256 timeFromLastUpdate = _timeFromExpectedUpdate.add(_updateInterval);
 
         // Linearly interpolate between last updated price (with corresponding timestamp) and current price (with
         // current timestamp) to imply price at the timestamp we are updating
-        return _currentPrice.mul(updateInterval)
-            .add(previousLoggedPrice.mul(timeFromExpectedUpdate))
+        return _currentPrice.mul(_updateInterval)
+            .add(_previousLoggedPrice.mul(_timeFromExpectedUpdate))
             .div(timeFromLastUpdate);      
     }
 }
