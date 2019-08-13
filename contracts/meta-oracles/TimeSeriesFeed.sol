@@ -22,6 +22,7 @@ import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { IDataSource } from "./interfaces/IDataSource.sol";
 import { LinkedListLibrary } from "./lib/LinkedListLibrary.sol";
+import { TimeSeriesStateLibrary } from "./lib/TimeSeriesStateLibrary.sol";
 
 
 /**
@@ -78,7 +79,7 @@ contract TimeSeriesFeed is
         updateInterval = _updateInterval;
         maxDataPoints = _maxDataPoints;
         dataDescription = _dataDescription;
-        dataSource = IDataSource(_dataSourceAddress);
+        dataSource = _dataSourceAddress;
 
         require(
             _seededValues.length > 0,
@@ -120,21 +121,11 @@ contract TimeSeriesFeed is
             "TimeSeriesFeed.poke: Not enough time elapsed since last update"
         );
 
-        // Get last logged price
-        uint256[] memory previousLoggedPriceArray = readList(
-            timeSeriesData,
-            1
-        );
-        uint256 previousLoggedPrice = previousLoggedPriceArray[0];
-
-        // Calculate how much time has passed from last expected update
-        uint256 timeFromExpectedUpdate = block.timestamp.sub(nextEarliestUpdate);
+        TimeSeriesStateLibrary.State memory timeSeriesState = getTimeSeriesFeedState();
 
         // Get the most current data point
         uint256 newValue = dataSource.read(
-            timeFromExpectedUpdate,
-            updateInterval,
-            previousLoggedPrice
+            timeSeriesState
         );
 
         // Update the nextEarliestUpdate to current block timestamp plus updateInterval
@@ -166,5 +157,35 @@ contract TimeSeriesFeed is
             timeSeriesData,
             _numDataPoints
         );
+    }
+
+    /* ============ Public ============ */
+
+    /*
+     * Generate struct that holds TimeSeriesFeed's current nextAvailableUpdate, updateInterval,
+     * and previously logged prices.
+     *
+     * @returns                Struct containing the above params                  
+     */
+    function getTimeSeriesFeedState()
+        public
+        view
+        returns (TimeSeriesStateLibrary.State memory)
+    {
+        // Get timeSeriesData price values
+        uint256[] memory previousLoggedPrices;
+        if (timeSeriesData.dataArray.length == maxDataPoints) {
+            previousLoggedPrices = readList(timeSeriesData, maxDataPoints);
+        } else {
+            previousLoggedPrices = readList(timeSeriesData, timeSeriesData.dataArray.length);
+        }
+
+        TimeSeriesStateLibrary.State memory timeSeriesState = TimeSeriesStateLibrary.State({
+            nextEarliestUpdate: nextEarliestUpdate,
+            updateInterval: updateInterval,
+            previousLoggedPrices: previousLoggedPrices
+        });
+
+        return timeSeriesState;
     }
 }

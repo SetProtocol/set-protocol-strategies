@@ -22,6 +22,7 @@ import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { IMedian } from "../external/DappHub/interfaces/IMedian.sol";
 import { IDataSource } from "./interfaces/IDataSource.sol";
+import { TimeSeriesStateLibrary } from "./lib/TimeSeriesStateLibrary.sol";
 
 
 /**
@@ -67,7 +68,7 @@ contract LinearizedPriceDataSource is
         public
     {
         interpolationThreshold = _interpolationThreshold;
-        medianizerInstance = IMedian(_medianizerAddress);
+        medianizerInstance = _medianizerAddress;
         dataDescription = _dataDescription;
     }
 
@@ -91,27 +92,37 @@ contract LinearizedPriceDataSource is
      * @returns                          Returns the datapoint from the Medianizer contract
      */
     function read(
-        uint256 _timeFromExpectedUpdate,
-        uint256 _updateInterval,
-        uint256 _previousLoggedPrice
+        TimeSeriesStateLibrary.State calldata _timeSeriesState
     )
         external
         view
         returns (uint256)
     {
+        // Validate that nextEarliest update timestamp is less than current block timestamp
+        require(
+            block.timestamp >= _timeSeriesState.nextEarliestUpdate,
+            "LinearizedPriceDataSource.read: nextAvailableUpdate greater than current timestamp."
+        );
+
+        // Calculate how much time has passed from last expected update
+        uint256 timeFromExpectedUpdate = block.timestamp.sub(_timeSeriesState.nextEarliestUpdate);
+
+        // Get previously logged price
+        uint256 previousLoggedPrice = _timeSeriesState.previousLoggedPrices[0];
+
         // Get current medianizer value
         uint256 medianizerValue = uint256(medianizerInstance.read());
 
         // If block timeFromExpectedUpdate is greater than interpolationThreshold we linearize
         // the current price to try to reduce error
-        if (_timeFromExpectedUpdate < interpolationThreshold) {
+        if (timeFromExpectedUpdate < interpolationThreshold) {
             return medianizerValue;
         } else {
             return interpolateDelayedPriceUpdate(
                 medianizerValue,
-                _updateInterval,
-                _timeFromExpectedUpdate,
-                _previousLoggedPrice
+                _timeSeriesState.updateInterval,
+                timeFromExpectedUpdate,
+                previousLoggedPrice
             );
         }
     }
@@ -123,20 +134,20 @@ contract LinearizedPriceDataSource is
      * @param  _newMedianizerAddress       Address of new medianizer to pull data from
      */
     function changeMedianizer(
-        address _newMedianizerAddress
+        IMedian _newMedianizerAddress
     )
         external
         onlyOwner
     {
         // Check to make sure new Medianizer address is passed
         require(
-            _newMedianizerAddress != address(medianizerInstance),
+            address(_newMedianizerAddress) != address(medianizerInstance),
             "LinearizedPriceDataSource.changeMedianizer: Must give new medianizer address."
         );
 
-        medianizerInstance = IMedian(_newMedianizerAddress);
+        medianizerInstance = _newMedianizerAddress;
 
-        emit LogMedianizerUpdated(_newMedianizerAddress);
+        emit LogMedianizerUpdated(address(_newMedianizerAddress));
     }
 
     /*
@@ -184,7 +195,7 @@ contract LinearizedPriceDataSource is
         uint256 _previousLoggedPrice
     )
         private
-        view
+        pure
         returns(uint256)
     {
         // Calculate how much time has passed from timestamp corresponding to last update

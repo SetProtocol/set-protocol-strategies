@@ -111,13 +111,12 @@ contract('LinearizedPriceDataSource', accounts => {
     });
   });
 
-  describe('#read', async () => {
+  describe.only('#read', async () => {
     let newEthPrice: BigNumber;
     let interpolationThreshold: BigNumber;
 
-    let subjectTimeFromExpectedUpdate: BigNumber;
-    let subjectUpdateInterval: BigNumber;
-    let subjectPreviousLoggedPrice: BigNumber;
+    let subjectTimeSeriesState: any;
+    let subjectTimeFastForward: BigNumber;
 
     let customEtherPrice: BigNumber;
 
@@ -135,13 +134,23 @@ contract('LinearizedPriceDataSource', accounts => {
         medianizerAddress,
         interpolationThreshold,
       );
+      const block = await web3.eth.getBlock('latest');
 
-      subjectTimeFromExpectedUpdate = ZERO;
-      subjectUpdateInterval = ONE_DAY_IN_SECONDS;
-      subjectPreviousLoggedPrice = ether(100);
+      const nextEarliestUpdate = new BigNumber(block.timestamp);
+      const updateInterval = ONE_DAY_IN_SECONDS;
+      const previousLoggedPrices = [ether(100)];
+
+      subjectTimeSeriesState = {
+        nextEarliestUpdate,
+        updateInterval,
+        previousLoggedPrices,
+      };
+      subjectTimeFastForward = ZERO;
     });
 
     async function subject(): Promise<BigNumber> {
+      await blockchain.increaseTimeAsync(subjectTimeFastForward);
+
       // Send dummy transaction to advance block
       await web3.eth.sendTransaction({
         from: deployerAccount,
@@ -151,9 +160,7 @@ contract('LinearizedPriceDataSource', accounts => {
       });
 
       return linearizedDataSource.read.callAsync(
-        subjectTimeFromExpectedUpdate,
-        subjectUpdateInterval,
-        subjectPreviousLoggedPrice,
+        subjectTimeSeriesState
       );
     }
 
@@ -167,16 +174,20 @@ contract('LinearizedPriceDataSource', accounts => {
 
     describe('when the timestamp has surpassed the interpolationThreshold and price increases', async () => {
       beforeEach(async () => {
-        subjectTimeFromExpectedUpdate = interpolationThreshold.mul(3);
+        subjectTimeFastForward = interpolationThreshold.mul(3);
       });
 
       it('returns with the correct interpolated value', async () => {
         const actualNewPrice = await subject();
 
-        const timeFromLastUpdate = subjectTimeFromExpectedUpdate.add(subjectUpdateInterval);
+        const block = await web3.eth.getBlock('latest');
+        const timeFromExpectedUpdate = new BigNumber(block.timestamp).sub(subjectTimeSeriesState.nextEarliestUpdate);
+
+        const timeFromLastUpdate = timeFromExpectedUpdate.add(subjectTimeSeriesState.updateInterval);
+        const previousLoggedPrice = subjectTimeSeriesState.previousLoggedPrices[0];
         const expectedNewPrice = newEthPrice
-                                     .mul(subjectUpdateInterval)
-                                     .add(subjectPreviousLoggedPrice.mul(subjectTimeFromExpectedUpdate))
+                                     .mul(subjectTimeSeriesState.updateInterval)
+                                     .add(previousLoggedPrice.mul(timeFromExpectedUpdate))
                                      .div(timeFromLastUpdate)
                                      .round(0, 3);
 
@@ -194,20 +205,34 @@ contract('LinearizedPriceDataSource', accounts => {
       });
 
       beforeEach(async () => {
-        subjectTimeFromExpectedUpdate = interpolationThreshold.mul(3);
+        subjectTimeFastForward = interpolationThreshold.mul(3);
       });
 
       it('returns with the correct interpolated value', async () => {
         const actualNewPrice = await subject();
 
-        const timeFromLastUpdate = subjectTimeFromExpectedUpdate.add(subjectUpdateInterval);
+        const block = await web3.eth.getBlock('latest');
+        const timeFromExpectedUpdate = new BigNumber(block.timestamp).sub(subjectTimeSeriesState.nextEarliestUpdate);
+
+        const timeFromLastUpdate = timeFromExpectedUpdate.add(subjectTimeSeriesState.updateInterval);
+        const previousLoggedPrice = subjectTimeSeriesState.previousLoggedPrices[0];
         const expectedNewPrice = newEthPrice
-                                     .mul(subjectUpdateInterval)
-                                     .add(subjectPreviousLoggedPrice.mul(subjectTimeFromExpectedUpdate))
+                                     .mul(subjectTimeSeriesState.updateInterval)
+                                     .add(previousLoggedPrice.mul(timeFromExpectedUpdate))
                                      .div(timeFromLastUpdate)
                                      .round(0, 3);
 
         expect(actualNewPrice).to.bignumber.equal(expectedNewPrice);
+      });
+    });
+    describe('when the nextEarliestUpdate timestamp is greater than current block timestamp', async () => {
+      beforeEach(async () => {
+        const block = await web3.eth.getBlock('latest');
+        subjectTimeSeriesState.nextEarliestUpdate = new BigNumber(block.timestamp).add(60);
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
       });
     });
   });

@@ -17,21 +17,17 @@
 pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
-import { TimeSeriesStateLibrary } from "../lib/TimeSeriesStateLibrary.sol";
 
 /**
- * @title IDataSource
+ * @title TimeSeriesStateLibrary
  * @author Set Protocol
  *
- * Interface for interacting with DataSource contracts
+ * Library defining TimeSeries state struct
  */
-interface IDataSource {
-
-    function read(
-        TimeSeriesStateLibrary.State calldata _timeSeriesState
-    )
-        external
-        view
-        returns (uint256);
-
+library TimeSeriesStateLibrary {
+    struct State {
+        uint256 nextEarliestUpdate;
+        uint256 updateInterval;
+        uint256[] previousLoggedPrices;
+    }
 }

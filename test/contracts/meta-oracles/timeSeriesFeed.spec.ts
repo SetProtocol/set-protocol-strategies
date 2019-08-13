@@ -176,7 +176,7 @@ contract('TimeSeriesFeed', accounts => {
     });
   });
 
-  describe('#poke', async () => {
+  describe.only('#poke', async () => {
     let initialEthPrice: BigNumber;
     let newEthPrice: BigNumber;
     let updateInterval: BigNumber;
