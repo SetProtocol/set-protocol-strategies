@@ -5,7 +5,7 @@ import * as ABIDecoder from 'abi-decoder';
 import * as chai from 'chai';
 import * as setProtocolUtils from 'set-protocol-utils';
 
-import { Address } from 'set-protocol-utils';
+import { Address, TimeSeriesFeedState } from 'set-protocol-utils';
 import { BigNumber } from 'bignumber.js';
 
 import ChaiSetup from '@utils/chaiSetup';
@@ -111,11 +111,11 @@ contract('LinearizedPriceDataSource', accounts => {
     });
   });
 
-  describe.only('#read', async () => {
+  describe('#read', async () => {
     let newEthPrice: BigNumber;
     let interpolationThreshold: BigNumber;
 
-    let subjectTimeSeriesState: any;
+    let subjectTimeSeriesState: TimeSeriesFeedState;
     let subjectTimeFastForward: BigNumber;
 
     let customEtherPrice: BigNumber;
@@ -144,7 +144,7 @@ contract('LinearizedPriceDataSource', accounts => {
         nextEarliestUpdate,
         updateInterval,
         previousLoggedPrices,
-      };
+      } as TimeSeriesFeedState;
       subjectTimeFastForward = ZERO;
     });
 

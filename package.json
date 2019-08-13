@@ -98,7 +98,7 @@
     "module-alias": "^2.1.0",
     "openzeppelin-solidity": "^2.2",
     "set-protocol-contracts": "^1.2.3",
-    "set-protocol-utils": "^1.0.0-beta.32",
+    "set-protocol-utils": "^1.0.0-beta.37",
     "tiny-promisify": "^1.0.0",
     "truffle-flattener": "^1.4.0",
     "ts-mocha": "^6.0.0",

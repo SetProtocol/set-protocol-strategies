@@ -176,7 +176,7 @@ contract('TimeSeriesFeed', accounts => {
     });
   });
 
-  describe.only('#poke', async () => {
+  describe('#poke', async () => {
     let initialEthPrice: BigNumber;
     let newEthPrice: BigNumber;
     let updateInterval: BigNumber;
@@ -311,6 +311,73 @@ contract('TimeSeriesFeed', accounts => {
 
       it('should revert', async () => {
         await expectRevertError(subject());
+      });
+    });
+  });
+
+  describe('#getTimeSeriesFeedState', async () => {
+    let ethPrice: BigNumber;
+    let numberOfUpdates: number = undefined;
+
+    let maxDataPoints: BigNumber;
+    let updateInterval: BigNumber;
+    let updatedPrices: BigNumber[];
+
+    beforeEach(async () => {
+      ethPrice = ether(150);
+      await oracleWrapper.updatePriceFeedAsync(
+        priceFeed,
+        ethPrice,
+        SetTestUtils.generateTimestamp(1000),
+      );
+
+      updateInterval = ONE_DAY_IN_SECONDS;
+      maxDataPoints = new BigNumber(200);
+      const sourceDataAddress = dataSource.address;
+      const dataDescription = '200DailyETHPrice';
+      const seededValues = [ethPrice];
+      timeSeriesFeed = await oracleWrapper.deployTimeSeriesFeedAsync(
+        sourceDataAddress,
+        updateInterval,
+        maxDataPoints,
+        dataDescription,
+        seededValues,
+      );
+
+      updatedPrices = await oracleWrapper.batchUpdateTimeSeriesFeedAsync(
+        timeSeriesFeed,
+        priceFeed,
+        numberOfUpdates || 20,
+      );
+    });
+
+    async function subject(): Promise<any> {
+      return timeSeriesFeed.getTimeSeriesFeedState.callAsync();
+    }
+
+    it('returns the correct TimeSeriesState struct', async () => {
+      const timeSeriesState = await subject();
+
+      const expectedDailyPriceOutput = updatedPrices.reverse();
+      expectedDailyPriceOutput.push(ethPrice);
+
+      const expectedNextEarliestUpdate = await timeSeriesFeed.nextEarliestUpdate.callAsync();
+
+      expect(timeSeriesState.nextEarliestUpdate).to.be.bignumber.equal(expectedNextEarliestUpdate);
+      expect(timeSeriesState.updateInterval).to.be.bignumber.equal(updateInterval);
+      expect(JSON.stringify(timeSeriesState.previousLoggedPrices)).to.equal(JSON.stringify(expectedDailyPriceOutput));
+    });
+
+    describe('when more than maxDataPoints has been passed', async () => {
+      before(async () => {
+        numberOfUpdates = 205;
+      });
+
+      it('should returns last maxDataPoints values in order', async () => {
+        const timeSeriesState = await subject();
+
+        const expectedDailyPriceOutput = updatedPrices.slice(-maxDataPoints.toNumber()).reverse();
+        expect(JSON.stringify(timeSeriesState.previousLoggedPrices)).to.equal(JSON.stringify(expectedDailyPriceOutput));
       });
     });
   });
