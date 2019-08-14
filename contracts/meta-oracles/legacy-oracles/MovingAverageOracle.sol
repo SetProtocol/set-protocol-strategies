@@ -18,7 +18,7 @@ pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import { IHistoricalPriceFeed } from "./interfaces/IHistoricalPriceFeed.sol";
+import { IHistoricalPriceFeed } from "../interfaces/IHistoricalPriceFeed.sol";
 
 
 /**
