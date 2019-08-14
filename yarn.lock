@@ -4873,10 +4873,10 @@ set-protocol-utils@^1.0.0-beta.32:
     web3 "1.0.0-beta.36"
     web3-utils "1.0.0-beta.36"
 
-set-protocol-utils@^1.0.0-beta.37:
-  version "1.0.0-beta.37"
-  resolved "https://registry.yarnpkg.com/set-protocol-utils/-/set-protocol-utils-1.0.0-beta.37.tgz#b863fc692f3fa9dfb89812b8b1fb2b53d17e66db"
-  integrity sha512-PHM5vlmmuxJ6dRegCv8/nTTNeo1fu0yCR3SYTAzx9QLD1eGwSLz4wi6jVLB048l606WufDu6E/pgMD1a3WokMQ==
+set-protocol-utils@^1.0.0-beta.38:
+  version "1.0.0-beta.38"
+  resolved "https://registry.yarnpkg.com/set-protocol-utils/-/set-protocol-utils-1.0.0-beta.38.tgz#29372394f6d506c74c1eab230270e069f66ad363"
+  integrity sha512-3PV7AVuhd9rC/mTZivZ0HEKVmXnYa6XjH/neRcupUnmInBKu8k3HzNwMbP89TMt9VeM7nRS2hnqdyZ+4lAU6Og==
   dependencies:
     "@0xproject/base-contract" "^1.0.4"
     "@0xproject/order-utils" "^1.0.1"

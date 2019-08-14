@@ -106,7 +106,7 @@ contract LinearizedPriceDataSource is
         uint256 timeFromExpectedUpdate = block.timestamp.sub(_timeSeriesState.nextEarliestUpdate);
 
         // Get previously logged price
-        uint256 previousLoggedPrice = _timeSeriesState.previousLoggedPrices[0];
+        uint256 previousLoggedPrice = _timeSeriesState.timeSeriesDataArray[0];
 
         // Get current medianizer value
         uint256 medianizerValue = uint256(medianizerInstance.read());

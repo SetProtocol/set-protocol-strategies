@@ -144,7 +144,7 @@ contract TimeSeriesFeed is
      * data logged.
      *
      * @param  _numDataPoints  Number of datapoints to query
-     * @returns                Array of datapoints of length _numDataPoints                   
+     * @returns                Array of datapoints of length _numDataPoints from most recent to oldest                   
      */
     function read(
         uint256 _numDataPoints
@@ -172,8 +172,8 @@ contract TimeSeriesFeed is
         view
         returns (TimeSeriesStateLibrary.State memory)
     {
-        // Get timeSeriesData price values
-        uint256[] memory previousLoggedPrices = readList(
+        // Get timeSeriesData price values from most recent to oldest
+        uint256[] memory timeSeriesDataArray = readList(
             timeSeriesData,
             timeSeriesData.dataArray.length
         );
@@ -181,7 +181,7 @@ contract TimeSeriesFeed is
         return TimeSeriesStateLibrary.State({
             nextEarliestUpdate: nextEarliestUpdate,
             updateInterval: updateInterval,
-            previousLoggedPrices: previousLoggedPrices
+            timeSeriesDataArray: timeSeriesDataArray
         });
 
     }

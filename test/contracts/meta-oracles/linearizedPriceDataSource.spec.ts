@@ -138,12 +138,12 @@ contract('LinearizedPriceDataSource', accounts => {
 
       const nextEarliestUpdate = new BigNumber(block.timestamp);
       const updateInterval = ONE_DAY_IN_SECONDS;
-      const previousLoggedPrices = [ether(100)];
+      const timeSeriesDataArray = [ether(100)];
 
       subjectTimeSeriesState = {
         nextEarliestUpdate,
         updateInterval,
-        previousLoggedPrices,
+        timeSeriesDataArray,
       } as TimeSeriesFeedState;
       subjectTimeFastForward = ZERO;
     });
@@ -184,7 +184,7 @@ contract('LinearizedPriceDataSource', accounts => {
         const timeFromExpectedUpdate = new BigNumber(block.timestamp).sub(subjectTimeSeriesState.nextEarliestUpdate);
 
         const timeFromLastUpdate = timeFromExpectedUpdate.add(subjectTimeSeriesState.updateInterval);
-        const previousLoggedPrice = subjectTimeSeriesState.previousLoggedPrices[0];
+        const previousLoggedPrice = subjectTimeSeriesState.timeSeriesDataArray[0];
         const expectedNewPrice = newEthPrice
                                      .mul(subjectTimeSeriesState.updateInterval)
                                      .add(previousLoggedPrice.mul(timeFromExpectedUpdate))
@@ -215,7 +215,7 @@ contract('LinearizedPriceDataSource', accounts => {
         const timeFromExpectedUpdate = new BigNumber(block.timestamp).sub(subjectTimeSeriesState.nextEarliestUpdate);
 
         const timeFromLastUpdate = timeFromExpectedUpdate.add(subjectTimeSeriesState.updateInterval);
-        const previousLoggedPrice = subjectTimeSeriesState.previousLoggedPrices[0];
+        const previousLoggedPrice = subjectTimeSeriesState.timeSeriesDataArray[0];
         const expectedNewPrice = newEthPrice
                                      .mul(subjectTimeSeriesState.updateInterval)
                                      .add(previousLoggedPrice.mul(timeFromExpectedUpdate))

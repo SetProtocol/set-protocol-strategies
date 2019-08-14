@@ -28,6 +28,6 @@ library TimeSeriesStateLibrary {
     struct State {
         uint256 nextEarliestUpdate;
         uint256 updateInterval;
-        uint256[] previousLoggedPrices;
+        uint256[] timeSeriesDataArray;
     }
 }

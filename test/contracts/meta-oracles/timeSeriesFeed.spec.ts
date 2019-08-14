@@ -365,7 +365,7 @@ contract('TimeSeriesFeed', accounts => {
 
       expect(timeSeriesState.nextEarliestUpdate).to.be.bignumber.equal(expectedNextEarliestUpdate);
       expect(timeSeriesState.updateInterval).to.be.bignumber.equal(updateInterval);
-      expect(JSON.stringify(timeSeriesState.previousLoggedPrices)).to.equal(JSON.stringify(expectedDailyPriceOutput));
+      expect(JSON.stringify(timeSeriesState.timeSeriesDataArray)).to.equal(JSON.stringify(expectedDailyPriceOutput));
     });
 
     describe('when more than maxDataPoints has been passed', async () => {
@@ -377,7 +377,7 @@ contract('TimeSeriesFeed', accounts => {
         const timeSeriesState = await subject();
 
         const expectedDailyPriceOutput = updatedPrices.slice(-maxDataPoints.toNumber()).reverse();
-        expect(JSON.stringify(timeSeriesState.previousLoggedPrices)).to.equal(JSON.stringify(expectedDailyPriceOutput));
+        expect(JSON.stringify(timeSeriesState.timeSeriesDataArray)).to.equal(JSON.stringify(expectedDailyPriceOutput));
       });
     });
   });
