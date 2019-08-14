@@ -11,6 +11,7 @@ import {
   TimeSeriesFeedContract,
   FeedFactoryContract,
   HistoricalPriceFeedContract,
+  LegacyMakerOracleAdapterContract,
   LinearizedPriceDataSourceContract,
   MovingAverageOracleContract,
   PriceFeedContract,
@@ -26,6 +27,7 @@ const web3 = getWeb3();
 const TimeSeriesFeed = artifacts.require('TimeSeriesFeed');
 const HistoricalPriceFeed = artifacts.require('HistoricalPriceFeed');
 const FeedFactory = artifacts.require('FeedFactory');
+const LegacyMakerOracleAdapter = artifacts.require('LegacyMakerOracleAdapter');
 const LinearizedPriceDataSource = artifacts.require('LinearizedPriceDataSource');
 const Median = artifacts.require('Median');
 const MovingAverageOracle = artifacts.require('MovingAverageOracle');
@@ -168,6 +170,21 @@ export class OracleWrapper {
 
     return new MovingAverageOracleContract(
       new web3.eth.Contract(movingAverageOracle.abi, movingAverageOracle.address),
+      { from },
+    );
+  }
+
+  public async deployLegacyMakerOracleAdapterAsync(
+    medianizerAddress: Address,
+    from: Address = this._contractOwnerAddress
+  ): Promise<LegacyMakerOracleAdapterContract> {
+    const legacyMakerOracleAdapter = await LegacyMakerOracleAdapter.new(
+      medianizerAddress,
+      { from },
+    );
+
+    return new LegacyMakerOracleAdapterContract(
+      new web3.eth.Contract(legacyMakerOracleAdapter.abi, legacyMakerOracleAdapter.address),
       { from },
     );
   }
