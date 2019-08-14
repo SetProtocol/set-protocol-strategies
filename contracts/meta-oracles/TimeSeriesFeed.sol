@@ -173,19 +173,16 @@ contract TimeSeriesFeed is
         returns (TimeSeriesStateLibrary.State memory)
     {
         // Get timeSeriesData price values
-        uint256[] memory previousLoggedPrices;
-        if (timeSeriesData.dataArray.length == maxDataPoints) {
-            previousLoggedPrices = readList(timeSeriesData, maxDataPoints);
-        } else {
-            previousLoggedPrices = readList(timeSeriesData, timeSeriesData.dataArray.length);
-        }
+        uint256[] memory previousLoggedPrices = readList(
+            timeSeriesData,
+            timeSeriesData.dataArray.length
+        );
 
-        TimeSeriesStateLibrary.State memory timeSeriesState = TimeSeriesStateLibrary.State({
+        return TimeSeriesStateLibrary.State({
             nextEarliestUpdate: nextEarliestUpdate,
             updateInterval: updateInterval,
             previousLoggedPrices: previousLoggedPrices
         });
 
-        return timeSeriesState;
     }
 }

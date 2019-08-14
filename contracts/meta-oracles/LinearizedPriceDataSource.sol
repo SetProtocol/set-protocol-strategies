@@ -86,10 +86,8 @@ contract LinearizedPriceDataSource is
      * exactly on nextAvailableUpdate do not compound as they would if it was required that poke is called
      * an updateInterval amount of time after the last poke.
      *
-     * @param  _timeFromExpectedUpdate   Time passed from expected update
-     * @param  _updateInterval           Update interval of TimeSeriesFeed
-     * @param  _previousLoggedPrice      Previously logged price from TimeSeriesFeed
-     * @returns                          Returns the datapoint from the Medianizer contract
+     * @param  _timeSeriesState         Struct of TimeSeriesFeed state
+     * @returns                         Returns the datapoint from the Medianizer contract
      */
     function read(
         TimeSeriesStateLibrary.State calldata _timeSeriesState
@@ -101,7 +99,7 @@ contract LinearizedPriceDataSource is
         // Validate that nextEarliest update timestamp is less than current block timestamp
         require(
             block.timestamp >= _timeSeriesState.nextEarliestUpdate,
-            "LinearizedPriceDataSource.read: nextAvailableUpdate greater than current timestamp."
+            "LinearizedPriceDataSource.read: current timestamp must be greater than nextAvailableUpdate."
         );
 
         // Calculate how much time has passed from last expected update
