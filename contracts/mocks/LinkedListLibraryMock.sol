@@ -38,7 +38,7 @@ contract LinkedListLibraryMock is
         uint256 _dataSizeLimit,
         uint256 _initialValue
     )
-        public
+        external
     {
         initialize(
             linkedList,
@@ -50,7 +50,7 @@ contract LinkedListLibraryMock is
     function editListMock(
         uint256 _addedValue
     )
-        public
+        external
     {
         editList(
             linkedList,
@@ -61,7 +61,7 @@ contract LinkedListLibraryMock is
     function addNodeMock(
         uint256 _addedValue
     )
-        public
+        external
     {
         addNode(
             linkedList,
@@ -72,7 +72,7 @@ contract LinkedListLibraryMock is
     function updateNodeMock(
         uint256 _addedValue
     )
-        public
+        external
     {
         updateNode(
             linkedList,
@@ -83,7 +83,7 @@ contract LinkedListLibraryMock is
     function readListMock(
         uint256 _dataPoints
     )
-        public
+        external
         returns (uint256[] memory)
     {
         return readList(
@@ -95,7 +95,7 @@ contract LinkedListLibraryMock is
     function addBadValue(
         uint256 _badValue
     )
-        public
+        external
     {
         linkedList.dataArray.push(_badValue);
     }
@@ -103,7 +103,7 @@ contract LinkedListLibraryMock is
     /* ============ Getters ============ */
 
     function getDataSizeLimit()
-        public
+        external
         view
         returns (uint256)
     {
@@ -111,7 +111,7 @@ contract LinkedListLibraryMock is
     }
 
     function getLastUpdatedIndex()
-        public
+        external
         view
         returns (uint256)
     {
@@ -119,7 +119,7 @@ contract LinkedListLibraryMock is
     }
 
     function getDataArray()
-        public
+        external
         view
         returns (uint256[] memory)
     {
