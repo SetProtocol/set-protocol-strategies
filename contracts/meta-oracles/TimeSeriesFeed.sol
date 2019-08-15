@@ -21,7 +21,7 @@ import { ReentrancyGuard } from "openzeppelin-solidity/contracts/utils/Reentranc
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { IDataSource } from "./interfaces/IDataSource.sol";
-import { LinkedListLibrary2 } from "./lib/LinkedListLibrary2.sol";
+import { LinkedListLibraryV2 } from "./lib/LinkedListLibraryV2.sol";
 import { TimeSeriesStateLibrary } from "./lib/TimeSeriesStateLibrary.sol";
 
 
@@ -38,7 +38,7 @@ contract TimeSeriesFeed is
     ReentrancyGuard
 {
     using SafeMath for uint256;
-    using LinkedListLibrary2 for LinkedListLibrary2.LinkedList;
+    using LinkedListLibraryV2 for LinkedListLibraryV2.LinkedList;
 
     /* ============ State Variables ============ */
     uint256 public updateInterval;
@@ -48,7 +48,7 @@ contract TimeSeriesFeed is
     string public dataDescription;
     IDataSource public dataSourceInstance;
 
-    LinkedListLibrary2.LinkedList private timeSeriesData;
+    LinkedListLibraryV2.LinkedList private timeSeriesData;
 
     /* ============ Constructor ============ */
 

@@ -17,7 +17,7 @@
 pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
-import { LinkedListLibrary2 } from "../meta-oracles/lib/LinkedListLibrary2.sol";
+import { LinkedListLibraryV2 } from "../meta-oracles/lib/LinkedListLibraryV2.sol";
 
 /**
  * @title LinkedListLibraryMock
@@ -25,13 +25,13 @@ import { LinkedListLibrary2 } from "../meta-oracles/lib/LinkedListLibrary2.sol";
  *
  * Mock contract for interacting with LinkedListLibrary
  */
-contract LinkedListLibraryMock2
+contract LinkedListLibraryMockV2
 {
-    using LinkedListLibrary2 for LinkedListLibrary2.LinkedList;
+    using LinkedListLibraryV2 for LinkedListLibraryV2.LinkedList;
 
     /* ============ State Variables ============ */
 
-    LinkedListLibrary2.LinkedList private linkedList;
+    LinkedListLibraryV2.LinkedList private linkedList;
 
     /* ============ Public Function ============ */
 

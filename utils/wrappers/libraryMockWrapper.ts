@@ -3,7 +3,7 @@ import {
   DataSourceLinearInterpolationLibraryMockContract,
   FlexibleTimingManagerLibraryMockContract,
   LinkedListLibraryMockContract,
-  LinkedListLibraryMock2Contract,
+  LinkedListLibraryMockV2Contract,
   ManagerLibraryMockContract,
   PriceFeedMockContract,
 } from '../contracts';
@@ -15,7 +15,7 @@ const web3 = getWeb3();
 const DataSourceLinearInterpolationLibraryMock = artifacts.require('DataSourceLinearInterpolationLibraryMock');
 const FlexibleTimingManagerLibraryMock = artifacts.require('FlexibleTimingManagerLibraryMock');
 const LinkedListLibraryMock = artifacts.require('LinkedListLibraryMock');
-const LinkedListLibraryMock2 = artifacts.require('LinkedListLibraryMock2');
+const LinkedListLibraryMockV2 = artifacts.require('LinkedListLibraryMockV2');
 const ManagerLibraryMock = artifacts.require('ManagerLibraryMock');
 const PriceFeedMock = artifacts.require('PriceFeedMock');
 
@@ -83,7 +83,6 @@ export class LibraryMockWrapper {
     );
   }
 
-
   public async deployDataSourceLinearInterpolationLibraryMockAsync(
     from: Address = this._contractOwnerAddress
   ): Promise<DataSourceLinearInterpolationLibraryMockContract> {
@@ -99,12 +98,12 @@ export class LibraryMockWrapper {
 
   public async deployLinkedListLibraryMock2Async(
     from: Address = this._contractOwnerAddress
-  ): Promise<LinkedListLibraryMockContract> {
-    const linkedList = await LinkedListLibraryMock2.new(
+  ): Promise<LinkedListLibraryMockV2Contract> {
+    const linkedList = await LinkedListLibraryMockV2.new(
       { from },
     );
 
-    return new LinkedListLibraryMock2Contract(
+    return new LinkedListLibraryMockV2Contract(
       new web3.eth.Contract(linkedList.abi, linkedList.address),
       { from },
     );

@@ -21,13 +21,16 @@ import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 
 /**
- * @title LinkedListLibrary2
+ * @title LinkedListLibraryV2
  * @author Set Protocol
+ *
+ * NOTE: This is an exact copy of LinkedListLibrary.sol with the exception that it is
+ * a library instead of a contract.
  *
  * Library for creating and altering uni-directional circularly linked lists, optimized for sequential updating
  * Version two of this contract is a library vs. a contract.
  */
-library LinkedListLibrary2 {
+library LinkedListLibraryV2 {
 
     using SafeMath for uint256;
 
@@ -81,7 +84,6 @@ library LinkedListLibrary2 {
         // Add node if data hasn't reached size limit, otherwise update next node
         _self.dataArray.length < _self.dataSizeLimit ? addNode(_self, _addedValue)
             : updateNode(_self, _addedValue);
-
     }
 
     /*

@@ -7,7 +7,7 @@ import { BigNumber } from 'bignumber.js';
 import ChaiSetup from '@utils/chaiSetup';
 import { BigNumberSetup } from '@utils/bigNumberSetup';
 import {
-  LinkedListLibraryMock2Contract,
+  LinkedListLibraryMockV2Contract,
 } from '@utils/contracts';
 import { Blockchain } from '@utils/blockchain';
 import { ether } from '@utils/units';
@@ -26,19 +26,19 @@ const web3 = getWeb3();
 const { expect } = chai;
 const blockchain = new Blockchain(web3);
 
-contract('LinkedListLibrary', accounts => {
+contract('LinkedListLibraryV2', accounts => {
   const [
     deployerAccount,
   ] = accounts;
 
-  let linkedListLibraryMock: LinkedListLibraryMock2Contract;
+  let linkedListLibraryMock: LinkedListLibraryMockV2Contract;
 
   const libraryMockWrapper = new LibraryMockWrapper(deployerAccount);
 
   beforeEach(async () => {
     blockchain.saveSnapshotAsync();
 
-    linkedListLibraryMock = await libraryMockWrapper.deployLinkedListLibraryMock2Async();
+    linkedListLibraryMock = await libraryMockWrapper.deployLinkedListLibraryMockV2Async();
   });
 
   afterEach(async () => {
