@@ -10,6 +10,7 @@ export { FlexibleTimingManagerLibraryMockContract } from '../types/generated/fle
 export { HistoricalPriceFeedContract } from '../types/generated/historical_price_feed';
 export { LegacyMakerOracleAdapterContract } from '../types/generated/legacy_maker_oracle_adapter';
 export { LinkedListLibraryMockContract } from '../types/generated/linked_list_library_mock';
+export { LinkedListLibraryMock2Contract } from '../types/generated/linked_list_library_mock2';
 export { LinearizedPriceDataSourceContract } from '../types/generated/linearized_price_data_source';
 export { MACOStrategyManagerContract } from '../types/generated/m_a_c_o_strategy_manager';
 export { MACOStrategyManagerV2Contract } from '../types/generated/m_a_c_o_strategy_manager_v2';

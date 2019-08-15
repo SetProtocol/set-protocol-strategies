@@ -21,7 +21,7 @@ import { ReentrancyGuard } from "openzeppelin-solidity/contracts/utils/Reentranc
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { IDataSource } from "./interfaces/IDataSource.sol";
-import { LinkedListLibrary } from "./lib/LinkedListLibrary.sol";
+import { LinkedListLibrary2 } from "./lib/LinkedListLibrary2.sol";
 import { TimeSeriesStateLibrary } from "./lib/TimeSeriesStateLibrary.sol";
 
 
@@ -35,10 +35,10 @@ import { TimeSeriesStateLibrary } from "./lib/TimeSeriesStateLibrary.sol";
  * which reads data from a specified data source.
  */
 contract TimeSeriesFeed is
-    ReentrancyGuard,
-    LinkedListLibrary
+    ReentrancyGuard
 {
     using SafeMath for uint256;
+    using LinkedListLibrary2 for LinkedListLibrary2.LinkedList;
 
     /* ============ State Variables ============ */
     uint256 public updateInterval;
@@ -48,7 +48,7 @@ contract TimeSeriesFeed is
     string public dataDescription;
     IDataSource public dataSourceInstance;
 
-    LinkedList private timeSeriesData;
+    LinkedListLibrary2.LinkedList private timeSeriesData;
 
     /* ============ Constructor ============ */
 
@@ -87,19 +87,12 @@ contract TimeSeriesFeed is
         );
 
         // Define upper data size limit for linked list and input initial value
-        initialize(
-            timeSeriesData,
-            _maxDataPoints,
-            _seededValues[0]
-        );
+        timeSeriesData.initialize(_maxDataPoints, _seededValues[0]);
 
         // Cycle through input values array (skipping first value used to initialize LinkedList)
         // and add to timeSeriesData
         for (uint256 i = 1; i < _seededValues.length; i++) {
-            editList(
-                timeSeriesData,
-                _seededValues[i]
-            );
+            timeSeriesData.editList(_seededValues[i]);
         }
 
         // Set nextEarliestUpdate
@@ -123,17 +116,14 @@ contract TimeSeriesFeed is
 
         TimeSeriesStateLibrary.State memory timeSeriesState = getTimeSeriesFeedState();
 
-        // Calculate next data point
+        // Get the most current data point
         uint256 newValue = dataSourceInstance.read(timeSeriesState);
 
         // Update the nextEarliestUpdate to previous nextEarliestUpdate plus updateInterval
         nextEarliestUpdate = nextEarliestUpdate.add(updateInterval);
 
         // Update linkedList with new price
-        editList(
-            timeSeriesData,
-            newValue
-        );
+        timeSeriesData.editList(newValue);
     }
 
     /*
@@ -151,10 +141,7 @@ contract TimeSeriesFeed is
         view
         returns (uint256[] memory)
     {
-        return readList(
-            timeSeriesData,
-            _numDataPoints
-        );
+        return timeSeriesData.readList(_numDataPoints);
     }
 
     /* ============ Public ============ */
@@ -171,8 +158,7 @@ contract TimeSeriesFeed is
         returns (TimeSeriesStateLibrary.State memory)
     {
         // Get timeSeriesData price values from most recent to oldest
-        uint256[] memory timeSeriesDataArray = readList(
-            timeSeriesData,
+        uint256[] memory timeSeriesDataArray = timeSeriesData.readList(
             timeSeriesData.dataArray.length
         );
 
