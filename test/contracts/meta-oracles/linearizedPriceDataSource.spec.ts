@@ -5,7 +5,7 @@ import * as ABIDecoder from 'abi-decoder';
 import * as chai from 'chai';
 import * as setProtocolUtils from 'set-protocol-utils';
 
-import { Address } from 'set-protocol-utils';
+import { Address, TimeSeriesFeedState } from 'set-protocol-utils';
 import { BigNumber } from 'bignumber.js';
 
 import ChaiSetup from '@utils/chaiSetup';
@@ -15,18 +15,17 @@ import { ether } from '@utils/units';
 import { MedianContract } from 'set-protocol-contracts';
 import {
   LinearizedPriceDataSourceContract,
-  TimeSeriesFeedMockContract,
 } from '@utils/contracts';
 import {
   DEFAULT_GAS,
   ONE_DAY_IN_SECONDS,
+  ZERO
 } from '@utils/constants';
 import { expectRevertError } from '@utils/tokenAssertions';
 import { getWeb3 } from '@utils/web3Helper';
 import { LogMedianizerUpdated } from '@utils/contract_logs/linearizedPriceDataSource';
 
 import { OracleWrapper } from '@utils/wrappers/oracleWrapper';
-import { LibraryMockWrapper } from '@utils/wrappers/libraryMockWrapper';
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
@@ -48,7 +47,6 @@ contract('LinearizedPriceDataSource', accounts => {
   let linearizedDataSource: LinearizedPriceDataSourceContract;
 
   const oracleWrapper = new OracleWrapper(deployerAccount);
-  const libraryMockWrapper = new LibraryMockWrapper(deployerAccount);
 
   before(async () => {
     ABIDecoder.addABI(LinearizedPriceDataSource.abi);
@@ -116,14 +114,8 @@ contract('LinearizedPriceDataSource', accounts => {
   describe('#read', async () => {
     let newEthPrice: BigNumber;
     let interpolationThreshold: BigNumber;
-    let updateInterval;
 
-    const seedValues: BigNumber[] = [ether(100)];
-    const maxDataPoints = new BigNumber(200);
-    const dataDescription = 'ETH Daily Price';
-
-    let timeSeriesFeedMock: TimeSeriesFeedMockContract;
-
+    let subjectTimeSeriesState: TimeSeriesFeedState;
     let subjectTimeFastForward: BigNumber;
 
     let customEtherPrice: BigNumber;
@@ -142,17 +134,18 @@ contract('LinearizedPriceDataSource', accounts => {
         medianizerAddress,
         interpolationThreshold,
       );
+      const block = await web3.eth.getBlock('latest');
 
-      updateInterval = ONE_DAY_IN_SECONDS;
-      timeSeriesFeedMock = await libraryMockWrapper.deployTimeSeriesFeedMockAsync(
-        linearizedDataSource.address,
+      const nextEarliestUpdate = new BigNumber(block.timestamp);
+      const updateInterval = ONE_DAY_IN_SECONDS;
+      const timeSeriesDataArray = [ether(100)];
+
+      subjectTimeSeriesState = {
+        nextEarliestUpdate,
         updateInterval,
-        maxDataPoints,
-        dataDescription,
-        seedValues,
-      );
-
-      subjectTimeFastForward = ONE_DAY_IN_SECONDS;
+        timeSeriesDataArray,
+      } as TimeSeriesFeedState;
+      subjectTimeFastForward = ZERO;
     });
 
     async function subject(): Promise<BigNumber> {
@@ -166,7 +159,9 @@ contract('LinearizedPriceDataSource', accounts => {
         gas: DEFAULT_GAS,
       });
 
-      return timeSeriesFeedMock.testCallDataSource.callAsync();
+      return linearizedDataSource.read.callAsync(
+        subjectTimeSeriesState
+      );
     }
 
     it('updates the linearizedDataSource with the correct price', async () => {
@@ -179,24 +174,20 @@ contract('LinearizedPriceDataSource', accounts => {
 
     describe('when the timestamp has surpassed the interpolationThreshold and price increases', async () => {
       beforeEach(async () => {
-        subjectTimeFastForward = ONE_DAY_IN_SECONDS.mul(3);
+        subjectTimeFastForward = interpolationThreshold.mul(3);
       });
 
       it('returns with the correct interpolated value', async () => {
-        const nextEarliestUpdate = await timeSeriesFeedMock.nextEarliestUpdate.callAsync();
-        const lastUpdateTimestamp = nextEarliestUpdate.sub(updateInterval);
-
         const actualNewPrice = await subject();
 
-        const pokeBlock = await web3.eth.getBlock('latest');
-        const pokeBlockTimestamp = new BigNumber(pokeBlock.timestamp);
+        const block = await web3.eth.getBlock('latest');
+        const timeFromExpectedUpdate = new BigNumber(block.timestamp).sub(subjectTimeSeriesState.nextEarliestUpdate);
 
-        const [initialEthPrice] = await timeSeriesFeedMock.read.callAsync(new BigNumber(1));
-        const timeFromExpectedUpdate = pokeBlockTimestamp.sub(nextEarliestUpdate);
-        const timeFromLastUpdate = pokeBlockTimestamp.sub(lastUpdateTimestamp);
+        const timeFromLastUpdate = timeFromExpectedUpdate.add(subjectTimeSeriesState.updateInterval);
+        const previousLoggedPrice = subjectTimeSeriesState.timeSeriesDataArray[0];
         const expectedNewPrice = newEthPrice
-                                     .mul(updateInterval)
-                                     .add(initialEthPrice.mul(timeFromExpectedUpdate))
+                                     .mul(subjectTimeSeriesState.updateInterval)
+                                     .add(previousLoggedPrice.mul(timeFromExpectedUpdate))
                                      .div(timeFromLastUpdate)
                                      .round(0, 3);
 
@@ -214,28 +205,34 @@ contract('LinearizedPriceDataSource', accounts => {
       });
 
       beforeEach(async () => {
-        subjectTimeFastForward = ONE_DAY_IN_SECONDS.mul(3);
+        subjectTimeFastForward = interpolationThreshold.mul(3);
       });
 
       it('returns with the correct interpolated value', async () => {
-        const nextEarliestUpdate = await timeSeriesFeedMock.nextEarliestUpdate.callAsync();
-        const lastUpdateTimestamp = nextEarliestUpdate.sub(updateInterval);
-
         const actualNewPrice = await subject();
 
-        const pokeBlock = await web3.eth.getBlock('latest');
-        const pokeBlockTimestamp = new BigNumber(pokeBlock.timestamp);
+        const block = await web3.eth.getBlock('latest');
+        const timeFromExpectedUpdate = new BigNumber(block.timestamp).sub(subjectTimeSeriesState.nextEarliestUpdate);
 
-        const [initialEthPrice] = await timeSeriesFeedMock.read.callAsync(new BigNumber(1));
-        const timeFromExpectedUpdate = pokeBlockTimestamp.sub(nextEarliestUpdate);
-        const timeFromLastUpdate = pokeBlockTimestamp.sub(lastUpdateTimestamp);
+        const timeFromLastUpdate = timeFromExpectedUpdate.add(subjectTimeSeriesState.updateInterval);
+        const previousLoggedPrice = subjectTimeSeriesState.timeSeriesDataArray[0];
         const expectedNewPrice = newEthPrice
-                                     .mul(updateInterval)
-                                     .add(initialEthPrice.mul(timeFromExpectedUpdate))
+                                     .mul(subjectTimeSeriesState.updateInterval)
+                                     .add(previousLoggedPrice.mul(timeFromExpectedUpdate))
                                      .div(timeFromLastUpdate)
                                      .round(0, 3);
 
         expect(actualNewPrice).to.bignumber.equal(expectedNewPrice);
+      });
+    });
+    describe('when the nextEarliestUpdate timestamp is greater than current block timestamp', async () => {
+      beforeEach(async () => {
+        const block = await web3.eth.getBlock('latest');
+        subjectTimeSeriesState.nextEarliestUpdate = new BigNumber(block.timestamp).add(60);
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
       });
     });
   });
@@ -296,6 +293,16 @@ contract('LinearizedPriceDataSource', accounts => {
     describe('when non owner calls', async () => {
       beforeEach(async () => {
         subjectCaller = nonOwnerAccount;
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('when passed address is not new', async () => {
+      beforeEach(async () => {
+        subjectNewMedianizer = ethMedianizer.address;
       });
 
       it('should revert', async () => {

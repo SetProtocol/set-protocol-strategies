@@ -1,7 +1,5 @@
 import { Address } from 'set-protocol-utils';
-import { BigNumber } from 'bignumber.js';
 import {
-  TimeSeriesFeedMockContract,
   FlexibleTimingManagerLibraryMockContract,
   LinkedListLibraryMockContract,
   ManagerLibraryMockContract,
@@ -12,7 +10,6 @@ import {
 } from '../web3Helper';
 
 const web3 = getWeb3();
-const TimeSeriesFeedMock = artifacts.require('TimeSeriesFeedMock');
 const FlexibleTimingManagerLibraryMock = artifacts.require('FlexibleTimingManagerLibraryMock');
 const LinkedListLibraryMock = artifacts.require('LinkedListLibraryMock');
 const ManagerLibraryMock = artifacts.require('ManagerLibraryMock');
@@ -65,29 +62,6 @@ export class LibraryMockWrapper {
 
     return new PriceFeedMockContract(
       new web3.eth.Contract(priceFeedTruffle.abi, priceFeedTruffle.address),
-      { from },
-    );
-  }
-
-  public async deployTimeSeriesFeedMockAsync(
-    dataSourceAddress: Address,
-    updatePeriod: BigNumber,
-    maxDataPoints: BigNumber,
-    dataDescription: string,
-    seededValues: BigNumber[],
-    from: Address = this._contractOwnerAddress
-  ): Promise<TimeSeriesFeedMockContract> {
-    const timeSeriesFeed = await TimeSeriesFeedMock.new(
-      updatePeriod,
-      maxDataPoints,
-      dataSourceAddress,
-      dataDescription,
-      seededValues,
-      { from },
-    );
-
-    return new TimeSeriesFeedMockContract(
-      new web3.eth.Contract(timeSeriesFeed.abi, timeSeriesFeed.address),
       { from },
     );
   }

@@ -2,7 +2,6 @@ export { BaseContract } from '../types/base_contract';
 export { BTCDaiRebalancingManagerContract } from '../types/generated/b_t_c_dai_rebalancing_manager';
 export { BTCETHRebalancingManagerContract } from '../types/generated/b_t_c_e_t_h_rebalancing_manager';
 export { TimeSeriesFeedContract } from '../types/generated/time_series_feed';
-export { TimeSeriesFeedMockContract } from '../types/generated/time_series_feed_mock';
 export { ETHDaiRebalancingManagerContract } from '../types/generated/e_t_h_dai_rebalancing_manager';
 export { FeedFactoryContract } from '../types/generated/feed_factory';
 export { FlexibleTimingManagerLibraryMockContract } from '../types/generated/flexible_timing_manager_library_mock';

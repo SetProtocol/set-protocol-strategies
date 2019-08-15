@@ -245,14 +245,14 @@ export class OracleWrapper {
     timeSeriesFeed: TimeSeriesFeedContract,
     priceFeed: PriceFeedContract,
     price: BigNumber,
+    timestamp: number = ONE_DAY_IN_SECONDS.mul(2).toNumber(),
     from: Address = this._contractOwnerAddress
   ): Promise<void> {
     await this._blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS);
-
-      await this.updatePriceFeedAsync(
+    await this.updatePriceFeedAsync(
       priceFeed,
       price,
-      SetTestUtils.generateTimestamp(ONE_DAY_IN_SECONDS.mul(2).toNumber()),
+      SetTestUtils.generateTimestamp(timestamp),
     );
 
     await timeSeriesFeed.poke.sendTransactionAsync(
@@ -278,6 +278,7 @@ export class OracleWrapper {
         timeSeriesFeed,
         priceFeed,
         priceArray[i],
+        ONE_DAY_IN_SECONDS.mul(2 * i + 2).toNumber()
       );
     }
 

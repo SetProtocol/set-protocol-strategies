@@ -22,6 +22,7 @@ import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import { IDataSource } from "./interfaces/IDataSource.sol";
 import { LinkedListLibrary } from "./lib/LinkedListLibrary.sol";
+import { TimeSeriesStateLibrary } from "./lib/TimeSeriesStateLibrary.sol";
 
 
 /**
@@ -42,11 +43,12 @@ contract TimeSeriesFeed is
     /* ============ State Variables ============ */
     uint256 public updateInterval;
     uint256 public maxDataPoints;
+    // Unix Timestamp in seconds of next earliest update time
     uint256 public nextEarliestUpdate;
     string public dataDescription;
     IDataSource public dataSource;
 
-    LinkedList public timeSeriesData;
+    LinkedList private timeSeriesData;
 
     /* ============ Constructor ============ */
 
@@ -54,8 +56,9 @@ contract TimeSeriesFeed is
      * Stores time-series values in a LinkedList and updated using data from a specific data source. 
      * Updates must be triggered off chain to be stored in this smart contract.
      *
-     * @param  _updateInterval            Cadence at which data is allowed to be logged, based off 
-                                          deployment timestamp 
+     * @param  _updateInterval            Cadence at which data is optimally logged. Optimal schedule is based
+                                          off deployment timestamp. A certain data point can't be logged before
+                                          it's expected timestamp but can be logged after. 
      * @param  _maxDataPoints             The maximum amount of data points the linkedList will hold
      * @param  _dataSourceAddress         The address to read current data from
      * @param  _dataDescription           Description of time-series data for Etherscan / other applications
@@ -66,7 +69,7 @@ contract TimeSeriesFeed is
     constructor(
         uint256 _updateInterval,
         uint256 _maxDataPoints,
-        address _dataSourceAddress,
+        IDataSource _dataSourceAddress,
         string memory _dataDescription,
         uint256[] memory _seededValues
     )
@@ -76,7 +79,12 @@ contract TimeSeriesFeed is
         updateInterval = _updateInterval;
         maxDataPoints = _maxDataPoints;
         dataDescription = _dataDescription;
-        dataSource = IDataSource(_dataSourceAddress);
+        dataSource = _dataSourceAddress;
+
+        require(
+            _seededValues.length > 0,
+            "TimeSeriesFeed.constructor: Must include at least one seeded value."
+        );
 
         // Define upper data size limit for linked list and input initial value
         initialize(
@@ -113,8 +121,12 @@ contract TimeSeriesFeed is
             "TimeSeriesFeed.poke: Not enough time elapsed since last update"
         );
 
+        TimeSeriesStateLibrary.State memory timeSeriesState = getTimeSeriesFeedState();
+
         // Get the most current data point
-        uint256 newValue = dataSource.read();
+        uint256 newValue = dataSource.read(
+            timeSeriesState
+        );
 
         // Update the nextEarliestUpdate to current block timestamp plus updateInterval
         nextEarliestUpdate = nextEarliestUpdate.add(updateInterval);
@@ -132,7 +144,7 @@ contract TimeSeriesFeed is
      * data logged.
      *
      * @param  _numDataPoints  Number of datapoints to query
-     * @returns                Array of datapoints of length _numDataPoints                   
+     * @returns                Array of datapoints of length _numDataPoints from most recent to oldest                   
      */
     function read(
         uint256 _numDataPoints
@@ -145,5 +157,32 @@ contract TimeSeriesFeed is
             timeSeriesData,
             _numDataPoints
         );
+    }
+
+    /* ============ Public ============ */
+
+    /*
+     * Generate struct that holds TimeSeriesFeed's current nextAvailableUpdate, updateInterval,
+     * and previously logged prices.
+     *
+     * @returns                Struct containing the above params                  
+     */
+    function getTimeSeriesFeedState()
+        public
+        view
+        returns (TimeSeriesStateLibrary.State memory)
+    {
+        // Get timeSeriesData price values from most recent to oldest
+        uint256[] memory timeSeriesDataArray = readList(
+            timeSeriesData,
+            timeSeriesData.dataArray.length
+        );
+
+        return TimeSeriesStateLibrary.State({
+            nextEarliestUpdate: nextEarliestUpdate,
+            updateInterval: updateInterval,
+            timeSeriesDataArray: timeSeriesDataArray
+        });
+
     }
 }
