@@ -18,6 +18,7 @@ import {
   OracleProxyCallerContract,
   OracleProxyContract,
 } from '@utils/contracts';
+import { DEFAULT_GAS } from '@utils/constants';
 import { expectRevertError } from '@utils/tokenAssertions';
 
 import { getWeb3 } from '@utils/web3Helper';
@@ -126,7 +127,7 @@ contract('OracleProxy', accounts => {
       beforeEach(async () => {
         await oracleProxy.removeAuthorizedAddress.sendTransactionAsync(
           oracleProxyCaller.address,
-          { from: deployerAccount },
+          { from: deployerAccount, gas: DEFAULT_GAS },
         );
       });
 
