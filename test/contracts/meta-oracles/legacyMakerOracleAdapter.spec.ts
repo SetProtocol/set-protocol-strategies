@@ -75,7 +75,7 @@ contract('LegacyMakerOracleAdapter', accounts => {
     });
   });
 
-  describe.only('#read', async () => {
+  describe('#read', async () => {
     let ethPrice: BigNumber;
 
     beforeEach(async () => {
@@ -95,7 +95,7 @@ contract('LegacyMakerOracleAdapter', accounts => {
       return legacyMakerOracleAdapter.read.callAsync();
     }
 
-    it('sets the correct interpolationThreshold', async () => {
+    it('returns the correct price in uint256 (not bytes)', async () => {
       const actualEthPrice = await subject();
       const rawMedianizer = await ethMedianizer.read.callAsync();
 

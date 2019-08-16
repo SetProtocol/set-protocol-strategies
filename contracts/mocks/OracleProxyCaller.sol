@@ -17,48 +17,48 @@
 pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
-import { IMedian } from "../external/DappHub/interfaces/IMedian.sol";
-
+import { IOracle } from "../meta-oracles/interfaces/IOracle.sol";
 
 /**
- * @title LegacyMakerOracleAdapter
+ * @title OracleProxyCaller
  * @author Set Protocol
  *
- * Coerces bytes outputs from MakerDAO's legacy medianizers into uint256 for use in
- * Set OracleProxy system
+ * Mock contract used to make sure that the OracleProxy can't be called by unauthorized addresses
+ * on chain.
  */
-contract LegacyMakerOracleAdapter {
+contract OracleProxyCaller {
 
     /* ============ State Variables ============ */
-    IMedian public medianizerAddress;
+    IOracle public oracleAddress;
 
     /* ============ Constructor ============ */
     /*
-     * Set address of medianizer being adapted from bytes to uint256
+     * Set address of oracle being proxied
      *
-     * @param  _medianizerAddress    The address of medianizer being adapted from bytes to uint256
+     * @param  _oracleAddress    The address of oracle being proxied
      */
     constructor(
-        IMedian _medianizerAddress
+        IOracle _oracleAddress
     )
         public
     {
-        medianizerAddress =_medianizerAddress;
+        oracleAddress = _oracleAddress;
     }
 
     /* ============ External ============ */
 
     /*
-     * Reads value of medianizer and coerces return to uint256
+     * Reads value of medianizer and coerces return to uint256. Only authorized addresses are allowed
+     * to call read().
      *
-     * @returns         Maker medianizer price in uint256
+     * @returns         Oracle's uint256 output
      */
     function read()
         external
         view
         returns (uint256)
     {
-        // Read value of medianizer and coerce to uint256
-        return uint256(medianizerAddress.read());
+        // Read value of oracle
+        return oracleAddress.read();
     }
 }

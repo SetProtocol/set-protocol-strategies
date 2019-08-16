@@ -10,8 +10,12 @@ export { LegacyMakerOracleAdapterContract } from '../types/generated/legacy_make
 export { LinkedListLibraryMockContract } from '../types/generated/linked_list_library_mock';
 export { LinearizedPriceDataSourceContract } from '../types/generated/linearized_price_data_source';
 export { MACOStrategyManagerContract } from '../types/generated/m_a_c_o_strategy_manager';
+export { MACOStrategyManagerV2Contract } from '../types/generated/m_a_c_o_strategy_manager_v2';
 export { ManagerLibraryMockContract } from '../types/generated/manager_library_mock';
 export { MovingAverageOracleContract } from '../types/generated/moving_average_oracle';
+export { MovingAverageOracleV2Contract } from '../types/generated/moving_average_oracle_v2';
+export { OracleProxyCallerContract } from '../types/generated/oracle_proxy_caller';
+export { OracleProxyContract } from '../types/generated/oracle_proxy';
 export { PriceFeedContract } from '../types/generated/price_feed';
 export { PriceFeedMockContract } from '../types/generated/price_feed_mock';
 export { USDCMockContract } from '../types/generated/u_s_d_c_mock';

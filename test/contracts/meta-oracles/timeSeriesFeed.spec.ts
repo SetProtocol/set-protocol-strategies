@@ -12,10 +12,11 @@ import ChaiSetup from '@utils/chaiSetup';
 import { BigNumberSetup } from '@utils/bigNumberSetup';
 import { Blockchain } from '@utils/blockchain';
 import { ether } from '@utils/units';
+import { MedianContract } from 'set-protocol-contracts';
 import {
-  FeedFactoryContract,
+  LegacyMakerOracleAdapterContract,
   LinearizedPriceDataSourceContract,
-  PriceFeedContract,
+  OracleProxyContract,
   TimeSeriesFeedContract,
 } from '@utils/contracts';
 import {
@@ -40,10 +41,11 @@ contract('TimeSeriesFeed', accounts => {
     deployerAccount,
   ] = accounts;
 
+  let ethMedianizer: MedianContract;
+  let legacyMakerOracleAdapter: LegacyMakerOracleAdapterContract;
+  let oracleProxy: OracleProxyContract;
+  let linearizedDataSource: LinearizedPriceDataSourceContract;
   let timeSeriesFeed: TimeSeriesFeedContract;
-  let priceFeedFactory: FeedFactoryContract;
-  let priceFeed: PriceFeedContract;
-  let dataSource: LinearizedPriceDataSourceContract;
 
   const oracleWrapper = new OracleWrapper(deployerAccount);
 
@@ -58,10 +60,26 @@ contract('TimeSeriesFeed', accounts => {
   beforeEach(async () => {
     blockchain.saveSnapshotAsync();
 
-    priceFeedFactory = await oracleWrapper.deployFeedFactoryAsync();
-    priceFeed = await oracleWrapper.deployPriceFeedAsync(priceFeedFactory);
-    dataSource = await oracleWrapper.deployLinearizedPriceDataSourceAsync(
-      priceFeed.address,
+    ethMedianizer = await oracleWrapper.deployMedianizerAsync();
+    await oracleWrapper.addPriceFeedOwnerToMedianizer(ethMedianizer, deployerAccount);
+
+    legacyMakerOracleAdapter = await oracleWrapper.deployLegacyMakerOracleAdapterAsync(
+      ethMedianizer.address,
+    );
+
+    oracleProxy = await oracleWrapper.deployOracleProxyAsync(
+      legacyMakerOracleAdapter.address,
+    );
+
+    const interpolationThreshold = ONE_DAY_IN_SECONDS;
+    linearizedDataSource = await oracleWrapper.deployLinearizedPriceDataSourceAsync(
+      oracleProxy.address,
+      interpolationThreshold,
+    );
+
+    await oracleWrapper.addAuthorizedAddressesToOracleProxy(
+      oracleProxy,
+      [linearizedDataSource.address]
     );
   });
 
@@ -79,7 +97,7 @@ contract('TimeSeriesFeed', accounts => {
     beforeEach(async () => {
       subjectUpdateInterval = ONE_DAY_IN_SECONDS.div(4);
       subjectMaxDataPoints = new BigNumber(200);
-      subjectDataSourceAddress = dataSource.address;
+      subjectDataSourceAddress = linearizedDataSource.address;
       subjectDataDescription = '200DailyETHPrice';
       subjectSeededValues = [ether(150)];
     });
@@ -87,10 +105,10 @@ contract('TimeSeriesFeed', accounts => {
     async function subject(): Promise<TimeSeriesFeedContract> {
       return oracleWrapper.deployTimeSeriesFeedAsync(
         subjectDataSourceAddress,
+        subjectSeededValues,
         subjectUpdateInterval,
         subjectMaxDataPoints,
         subjectDataDescription,
-        subjectSeededValues,
       );
     }
 
@@ -185,28 +203,23 @@ contract('TimeSeriesFeed', accounts => {
 
     beforeEach(async () => {
       initialEthPrice = ether(150);
-      await oracleWrapper.updatePriceFeedAsync(
-        priceFeed,
-        initialEthPrice,
-        SetTestUtils.generateTimestamp(1000),
-      );
 
       updateInterval = ONE_DAY_IN_SECONDS;
       const maxDataPoints = new BigNumber(200);
-      const sourceDataAddress = dataSource.address;
+      const sourceDataAddress = linearizedDataSource.address;
       const dataDescription = '200DailyETHPrice';
       const seededValues = [initialEthPrice];
       timeSeriesFeed = await oracleWrapper.deployTimeSeriesFeedAsync(
         sourceDataAddress,
+        seededValues,
         updateInterval,
         maxDataPoints,
         dataDescription,
-        seededValues
       );
 
       newEthPrice = ether(160);
-      await oracleWrapper.updatePriceFeedAsync(
-        priceFeed,
+      await oracleWrapper.updateMedianizerPriceAsync(
+        ethMedianizer,
         newEthPrice,
         SetTestUtils.generateTimestamp(ONE_DAY_IN_SECONDS.mul(2).toNumber()),
       );
@@ -261,28 +274,28 @@ contract('TimeSeriesFeed', accounts => {
 
     beforeEach(async () => {
       ethPrice = ether(150);
-      await oracleWrapper.updatePriceFeedAsync(
-        priceFeed,
+      await oracleWrapper.updateMedianizerPriceAsync(
+        ethMedianizer,
         ethPrice,
         SetTestUtils.generateTimestamp(1000),
       );
 
       const updateInterval = ONE_DAY_IN_SECONDS;
       const maxDataPoints = new BigNumber(200);
-      const sourceDataAddress = dataSource.address;
+      const sourceDataAddress = linearizedDataSource.address;
       const dataDescription = '200DailyETHPrice';
       const seededValues = [ethPrice];
       timeSeriesFeed = await oracleWrapper.deployTimeSeriesFeedAsync(
         sourceDataAddress,
+        seededValues,
         updateInterval,
         maxDataPoints,
         dataDescription,
-        seededValues,
       );
 
       updatedPrices = await oracleWrapper.batchUpdateTimeSeriesFeedAsync(
         timeSeriesFeed,
-        priceFeed,
+        ethMedianizer,
         20,
       );
 
@@ -325,28 +338,23 @@ contract('TimeSeriesFeed', accounts => {
 
     beforeEach(async () => {
       ethPrice = ether(150);
-      await oracleWrapper.updatePriceFeedAsync(
-        priceFeed,
-        ethPrice,
-        SetTestUtils.generateTimestamp(1000),
-      );
 
       updateInterval = ONE_DAY_IN_SECONDS;
       maxDataPoints = new BigNumber(200);
-      const sourceDataAddress = dataSource.address;
+      const sourceDataAddress = linearizedDataSource.address;
       const dataDescription = '200DailyETHPrice';
       const seededValues = [ethPrice];
       timeSeriesFeed = await oracleWrapper.deployTimeSeriesFeedAsync(
         sourceDataAddress,
+        seededValues,
         updateInterval,
         maxDataPoints,
         dataDescription,
-        seededValues,
       );
 
       updatedPrices = await oracleWrapper.batchUpdateTimeSeriesFeedAsync(
         timeSeriesFeed,
-        priceFeed,
+        ethMedianizer,
         numberOfUpdates || 20,
       );
     });
