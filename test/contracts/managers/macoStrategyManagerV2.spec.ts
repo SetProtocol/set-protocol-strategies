@@ -395,6 +395,11 @@ contract('MACOStrategyManagerV2', accounts => {
     });
 
     beforeEach(async () => {
+      await oracleWrapper.addAuthorizedAddressesToOracleProxy(
+        oracleProxy,
+        [linearizedDataSource.address]
+      );
+
       await oracleWrapper.batchUpdateTimeSeriesFeedAsync(
         timeSeriesFeed,
         ethMedianizer,
@@ -507,6 +512,11 @@ contract('MACOStrategyManagerV2', accounts => {
     });
 
     beforeEach(async () => {
+      await oracleWrapper.addAuthorizedAddressesToOracleProxy(
+        oracleProxy,
+        [linearizedDataSource.address]
+      );
+
       await oracleWrapper.batchUpdateTimeSeriesFeedAsync(
         timeSeriesFeed,
         ethMedianizer,
@@ -543,7 +553,7 @@ contract('MACOStrategyManagerV2', accounts => {
 
       await oracleWrapper.addAuthorizedAddressesToOracleProxy(
         oracleProxy,
-        [linearizedDataSource.address, macoStrategyManager.address]
+        [macoStrategyManager.address]
       );
 
       proposalPeriod = ONE_DAY_IN_SECONDS;
@@ -731,6 +741,11 @@ contract('MACOStrategyManagerV2', accounts => {
     });
 
     beforeEach(async () => {
+      await oracleWrapper.addAuthorizedAddressesToOracleProxy(
+        oracleProxy,
+        [linearizedDataSource.address]
+      );
+
       await oracleWrapper.batchUpdateTimeSeriesFeedAsync(
         timeSeriesFeed,
         ethMedianizer,
@@ -767,7 +782,7 @@ contract('MACOStrategyManagerV2', accounts => {
 
       await oracleWrapper.addAuthorizedAddressesToOracleProxy(
         oracleProxy,
-        [linearizedDataSource.address, macoStrategyManager.address]
+        [macoStrategyManager.address]
       );
 
       proposalPeriod = ONE_DAY_IN_SECONDS;
