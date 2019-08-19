@@ -1,5 +1,6 @@
 import { Address } from 'set-protocol-utils';
 import {
+  DataSourceLinearInterpolationLibraryMockContract,
   FlexibleTimingManagerLibraryMockContract,
   LinkedListLibraryMockContract,
   ManagerLibraryMockContract,
@@ -10,6 +11,7 @@ import {
 } from '../web3Helper';
 
 const web3 = getWeb3();
+const DataSourceLinearInterpolationLibraryMock = artifacts.require('DataSourceLinearInterpolationLibraryMock');
 const FlexibleTimingManagerLibraryMock = artifacts.require('FlexibleTimingManagerLibraryMock');
 const LinkedListLibraryMock = artifacts.require('LinkedListLibraryMock');
 const ManagerLibraryMock = artifacts.require('ManagerLibraryMock');
@@ -75,6 +77,19 @@ export class LibraryMockWrapper {
 
     return new LinkedListLibraryMockContract(
       new web3.eth.Contract(linkedList.abi, linkedList.address),
+      { from },
+    );
+  }
+
+  public async deployDataSourceLinearInterpolationLibraryMockAsync(
+    from: Address = this._contractOwnerAddress
+  ): Promise<DataSourceLinearInterpolationLibraryMockContract> {
+    const interpolationLib = await DataSourceLinearInterpolationLibraryMock.new(
+      { from },
+    );
+
+    return new DataSourceLinearInterpolationLibraryMockContract(
+      new web3.eth.Contract(interpolationLib.abi, interpolationLib.address),
       { from },
     );
   }
