@@ -17,10 +17,10 @@
 pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
-import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import { TimeLockUpgrade } from "set-protocol-contracts/contracts/lib/TimeLockUpgrade.sol";
 
-import { IMedian } from "../external/DappHub/interfaces/IMedian.sol";
+import { IOracle } from "./interfaces/IOracle.sol";
 import { IDataSource } from "./interfaces/IDataSource.sol";
 import { TimeSeriesStateLibrary } from "./lib/TimeSeriesStateLibrary.sol";
 
@@ -29,12 +29,12 @@ import { TimeSeriesStateLibrary } from "./lib/TimeSeriesStateLibrary.sol";
  * @title LinearizedPriceDataSource
  * @author Set Protocol
  *
- * This DataSource returns the current value of the Medianizer Oracle. If the interpolationThreshold
+ * This DataSource returns the current value of the oracle. If the interpolationThreshold
  * is reached, then returns a linearly interpolated value.
- * It is intended to be read by a DataFeed smart contract.
+ * It is intended to be read by a TimeSeriesFeed smart contract.
  */
 contract LinearizedPriceDataSource is
-    Ownable,
+    TimeLockUpgrade,
     IDataSource
 {
     using SafeMath for uint256;
@@ -43,43 +43,43 @@ contract LinearizedPriceDataSource is
     // Amount of time after which read interpolates price result, in seconds
     uint256 public interpolationThreshold; 
     string public dataDescription;
-    IMedian public medianizerInstance;
+    IOracle public oracleInstance;
 
     /* ============ Events ============ */
 
-    event LogMedianizerUpdated(
-        address indexed newMedianizerAddress
+    event LogOracleUpdated(
+        address indexed newOracleAddress
     );
 
     /* ============ Constructor ============ */
 
     /*
-     * Set interpolationThreshold, data description, and instantiate medianizer
+     * Set interpolationThreshold, data description, and instantiate oracle
      *
      * @param  _interpolationThreshold    The minimum time in seconds where interpolation is enabled
-     * @param  _medianizerAddress         The address to read current data from
+     * @param  _oracleAddress         The address to read current data from
      * @param  _dataDescription           Description of contract for Etherscan / other applications
      */
     constructor(
         uint256 _interpolationThreshold,
-        IMedian _medianizerAddress,
+        IOracle _oracleAddress,
         string memory _dataDescription
     )
         public
     {
         interpolationThreshold = _interpolationThreshold;
-        medianizerInstance = _medianizerAddress;
+        oracleInstance = _oracleAddress;
         dataDescription = _dataDescription;
     }
 
     /* ============ External ============ */
 
     /*
-     * Returns the data from the Medianizer contract. If the current timestamp has surpassed
+     * Returns the data from the oracle contract. If the current timestamp has surpassed
      * the interpolationThreshold, then the current price is retrieved and interpolated based on
      * the previous value and the time that has elapsed since the intended update value.
      *
-     * Returns with newest data point by querying medianizer. Is eligible to be
+     * Returns with newest data point by querying oracle. Is eligible to be
      * called after nextAvailableUpdate timestamp has passed. Because the nextAvailableUpdate occurs
      * on a predetermined cadence based on the time of deployment, delays in calling poke do not propogate
      * throughout the whole dataset and the drift caused by previous poke transactions not being mined
@@ -87,7 +87,7 @@ contract LinearizedPriceDataSource is
      * an updateInterval amount of time after the last poke.
      *
      * @param  _timeSeriesState         Struct of TimeSeriesFeed state
-     * @returns                         Returns the datapoint from the Medianizer contract
+     * @returns                         Returns the datapoint from the oracle contract
      */
     function read(
         TimeSeriesStateLibrary.State calldata _timeSeriesState
@@ -108,16 +108,16 @@ contract LinearizedPriceDataSource is
         // Get previously logged price
         uint256 previousLoggedPrice = _timeSeriesState.timeSeriesDataArray[0];
 
-        // Get current medianizer value
-        uint256 medianizerValue = uint256(medianizerInstance.read());
+        // Get current oracle value
+        uint256 oracleValue = oracleInstance.read();
 
         // If block timeFromExpectedUpdate is greater than interpolationThreshold we linearize
         // the current price to try to reduce error
         if (timeFromExpectedUpdate < interpolationThreshold) {
-            return medianizerValue;
+            return oracleValue;
         } else {
             return interpolateDelayedPriceUpdate(
-                medianizerValue,
+                oracleValue,
                 _timeSeriesState.updateInterval,
                 timeFromExpectedUpdate,
                 previousLoggedPrice
@@ -126,26 +126,27 @@ contract LinearizedPriceDataSource is
     }
 
     /*
-     * Change medianizer in case current one fails or is deprecated. Only contract
+     * Change oracle in case current one fails or is deprecated. Only contract
      * owner is allowed to change.
      *
-     * @param  _newMedianizerAddress       Address of new medianizer to pull data from
+     * @param  _newOracleAddress       Address of new oracle to pull data from
      */
-    function changeMedianizer(
-        IMedian _newMedianizerAddress
+    function changeOracle(
+        IOracle _newOracleAddress
     )
         external
         onlyOwner
+        timeLockUpgrade
     {
-        // Check to make sure new Medianizer address is passed
+        // Check to make sure new oracle address is passed
         require(
-            address(_newMedianizerAddress) != address(medianizerInstance),
-            "LinearizedPriceDataSource.changeMedianizer: Must give new medianizer address."
+            address(_newOracleAddress) != address(oracleInstance),
+            "LinearizedPriceDataSource.changeOracle: Must give new oracle address."
         );
 
-        medianizerInstance = _newMedianizerAddress;
+        oracleInstance = _newOracleAddress;
 
-        emit LogMedianizerUpdated(address(_newMedianizerAddress));
+        emit LogOracleUpdated(address(_newOracleAddress));
     }
 
     /*
@@ -180,7 +181,7 @@ contract LinearizedPriceDataSource is
      * | Actual Price         | 100  | 110   | 151   | 130   |
      * +------------------------------------------------------     
      *
-     * @param  _currentPrice                Current price returned by medianizer
+     * @param  _currentPrice                Current price returned by oracle
      * @param  _updateInterval              Update interval of TimeSeriesFeed
      * @param  _timeFromExpectedUpdate      Time passed from expected update
      * @param  _previousLoggedPrice         Previously logged price from TimeSeriesFeed

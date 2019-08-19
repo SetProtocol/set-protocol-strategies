@@ -14,7 +14,9 @@ import { Blockchain } from '@utils/blockchain';
 import { ether } from '@utils/units';
 import { MedianContract } from 'set-protocol-contracts';
 import {
+  LegacyMakerOracleAdapterContract,
   LinearizedPriceDataSourceContract,
+  OracleProxyContract,
 } from '@utils/contracts';
 import {
   DEFAULT_GAS,
@@ -23,7 +25,7 @@ import {
 } from '@utils/constants';
 import { expectRevertError } from '@utils/tokenAssertions';
 import { getWeb3 } from '@utils/web3Helper';
-import { LogMedianizerUpdated } from '@utils/contract_logs/linearizedPriceDataSource';
+import { LogOracleUpdated } from '@utils/contract_logs/linearizedPriceDataSource';
 
 import { OracleWrapper } from '@utils/wrappers/oracleWrapper';
 
@@ -39,12 +41,14 @@ const setTestUtils = new SetTestUtils(web3);
 contract('LinearizedPriceDataSource', accounts => {
   const [
     deployerAccount,
-    medianizerAccount,
+    oracleAccount,
     nonOwnerAccount,
   ] = accounts;
 
   let ethMedianizer: MedianContract;
+  let legacyMakerOracleAdapter: LegacyMakerOracleAdapterContract;
   let linearizedDataSource: LinearizedPriceDataSourceContract;
+  let oracleProxy: OracleProxyContract;
 
   const oracleWrapper = new OracleWrapper(deployerAccount);
 
@@ -61,6 +65,14 @@ contract('LinearizedPriceDataSource', accounts => {
 
     ethMedianizer = await oracleWrapper.deployMedianizerAsync();
     await oracleWrapper.addPriceFeedOwnerToMedianizer(ethMedianizer, deployerAccount);
+
+    legacyMakerOracleAdapter = await oracleWrapper.deployLegacyMakerOracleAdapterAsync(
+      ethMedianizer.address,
+    );
+
+    oracleProxy = await oracleWrapper.deployOracleProxyAsync(
+      legacyMakerOracleAdapter.address,
+    );
   });
 
   afterEach(async () => {
@@ -69,18 +81,18 @@ contract('LinearizedPriceDataSource', accounts => {
 
   describe('#constructor', async () => {
     let subjectInterpolationThreshold: BigNumber;
-    let subjectMedianizerAddress: Address;
+    let subjectOracleAddress: Address;
     let subjectDataDescription: string;
 
     beforeEach(async () => {
       subjectInterpolationThreshold = ONE_DAY_IN_SECONDS;
-      subjectMedianizerAddress = ethMedianizer.address;
+      subjectOracleAddress = oracleProxy.address;
       subjectDataDescription = '200DailyETHPrice';
     });
 
     async function subject(): Promise<LinearizedPriceDataSourceContract> {
       return oracleWrapper.deployLinearizedPriceDataSourceAsync(
-        subjectMedianizerAddress,
+        subjectOracleAddress,
         subjectInterpolationThreshold,
         subjectDataDescription,
       );
@@ -94,12 +106,12 @@ contract('LinearizedPriceDataSource', accounts => {
       expect(actualInterpolationThreshold).to.be.bignumber.equal(subjectInterpolationThreshold);
     });
 
-    it('sets the correct medianizer address', async () => {
+    it('sets the correct oracle address', async () => {
       linearizedDataSource = await subject();
 
-      const actualMedianizerAddress = await linearizedDataSource.medianizerInstance.callAsync();
+      const actualOracleAddress = await linearizedDataSource.oracleInstance.callAsync();
 
-      expect(actualMedianizerAddress).to.equal(subjectMedianizerAddress);
+      expect(actualOracleAddress).to.equal(subjectOracleAddress);
     });
 
     it('sets the correct data description', async () => {
@@ -129,12 +141,17 @@ contract('LinearizedPriceDataSource', accounts => {
       );
 
       interpolationThreshold = ONE_DAY_IN_SECONDS;
-      const medianizerAddress = ethMedianizer.address;
+      const oracleAddress = oracleProxy.address;
       linearizedDataSource = await oracleWrapper.deployLinearizedPriceDataSourceAsync(
-        medianizerAddress,
+        oracleAddress,
         interpolationThreshold,
       );
       const block = await web3.eth.getBlock('latest');
+
+      await oracleWrapper.addAuthorizedAddressesToOracleProxy(
+        oracleProxy,
+        [linearizedDataSource.address]
+      );
 
       const nextEarliestUpdate = new BigNumber(block.timestamp);
       const updateInterval = ONE_DAY_IN_SECONDS;
@@ -237,10 +254,10 @@ contract('LinearizedPriceDataSource', accounts => {
     });
   });
 
-  describe('#changeMedianizer', async () => {
+  describe('#changeOracle', async () => {
     let ethPrice: BigNumber;
 
-    let subjectNewMedianizer: Address;
+    let subjectNewOracle: Address;
     let subjectCaller: Address;
 
     beforeEach(async () => {
@@ -251,18 +268,18 @@ contract('LinearizedPriceDataSource', accounts => {
         SetTestUtils.generateTimestamp(1000),
       );
 
-      const medianizerAddress = ethMedianizer.address;
+      const oracleAddress = oracleProxy.address;
       linearizedDataSource = await oracleWrapper.deployLinearizedPriceDataSourceAsync(
-        medianizerAddress,
+        oracleAddress,
       );
 
-      subjectNewMedianizer = medianizerAccount;
+      subjectNewOracle = oracleAccount;
       subjectCaller = deployerAccount;
     });
 
     async function subject(): Promise<string> {
-      return linearizedDataSource.changeMedianizer.sendTransactionAsync(
-        subjectNewMedianizer,
+      return linearizedDataSource.changeOracle.sendTransactionAsync(
+        subjectNewOracle,
         {
           from: subjectCaller,
           gas: DEFAULT_GAS,
@@ -270,20 +287,20 @@ contract('LinearizedPriceDataSource', accounts => {
       );
     }
 
-    it('updates the medianizer address', async () => {
+    it('updates the Oracle address', async () => {
       await subject();
 
-      const actualMedianizerAddress = await linearizedDataSource.medianizerInstance.callAsync();
+      const actualOracleAddress = await linearizedDataSource.oracleInstance.callAsync();
 
-      expect(actualMedianizerAddress).to.equal(subjectNewMedianizer);
+      expect(actualOracleAddress).to.equal(subjectNewOracle);
     });
 
-    it('emits correct LogMedianizerUpdated event', async () => {
+    it('emits correct LogOracleUpdated event', async () => {
       const txHash = await subject();
 
       const formattedLogs = await setTestUtils.getLogsFromTxHash(txHash);
-      const expectedLogs = LogMedianizerUpdated(
-        subjectNewMedianizer,
+      const expectedLogs = LogOracleUpdated(
+        subjectNewOracle,
         linearizedDataSource.address
       );
 
@@ -302,7 +319,7 @@ contract('LinearizedPriceDataSource', accounts => {
 
     describe('when passed address is not new', async () => {
       beforeEach(async () => {
-        subjectNewMedianizer = ethMedianizer.address;
+        subjectNewOracle = oracleProxy.address;
       });
 
       it('should revert', async () => {

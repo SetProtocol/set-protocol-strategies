@@ -19,8 +19,8 @@ pragma experimental "ABIEncoderV2";
 
 import { Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import { IMedian } from "../external/DappHub/interfaces/IMedian.sol";
-import { LinkedListLibrary } from "./lib/LinkedListLibrary.sol";
+import { IMedian } from "../../external/DappHub/interfaces/IMedian.sol";
+import { LinkedListLibrary } from "../lib/LinkedListLibrary.sol";
 
 
 /**

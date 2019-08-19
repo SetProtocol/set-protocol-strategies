@@ -8,12 +8,16 @@ import { Blockchain } from '@utils/blockchain';
 import { ether } from '@utils/units';
 
 import {
-  TimeSeriesFeedContract,
   FeedFactoryContract,
   HistoricalPriceFeedContract,
+  LegacyMakerOracleAdapterContract,
   LinearizedPriceDataSourceContract,
   MovingAverageOracleContract,
+  MovingAverageOracleV2Contract,
+  OracleProxyCallerContract,
+  OracleProxyContract,
   PriceFeedContract,
+  TimeSeriesFeedContract,
 } from '../contracts';
 import {
   DEFAULT_GAS,
@@ -23,12 +27,16 @@ import { getWeb3 } from '../web3Helper';
 import { FeedCreatedArgs } from '../contract_logs/oracle';
 
 const web3 = getWeb3();
-const TimeSeriesFeed = artifacts.require('TimeSeriesFeed');
 const HistoricalPriceFeed = artifacts.require('HistoricalPriceFeed');
 const FeedFactory = artifacts.require('FeedFactory');
+const LegacyMakerOracleAdapter = artifacts.require('LegacyMakerOracleAdapter');
 const LinearizedPriceDataSource = artifacts.require('LinearizedPriceDataSource');
 const Median = artifacts.require('Median');
 const MovingAverageOracle = artifacts.require('MovingAverageOracle');
+const MovingAverageOracleV2 = artifacts.require('MovingAverageOracleV2');
+const OracleProxy = artifacts.require('OracleProxy');
+const OracleProxyCaller = artifacts.require('OracleProxyCaller');
+const TimeSeriesFeed = artifacts.require('TimeSeriesFeed');
 
 
 const { SetProtocolTestUtils: SetTestUtils, SetProtocolUtils: SetUtils } = setProtocolUtils;
@@ -94,10 +102,10 @@ export class OracleWrapper {
 
   public async deployTimeSeriesFeedAsync(
     dataSourceAddress: Address,
+    seededValues: BigNumber[],
     updateInterval: BigNumber = ONE_DAY_IN_SECONDS,
     maxDataPoints: BigNumber = new BigNumber(200),
     dataDescription: string = '200DailyETHPrice',
-    seededValues: BigNumber[] = [],
     from: Address = this._contractOwnerAddress
   ): Promise<TimeSeriesFeedContract> {
     const historicalPriceFeed = await TimeSeriesFeed.new(
@@ -172,6 +180,68 @@ export class OracleWrapper {
     );
   }
 
+  public async deployMovingAverageOracleV2Async(
+    timeSeriesFeedAddress: Address,
+    dataDescription: string,
+    from: Address = this._contractOwnerAddress
+  ): Promise<MovingAverageOracleV2Contract> {
+    const movingAverageOracle = await MovingAverageOracleV2.new(
+      timeSeriesFeedAddress,
+      dataDescription,
+      { from },
+    );
+
+    return new MovingAverageOracleV2Contract(
+      new web3.eth.Contract(movingAverageOracle.abi, movingAverageOracle.address),
+      { from },
+    );
+  }
+
+  public async deployLegacyMakerOracleAdapterAsync(
+    medianizerAddress: Address,
+    from: Address = this._contractOwnerAddress
+  ): Promise<LegacyMakerOracleAdapterContract> {
+    const legacyMakerOracleAdapter = await LegacyMakerOracleAdapter.new(
+      medianizerAddress,
+      { from },
+    );
+
+    return new LegacyMakerOracleAdapterContract(
+      new web3.eth.Contract(legacyMakerOracleAdapter.abi, legacyMakerOracleAdapter.address),
+      { from },
+    );
+  }
+
+  public async deployOracleProxyAsync(
+    oracleAddress: Address,
+    from: Address = this._contractOwnerAddress
+  ): Promise<OracleProxyContract> {
+    const oracleProxy = await OracleProxy.new(
+      oracleAddress,
+      { from },
+    );
+
+    return new OracleProxyContract(
+      new web3.eth.Contract(oracleProxy.abi, oracleProxy.address),
+      { from },
+    );
+  }
+
+  public async deployOracleProxyCallerAsync(
+    oracleAddress: Address,
+    from: Address = this._contractOwnerAddress
+  ): Promise<OracleProxyCallerContract> {
+    const oracleProxy = await OracleProxyCaller.new(
+      oracleAddress,
+      { from },
+    );
+
+    return new OracleProxyCallerContract(
+      new web3.eth.Contract(oracleProxy.abi, oracleProxy.address),
+      { from },
+    );
+  }
+
   /* ============ Transactions ============ */
 
   public async addPriceFeedOwnerToMedianizer(
@@ -183,6 +253,20 @@ export class OracleWrapper {
       priceFeedSigner,
       { from },
     );
+  }
+
+  public async addAuthorizedAddressesToOracleProxy(
+    oracleProxy: OracleProxyContract,
+    authorizedAddresses: Address[],
+    from: Address = this._contractOwnerAddress
+  ): Promise<void> {
+    let i: number;
+    for (i = 0; i < authorizedAddresses.length; i++) {
+      await oracleProxy.addAuthorizedAddress.sendTransactionAsync(
+        authorizedAddresses[i],
+        { from },
+      );
+    }
   }
 
   public async setMedianizerMinimumQuorumAsync(
@@ -243,14 +327,14 @@ export class OracleWrapper {
 
   public async updateTimeSeriesFeedAsync(
     timeSeriesFeed: TimeSeriesFeedContract,
-    priceFeed: PriceFeedContract,
+    medianizer: MedianContract,
     price: BigNumber,
     timestamp: number = ONE_DAY_IN_SECONDS.mul(2).toNumber(),
     from: Address = this._contractOwnerAddress
   ): Promise<void> {
     await this._blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS);
-    await this.updatePriceFeedAsync(
-      priceFeed,
+    await this.updateMedianizerPriceAsync(
+      medianizer,
       price,
       SetTestUtils.generateTimestamp(timestamp),
     );
@@ -262,7 +346,7 @@ export class OracleWrapper {
 
   public async batchUpdateTimeSeriesFeedAsync(
     timeSeriesFeed: TimeSeriesFeedContract,
-    priceFeed: PriceFeedContract,
+    medianizer: MedianContract,
     daysOfData: number,
     priceArray: BigNumber[] = undefined,
     from: Address = this._contractOwnerAddress
@@ -276,7 +360,7 @@ export class OracleWrapper {
     for (i = 0; i < priceArray.length; i++) {
       await this.updateTimeSeriesFeedAsync(
         timeSeriesFeed,
-        priceFeed,
+        medianizer,
         priceArray[i],
         ONE_DAY_IN_SECONDS.mul(2 * i + 2).toNumber()
       );

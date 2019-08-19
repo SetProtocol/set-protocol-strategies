@@ -75,10 +75,10 @@ contract('TimeSeriesFeed with DataSource', accounts => {
     const seededValues = [initialEthPrice];
     timeSeriesFeed = await oracleWrapper.deployTimeSeriesFeedAsync(
       sourceDataAddress,
+      seededValues,
       updateInterval,
       maxDataPoints,
       dataDescription,
-      seededValues
     );
   });
 

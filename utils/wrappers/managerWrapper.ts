@@ -9,7 +9,9 @@ import {
   BTCDaiRebalancingManagerContract,
   ETHDaiRebalancingManagerContract,
   MACOStrategyManagerContract,
+  MACOStrategyManagerV2Contract,
   MovingAverageOracleContract,
+  MovingAverageOracleV2Contract,
 } from '../contracts';
 import { BigNumber } from 'bignumber.js';
 
@@ -27,6 +29,7 @@ const BTCETHRebalancingManager = artifacts.require('BTCETHRebalancingManager');
 const BTCDaiRebalancingManager = artifacts.require('BTCDaiRebalancingManager');
 const ETHDaiRebalancingManager = artifacts.require('ETHDaiRebalancingManager');
 const MACOStrategyManager = artifacts.require('MACOStrategyManager');
+const MACOStrategyManagerV2 = artifacts.require('MACOStrategyManagerV2');
 
 const { SetProtocolUtils: SetUtils } = setProtocolUtils;
 const {
@@ -176,19 +179,56 @@ export class ManagerWrapper {
     );
   }
 
+  public async deployMACOStrategyManagerV2Async(
+    coreAddress: Address,
+    movingAveragePriceFeedAddress: Address,
+    riskAssetOracleAddress: Address,
+    daiAddress: Address,
+    ethAddress: Address,
+    stableCollateralAddress: Address,
+    riskCollateralAddress: Address,
+    setTokenFactoryAddress: Address,
+    auctionLibrary: Address,
+    movingAverageDays: BigNumber,
+    crossoverConfirmationBounds: BigNumber[],
+    auctionTimeToPivot: BigNumber = new BigNumber(100000),
+    from: Address = this._tokenOwnerAddress
+  ): Promise<MACOStrategyManagerV2Contract> {
+    const truffleRebalacingTokenManager = await MACOStrategyManagerV2.new(
+      coreAddress,
+      movingAveragePriceFeedAddress,
+      riskAssetOracleAddress,
+      daiAddress,
+      ethAddress,
+      [stableCollateralAddress, riskCollateralAddress],
+      setTokenFactoryAddress,
+      auctionLibrary,
+      movingAverageDays,
+      auctionTimeToPivot,
+      crossoverConfirmationBounds,
+      { from },
+    );
+
+    return new MACOStrategyManagerV2Contract(
+      new web3.eth.Contract(truffleRebalacingTokenManager.abi, truffleRebalacingTokenManager.address),
+      { from, gas: DEFAULT_GAS },
+    );
+  }
+
   /* ============ Helper Functions ============ */
 
   public async getMACOInitialAllocationAsync(
     stableCollateral: SetTokenContract,
     riskCollateral: SetTokenContract,
     spotPriceOracle: MedianContract,
-    movingAverageOracle: MovingAverageOracleContract,
+    movingAverageOracle: MovingAverageOracleContract | MovingAverageOracleV2Contract,
     dataDays: BigNumber,
   ): Promise<Address> {
     const spotPrice = parseInt(await spotPriceOracle.read.callAsync());
-    const maPrice = parseInt(await movingAverageOracle.read.callAsync(dataDays));
+    const rawMAPrice = await movingAverageOracle.read.callAsync(dataDays);
+    const maPriceNum = parseInt(rawMAPrice.toString());
 
-    if (spotPrice > maPrice) {
+    if (spotPrice > maPriceNum) {
       return riskCollateral.address;
     } else {
       return stableCollateral.address;
