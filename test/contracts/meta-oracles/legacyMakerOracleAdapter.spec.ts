@@ -69,7 +69,7 @@ contract('LegacyMakerOracleAdapter', accounts => {
     it('sets the correct interpolationThreshold', async () => {
       legacyMakerOracleAdapter = await subject();
 
-      const actualMedianizerAddress = await legacyMakerOracleAdapter.medianizerAddress.callAsync();
+      const actualMedianizerAddress = await legacyMakerOracleAdapter.medianizerInstance.callAsync();
 
       expect(actualMedianizerAddress).to.be.bignumber.equal(subjectMedianizerAddress);
     });

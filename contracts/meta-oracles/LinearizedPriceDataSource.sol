@@ -109,7 +109,7 @@ contract LinearizedPriceDataSource is
         uint256 previousLoggedPrice = _timeSeriesState.timeSeriesDataArray[0];
 
         // Get current oracle value
-        uint256 oracleValue = uint256(oracleInstance.read());
+        uint256 oracleValue = oracleInstance.read();
 
         // If block timeFromExpectedUpdate is greater than interpolationThreshold we linearize
         // the current price to try to reduce error

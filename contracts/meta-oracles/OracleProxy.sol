@@ -15,7 +15,6 @@
 */
 
 pragma solidity 0.5.7;
-pragma experimental "ABIEncoderV2";
 
 import { Authorizable } from "set-protocol-contracts/contracts/lib/Authorizable.sol";
 
@@ -63,7 +62,7 @@ contract OracleProxy is
     /* ============ External ============ */
 
     /*
-     * Reads value of medianizer and coerces return to uint256. Only authorized addresses are allowed
+     * Reads value of external oracle and passed to Set system. Only authorized addresses are allowed
      * to call read().
      *
      * @returns         Oracle's uint256 output
@@ -93,7 +92,7 @@ contract OracleProxy is
         // Check to make sure new oracle address is passed
         require(
             address(_newOracleAddress) != address(oracleInstance),
-            "LinearizedPriceDataSource.changeOracle: Must give new oracle address."
+            "OracleProxy.changeOracleAddress: Must give new oracle address."
         );
 
         // Set new Oracle address

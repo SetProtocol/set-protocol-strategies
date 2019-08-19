@@ -15,7 +15,6 @@
 */
 
 pragma solidity 0.5.7;
-pragma experimental "ABIEncoderV2";
 
 import { IMedian } from "../external/DappHub/interfaces/IMedian.sol";
 
@@ -30,7 +29,7 @@ import { IMedian } from "../external/DappHub/interfaces/IMedian.sol";
 contract LegacyMakerOracleAdapter {
 
     /* ============ State Variables ============ */
-    IMedian public medianizerAddress;
+    IMedian public medianizerInstance;
 
     /* ============ Constructor ============ */
     /*
@@ -43,7 +42,7 @@ contract LegacyMakerOracleAdapter {
     )
         public
     {
-        medianizerAddress =_medianizerAddress;
+        medianizerInstance =_medianizerAddress;
     }
 
     /* ============ External ============ */
@@ -59,6 +58,6 @@ contract LegacyMakerOracleAdapter {
         returns (uint256)
     {
         // Read value of medianizer and coerce to uint256
-        return uint256(medianizerAddress.read());
+        return uint256(medianizerInstance.read());
     }
 }
