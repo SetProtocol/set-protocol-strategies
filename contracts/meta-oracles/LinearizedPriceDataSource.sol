@@ -106,9 +106,6 @@ contract LinearizedPriceDataSource is
         // Calculate how much time has passed from last expected update
         uint256 timeFromExpectedUpdate = block.timestamp.sub(_timeSeriesState.nextEarliestUpdate);
 
-        // Get previously logged price
-        uint256 previousLoggedPrice = _timeSeriesState.timeSeriesDataArray[0];
-
         // Get current oracle value
         uint256 oracleValue = oracleInstance.read();
 
@@ -121,7 +118,7 @@ contract LinearizedPriceDataSource is
                 oracleValue,
                 _timeSeriesState.updateInterval,
                 timeFromExpectedUpdate,
-                previousLoggedPrice
+                _timeSeriesState.timeSeriesDataArray[0]
             );
         }
     }

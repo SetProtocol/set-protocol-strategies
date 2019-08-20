@@ -46,7 +46,7 @@ contract TimeSeriesFeed is
     // Unix Timestamp in seconds of next earliest update time
     uint256 public nextEarliestUpdate;
     string public dataDescription;
-    IDataSource public dataSource;
+    IDataSource public dataSourceInstance;
 
     LinkedList private timeSeriesData;
 
@@ -75,11 +75,11 @@ contract TimeSeriesFeed is
     )
         public
     {
-        // Set updateInterval, maxDataPoints, data description, and instantiate dataSource
+        // Set updateInterval, maxDataPoints, data description, dataSourceInstance
         updateInterval = _updateInterval;
         maxDataPoints = _maxDataPoints;
         dataDescription = _dataDescription;
-        dataSource = _dataSourceAddress;
+        dataSourceInstance = _dataSourceAddress;
 
         require(
             _seededValues.length > 0,
@@ -123,12 +123,10 @@ contract TimeSeriesFeed is
 
         TimeSeriesStateLibrary.State memory timeSeriesState = getTimeSeriesFeedState();
 
-        // Get the most current data point
-        uint256 newValue = dataSource.read(
-            timeSeriesState
-        );
+        // Calculate next data point
+        uint256 newValue = dataSourceInstance.read(timeSeriesState);
 
-        // Update the nextEarliestUpdate to current block timestamp plus updateInterval
+        // Update the nextEarliestUpdate to previous nextEarliestUpdate plus updateInterval
         nextEarliestUpdate = nextEarliestUpdate.add(updateInterval);
 
         // Update linkedList with new price

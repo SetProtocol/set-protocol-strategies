@@ -95,7 +95,7 @@ contract OracleProxy is
             "OracleProxy.changeOracleAddress: Must give new oracle address."
         );
 
-        // Set new Oracle address
+        // Set new Oracle instance
         oracleInstance = _newOracleAddress;
 
         emit LogOracleUpdated(address(_newOracleAddress));

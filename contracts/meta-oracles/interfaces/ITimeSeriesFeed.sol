@@ -16,6 +16,8 @@
 
 pragma solidity 0.5.7;
 
+import { TimeSeriesStateLibrary } from "../lib/TimeSeriesStateLibrary.sol";
+
 /**
  * @title ITimeSeriesFeed
  * @author Set Protocol
@@ -47,4 +49,8 @@ interface ITimeSeriesFeed {
         view
         returns (uint256);
 
+    function getTimeSeriesFeedState()
+        external
+        view
+        returns (TimeSeriesStateLibrary.State memory);
 }

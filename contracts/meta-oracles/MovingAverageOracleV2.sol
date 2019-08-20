@@ -26,9 +26,11 @@ import { ITimeSeriesFeed } from "./interfaces/ITimeSeriesFeed.sol";
  * @author Set Protocol
  *
  * Contract used calculate moving average of data points provided by other on-chain
- * price feed and return to querying contract. Updated from version one to read from
- * ITimeSeriesFeed and output uint256 instead of bytes. getSourceMedianizer() function
- * removed.
+ * price feed and return to querying contract.
+ * CHANGELOG:
+ *  - Updated from version one to read from ITimeSeriesFeed 
+ *  - Outputs uint256 instead of bytes
+ *  - getSourceMedianizer() function removed.
  */
 contract MovingAverageOracleV2 {
 
@@ -77,12 +79,12 @@ contract MovingAverageOracleV2 {
         uint256[] memory dataArray = timeSeriesFeedInstance.read(_dataPoints);
 
         // Sum data retrieved from daily price feed
-        uint256 dataSumTotal = 0;
+        uint256 dataSum = 0;
         for (uint256 i = 0; i < dataArray.length; i++) {
-            dataSumTotal = dataSumTotal.add(dataArray[i]);
+            dataSum = dataSum.add(dataArray[i]);
         }
 
         // Return average price
-        return dataSumTotal.div(_dataPoints);
+        return dataSum.div(_dataPoints);
     }
 }
