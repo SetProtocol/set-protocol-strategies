@@ -22,6 +22,9 @@ pragma solidity 0.5.7;
  * @author Set Protocol
  *
  * Interface for operating with any MetaOracleV2 (moving average, bollinger, etc.)
+ *
+ * CHANGELOG:
+ *  - read returns uint256 instead of bytes
  */
 interface IMetaOracleV2 {
 

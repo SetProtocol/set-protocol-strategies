@@ -37,6 +37,11 @@ import { FlexibleTimingManagerLibrary } from "./lib/FlexibleTimingManagerLibrary
  * Strategy between a risk asset's MA and the spot price of the risk asset. The time
  * frame for the MA is defined on instantiation. When the spot price dips below the MA
  * risk asset is sold for stable asset and vice versa when the spot price exceeds the MA.
+ *
+ * CHANGELOG:
+ *  - Pass riskAssetOracleInstance in constructor
+ *  - Pass list of collateral sets in constructor instead of individually
+ *  - Read oracles using IOracle and IMetaOracleV2
  */
 contract MACOStrategyManagerV2 {
     using SafeMath for uint256;

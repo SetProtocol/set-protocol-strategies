@@ -123,7 +123,7 @@ contract('TimeSeriesFeed', accounts => {
     it('sets the correct dataSource address', async () => {
       timeSeriesFeed = await subject();
 
-      const actualDataSourceAddress = await timeSeriesFeed.dataSource.callAsync();
+      const actualDataSourceAddress = await timeSeriesFeed.dataSourceInstance.callAsync();
 
       expect(actualDataSourceAddress).to.equal(subjectDataSourceAddress);
     });

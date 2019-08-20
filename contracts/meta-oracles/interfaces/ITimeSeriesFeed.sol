@@ -15,6 +15,9 @@
 */
 
 pragma solidity 0.5.7;
+pragma experimental "ABIEncoderV2";
+
+import { TimeSeriesStateLibrary } from "../lib/TimeSeriesStateLibrary.sol";
 
 /**
  * @title ITimeSeriesFeed
@@ -47,4 +50,8 @@ interface ITimeSeriesFeed {
         view
         returns (uint256);
 
+    function getTimeSeriesFeedState()
+        external
+        view
+        returns (TimeSeriesStateLibrary.State memory);
 }
