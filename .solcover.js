@@ -7,7 +7,6 @@ module.exports = {
     'Migrations.sol',
     'mocks',
     'external',
-    'meta-oracles/TimeSeriesFeed.sol',
-    'meta-oracles/lib/LinkedListLibraryV2.sol',
+    'meta-oracles/lib/LinkedListLibraryV2.sol', // There are issues with testing of LinkedListLibrary
   ],
 };
