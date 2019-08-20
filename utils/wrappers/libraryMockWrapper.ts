@@ -96,7 +96,7 @@ export class LibraryMockWrapper {
     );
   }
 
-  public async deployLinkedListLibraryMock2Async(
+  public async deployLinkedListLibraryMockV2Async(
     from: Address = this._contractOwnerAddress
   ): Promise<LinkedListLibraryMockV2Contract> {
     const linkedList = await LinkedListLibraryMockV2.new(
