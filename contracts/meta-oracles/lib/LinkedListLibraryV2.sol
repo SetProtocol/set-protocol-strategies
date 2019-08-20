@@ -24,11 +24,12 @@ import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
  * @title LinkedListLibraryV2
  * @author Set Protocol
  *
- * NOTE: This is an exact copy of LinkedListLibrary.sol with the exception that it is
- * a library instead of a contract.
- *
  * Library for creating and altering uni-directional circularly linked lists, optimized for sequential updating
  * Version two of this contract is a library vs. a contract.
+ * 
+ *
+ * CHANGELOG
+ * - LinkedListLibraryV2 is declared as library vs. contract
  */
 library LinkedListLibraryV2 {
 
