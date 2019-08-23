@@ -255,8 +255,7 @@ contract MACOStrategyManagerV2 {
             uint256 currentSetDollarValue,
             uint256 nextSetDollarValue
         ) = determineNewAllocation(
-            riskAssetPrice,
-            movingAveragePrice
+            riskAssetPrice
         );
 
         // Calculate the price parameters for auction
@@ -354,20 +353,17 @@ contract MACOStrategyManagerV2 {
     }
 
     /*
-     * Check to make sure that the necessary price changes have occured to allow a rebalance.
      * Determine the next allocation to rebalance into. If the dollar value of the two collateral sets is more
      * than 5x different from each other then create a new collateral set. If currently riskOn then a new
      * stable collateral set is created, if !riskOn then a new risk collateral set is created.
      *
      * @param  _riskAssetPrice          Current risk asset price as found on oracle
-     * @param  _movingAveragePrice      Current MA price from Meta Oracle
      * @return address                  The address of the proposed nextSet
      * @return uint256                  The USD value of current Set
      * @return uint256                  The USD value of next Set
      */
     function determineNewAllocation(
-        uint256 _riskAssetPrice,
-        uint256 _movingAveragePrice
+        uint256 _riskAssetPrice
     )
         internal
         returns (address, uint256, uint256)
