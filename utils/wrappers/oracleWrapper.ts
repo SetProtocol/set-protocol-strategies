@@ -11,6 +11,7 @@ import {
   FeedFactoryContract,
   HistoricalPriceFeedContract,
   LegacyMakerOracleAdapterContract,
+  LinearizedEMADataSourceContract,
   LinearizedPriceDataSourceContract,
   MovingAverageOracleContract,
   MovingAverageOracleV2Contract,
@@ -30,6 +31,7 @@ const web3 = getWeb3();
 const HistoricalPriceFeed = artifacts.require('HistoricalPriceFeed');
 const FeedFactory = artifacts.require('FeedFactory');
 const LegacyMakerOracleAdapter = artifacts.require('LegacyMakerOracleAdapter');
+const LinearizedEMADataSource = artifacts.require('LinearizedEMADataSource');
 const LinearizedPriceDataSource = artifacts.require('LinearizedPriceDataSource');
 const Median = artifacts.require('Median');
 const MovingAverageOracle = artifacts.require('MovingAverageOracle');
@@ -138,6 +140,27 @@ export class OracleWrapper {
 
     return new LinearizedPriceDataSourceContract(
       new web3.eth.Contract(linearizedPriceDataSource.abi, linearizedPriceDataSource.address),
+      { from },
+    );
+  }
+
+  public async deployLinearizedEMADataSourceAsync(
+    medianizerInstance: Address,
+    emaDays: BigNumber,
+    updateTolerance: BigNumber = ONE_DAY_IN_SECONDS,
+    dataDescription: string = '200DailyETHPrice',
+    from: Address = this._contractOwnerAddress
+  ): Promise<LinearizedEMADataSourceContract> {
+    const linearizedEMADataSource = await LinearizedEMADataSource.new(
+      emaDays,
+      updateTolerance,
+      medianizerInstance,
+      dataDescription,
+      { from },
+    );
+
+    return new LinearizedEMADataSourceContract(
+      new web3.eth.Contract(linearizedEMADataSource.abi, linearizedEMADataSource.address),
       { from },
     );
   }
