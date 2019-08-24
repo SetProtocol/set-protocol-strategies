@@ -435,4 +435,21 @@ export class OracleWrapper {
 
     return priceArray;
   }
+
+  public calculateEMA(
+    previousEMAValue: BigNumber,
+    timePeriod: BigNumber,
+    currentAssetPrice: BigNumber
+  ): BigNumber {
+    const weightedNumerator: BigNumber = new BigNumber(2);
+    const weightedDenominator: BigNumber = timePeriod.plus(1);
+
+    const currentWeightedValue = currentAssetPrice
+                                   .mul(weightedNumerator).div(weightedDenominator).round(0, 3);
+
+    const previousWeightedValue = previousEMAValue
+                                   .mul(weightedNumerator).div(weightedDenominator).round(0, 3);
+
+    return currentWeightedValue.add(previousEMAValue).sub(previousWeightedValue);
+  }
 }

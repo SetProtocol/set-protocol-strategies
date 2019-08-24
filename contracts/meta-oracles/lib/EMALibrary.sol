@@ -37,8 +37,9 @@ library EMALibrary{
      * Calculates the new exponential moving average value using the previous value,
      * EMA time period, and the current asset price.
      *
-     * @param  _self                        LinkedList to operate on 
-     * @param  _dataPoints                  Number of data points to return
+     * @param  _previousEMAValue                  
+     * @param  _timePeriod                        
+     * @param  _currentAssetPrice                        
      */
     function calculate(
         uint256 _previousEMAValue,

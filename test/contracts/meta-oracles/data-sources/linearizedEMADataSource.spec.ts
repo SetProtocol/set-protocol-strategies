@@ -139,6 +139,8 @@ contract('LinearizedEMADataSource', accounts => {
     let interpolationThreshold: BigNumber;
     let emaTimePeriod: BigNumber;
 
+    let previousEMAValue: BigNumber;
+
     let subjectTimeSeriesState: TimeSeriesFeedState;
     let subjectTimeFastForward: BigNumber;
 
@@ -146,6 +148,8 @@ contract('LinearizedEMADataSource', accounts => {
 
     beforeEach(async () => {
       emaTimePeriod = new BigNumber(26);
+      previousEMAValue = ether(100);
+
       newEthPrice = customEtherPrice || ether(200);
       await oracleWrapper.updateMedianizerPriceAsync(
         ethMedianizer,
@@ -169,7 +173,7 @@ contract('LinearizedEMADataSource', accounts => {
 
       const nextEarliestUpdate = new BigNumber(block.timestamp);
       const updateInterval = ONE_DAY_IN_SECONDS;
-      const timeSeriesDataArray = [ether(100)];
+      const timeSeriesDataArray = [previousEMAValue];
 
       subjectTimeSeriesState = {
         nextEarliestUpdate,
@@ -196,11 +200,10 @@ contract('LinearizedEMADataSource', accounts => {
     }
 
     it('updates the linearizedDataSource with the correct price', async () => {
-      const actualPrice = await subject();
+      const output = await subject();
 
-      const expectedPrice = newEthPrice;
-
-      expect(actualPrice).to.bignumber.equal(expectedPrice);
+      const newEMAValue = oracleWrapper.calculateEMA(previousEMAValue, emaTimePeriod, newEthPrice);
+      expect(output).to.bignumber.equal(newEMAValue);
     });
 
     describe('when the timestamp has surpassed the interpolationThreshold and price increases', async () => {
@@ -214,9 +217,11 @@ contract('LinearizedEMADataSource', accounts => {
         const block = await web3.eth.getBlock('latest');
         const timeFromExpectedUpdate = new BigNumber(block.timestamp).sub(subjectTimeSeriesState.nextEarliestUpdate);
 
+        const newEMAValue = oracleWrapper.calculateEMA(previousEMAValue, emaTimePeriod, newEthPrice);
+
         const timeFromLastUpdate = timeFromExpectedUpdate.add(subjectTimeSeriesState.updateInterval);
         const previousLoggedPrice = subjectTimeSeriesState.timeSeriesDataArray[0];
-        const expectedNewPrice = newEthPrice
+        const expectedNewPrice = newEMAValue
                                      .mul(subjectTimeSeriesState.updateInterval)
                                      .add(previousLoggedPrice.mul(timeFromExpectedUpdate))
                                      .div(timeFromLastUpdate)
@@ -228,7 +233,7 @@ contract('LinearizedEMADataSource', accounts => {
 
     describe('when the timestamp has surpassed the interpolationThreshold and price decreases', async () => {
       before(async () => {
-        customEtherPrice = new BigNumber(50);
+        customEtherPrice = ether(50);
       });
 
       after(async () => {
@@ -245,9 +250,11 @@ contract('LinearizedEMADataSource', accounts => {
         const block = await web3.eth.getBlock('latest');
         const timeFromExpectedUpdate = new BigNumber(block.timestamp).sub(subjectTimeSeriesState.nextEarliestUpdate);
 
+        const newEMAValue = oracleWrapper.calculateEMA(previousEMAValue, emaTimePeriod, newEthPrice);
+
         const timeFromLastUpdate = timeFromExpectedUpdate.add(subjectTimeSeriesState.updateInterval);
         const previousLoggedPrice = subjectTimeSeriesState.timeSeriesDataArray[0];
-        const expectedNewPrice = newEthPrice
+        const expectedNewPrice = newEMAValue
                                      .mul(subjectTimeSeriesState.updateInterval)
                                      .add(previousLoggedPrice.mul(timeFromExpectedUpdate))
                                      .div(timeFromLastUpdate)
@@ -270,7 +277,7 @@ contract('LinearizedEMADataSource', accounts => {
 
   describe('#changeOracle', async () => {
     let ethPrice: BigNumber;
-    let emaTimePeriod = new BigNumber(26);
+    const emaTimePeriod = new BigNumber(26);
 
     let subjectNewOracle: Address;
     let subjectCaller: Address;

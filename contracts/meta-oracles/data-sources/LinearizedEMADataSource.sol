@@ -114,9 +114,9 @@ contract LinearizedEMADataSource is
         uint256 previousEMAValue = _timeSeriesState.timeSeriesDataArray[0];
 
         uint256 currentEMAValue = EMALibrary.calculate(
-            oracleValue,
+            previousEMAValue,
             emaTimePeriod,
-            previousEMAValue
+            oracleValue
         );
 
         // Calculate how much time has passed from last expected update

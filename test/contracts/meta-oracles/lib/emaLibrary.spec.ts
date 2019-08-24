@@ -11,12 +11,10 @@ import {
 } from '@utils/contracts';
 import { Blockchain } from '@utils/blockchain';
 import { ether } from '@utils/units';
-import {
-  ONE_DAY_IN_SECONDS
-} from '@utils/constants';
 import { getWeb3 } from '@utils/web3Helper';
 
 import { LibraryMockWrapper } from '@utils/wrappers/libraryMockWrapper';
+import { OracleWrapper } from '@utils/wrappers/oracleWrapper';
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
@@ -32,6 +30,7 @@ contract('EMALibrary', accounts => {
   let emaLibraryMock: EMALibraryMockContract;
 
   const libraryMockWrapper = new LibraryMockWrapper(deployerAccount);
+  const oracleWrapper = new OracleWrapper(deployerAccount);
 
   beforeEach(async () => {
     blockchain.saveSnapshotAsync();
@@ -48,9 +47,6 @@ contract('EMALibrary', accounts => {
     let subjectTimePeriod: BigNumber;
     let subjectCurrentAssetPrice: BigNumber;
 
-    let weightedNumerator: BigNumber = new BigNumber(2);
-    let weightedDenominator: BigNumber;
-
     let customPreviousEMAValue: BigNumber;
     let customTimePeriod: BigNumber;
     let customCurrentAssetPrice: BigNumber;
@@ -58,9 +54,7 @@ contract('EMALibrary', accounts => {
     beforeEach(async () => {
       subjectPreviousEMAValue = customPreviousEMAValue || ether(200);
       subjectTimePeriod = customTimePeriod || new BigNumber(26);
-      subjectCurrentAssetPrice = customCurrentAssetPrice ||ether(300);
-
-      weightedDenominator = subjectTimePeriod.plus(1);
+      subjectCurrentAssetPrice = customCurrentAssetPrice || ether(300);
     });
 
     afterEach(async () => {
@@ -77,19 +71,13 @@ contract('EMALibrary', accounts => {
       );
     }
 
-    function calculateEMA(): BigNumber {
-      const currentWeightedValue = subjectCurrentAssetPrice
-                                     .mul(weightedNumerator).div(weightedDenominator).round(0, 3);
-
-      const previousWeightedValue = subjectPreviousEMAValue
-                                     .mul(weightedNumerator).div(weightedDenominator).round(0, 3);
-
-      return currentWeightedValue.add(subjectPreviousEMAValue).sub(previousWeightedValue);      
-    }
-
     it('returns the correct price', async () => {
       const output = await subject();
-      const expectedOutput = calculateEMA();
+      const expectedOutput = oracleWrapper.calculateEMA(
+        subjectPreviousEMAValue,
+        subjectTimePeriod,
+        subjectCurrentAssetPrice,
+      );
       expect(output).to.be.bignumber.equal(expectedOutput);
     });
 
@@ -102,7 +90,11 @@ contract('EMALibrary', accounts => {
 
       it('returns the correct price', async () => {
         const output = await subject();
-        const expectedOutput = calculateEMA();
+        const expectedOutput = oracleWrapper.calculateEMA(
+          subjectPreviousEMAValue,
+          subjectTimePeriod,
+          subjectCurrentAssetPrice,
+        );
         expect(output).to.be.bignumber.equal(expectedOutput);
       });
     });
@@ -116,7 +108,11 @@ contract('EMALibrary', accounts => {
 
       it('returns the correct price', async () => {
         const output = await subject();
-        const expectedOutput = calculateEMA();
+        const expectedOutput = oracleWrapper.calculateEMA(
+          subjectPreviousEMAValue,
+          subjectTimePeriod,
+          subjectCurrentAssetPrice,
+        );
         expect(output).to.be.bignumber.equal(expectedOutput);
       });
     });
