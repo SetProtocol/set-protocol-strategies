@@ -42,6 +42,7 @@ contract LinearizedEMADataSource is
     using SafeMath for uint256;
 
     /* ============ State Variables ============ */
+    // Number of EMA Days
     uint256 public emaTimePeriod;
 
     // Amount of time after which read interpolates price result, in seconds
@@ -60,8 +61,9 @@ contract LinearizedEMADataSource is
     /*
      * Set interpolationThreshold, data description, and instantiate oracle
      *
+     * @param  _emaTimePeriod             The time period the exponential moving average is based off of
      * @param  _interpolationThreshold    The minimum time in seconds where interpolation is enabled
-     * @param  _oracleAddress         The address to read current data from
+     * @param  _oracleAddress             The address to read current data from
      * @param  _dataDescription           Description of contract for Etherscan / other applications
      */
     constructor(
@@ -111,8 +113,10 @@ contract LinearizedEMADataSource is
         // Get current oracle value
         uint256 oracleValue = oracleInstance.read();
 
+        // Get the previous EMA Value
         uint256 previousEMAValue = _timeSeriesState.timeSeriesDataArray[0];
 
+        // Calculate the current EMA
         uint256 currentEMAValue = EMALibrary.calculate(
             previousEMAValue,
             emaTimePeriod,
