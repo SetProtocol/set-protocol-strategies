@@ -18,7 +18,7 @@ pragma solidity 0.5.7;
 
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
-import { CommonMath } from "set-protocol-contracts/contracts/lib/Commonmath.sol";
+import { CommonMath } from "set-protocol-contracts/contracts/lib/CommonMath.sol";
 
 
 /**
