@@ -15,7 +15,6 @@
 */
 
 pragma solidity 0.5.7;
-pragma experimental "ABIEncoderV2";
 
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { TimeLockUpgrade } from "set-protocol-contracts/contracts/lib/TimeLockUpgrade.sol";
@@ -28,12 +27,14 @@ import { IMetaOracleV2 } from "./interfaces/IMetaOracleV2.sol";
  * @title EMAOracle
  * @author Set Protocol
  *
+ * The EMA Oracle is a Proxy library that allows the indexing of existing EMA feeds and the retrieval
+ * of addresses using the IMetaOracleV2 interface.
+ * 
  */
 contract EMAOracle is
     TimeLockUpgrade,
     IMetaOracleV2
 {
-
     using SafeMath for uint256;
 
     /* ============ Events ============ */
@@ -43,10 +44,8 @@ contract EMAOracle is
         uint256 indexed emaDays
     );
 
-    /* ============ Events ============ */
-
     event FeedRemoved(
-        address indexed newFeedAddress,
+        address indexed removedFeedAddress,
         uint256 indexed emaDays
     );
 
@@ -59,16 +58,16 @@ contract EMAOracle is
     /* ============ Constructor ============ */
 
     /*
-     * EMAOracle constructor.
-     * Contract used calculate moving average of data points provided by other on-chain
-     * price feed and return to querying contract
+     * Contract used to provide a common interface to retrieve the most recent
+     * EMA value of a specific EMA days time series feed.
      *
-     * @param  _timeSeriesFeed          TimeSeriesFeed to get list of data from
+     * @param  _timeSeriesFeed          List of time series feed addresses
+     * @param  _emaTimePeriods          List of EMA Days that correspond with feed addresses
      * @param  _dataDescription         Description of data
      */
     constructor(
         ITimeSeriesFeed[] memory _timeSeriesFeeds,
-        uint256[] memory _timeSeriesFeedDays,
+        uint256[] memory _emaTimePeriods,
         string memory _dataDescription
     )
         public
@@ -76,59 +75,87 @@ contract EMAOracle is
         dataDescription = _dataDescription;
 
         // Require that the feeds inputted and days are the same
-        require(_timeSeriesFeeds.length == _timeSeriesFeedDays.length, 'Len must be the same');
+        require(
+            _timeSeriesFeeds.length == _emaTimePeriods.length,
+            "EMAOracle.constructor: Input lengths must be equal"
+        );
 
         // Loop through the feeds and add to the mapping
         for (uint256 i = 0; i < _timeSeriesFeeds.length; i++) {
-            uint256 emaDay = _timeSeriesFeedDays[i];
+            uint256 emaDay = _emaTimePeriods[i];
             emaTimeSeriesFeeds[emaDay] = _timeSeriesFeeds[i];
         }
     }
 
     /*
-     * Get moving average over defined amount of data points by querying price feed and
-     * averaging returned data. Returns uint256.
+     * Get the current EMA value for a specific time period.
      *
-     * @param  _emaDays          Number of data points to create average from
-     * @returns                  Moving average for passed number of _emaDays
+     * @param  _emaTimePeriods   Number of days in time period
+     * @returns                  EMA value for passed number of EMA time period
      */
     function read(
-        uint256 _emaDays    
+        uint256 _emaTimePeriod    
     )
         external
         view
         returns (uint256)
     {
-        ITimeSeriesFeed emaFeedInstance = emaTimeSeriesFeeds[_emaDays];
+        ITimeSeriesFeed emaFeedInstance = emaTimeSeriesFeeds[_emaTimePeriod];
 
         // EMA Feed must be added
-        require(address(emaFeedInstance) != address(0));
+        require(
+            address(emaFeedInstance) != address(0),
+            "EMAOracle.removeFeed: Feed does not exist"
+        );
 
-        // Get the current EMA value
+        // Get the current EMA value. The most current value is the first index
         return emaFeedInstance.read(1)[0];
     }
 
-    function addFeed(ITimeSeriesFeed _feedAddress, uint256 _emaDays)
+    /*
+     * Add a feed address with the mapping of tracked time series feeds
+     * Can only be called by owner.
+     *
+     * @param  _feedAddress      Address of the EMA time series feed
+     * @param  _emaTimePeriod    Number of days in EMA time period
+     */
+    function addFeed(
+        ITimeSeriesFeed _feedAddress,
+        uint256 _emaTimePeriod
+    )
         external
         onlyOwner
     {
-        require(address(emaTimeSeriesFeeds[_emaDays]) == address(0));
+        require(
+            address(emaTimeSeriesFeeds[_emaTimePeriod]) == address(0),
+            "EMAOracle.addFeed: Feed has already been added"
+        );
 
-        emaTimeSeriesFeeds[_emaDays] = _feedAddress;
+        emaTimeSeriesFeeds[_emaTimePeriod] = _feedAddress;
 
-        emit FeedAdded(address(_feedAddress), _emaDays);
+        emit FeedAdded(address(_feedAddress), _emaTimePeriod);
     }
 
-    function removeFeed(uint256 _emaDays)
+    /*
+     * Removes a feed address with the mapping of tracked time series feeds
+     * Can only be called by owner. Is a timeLockUpgrade operation.
+     *
+     * @param  _emaTimePeriod   Number of days in EMA time period
+     */
+    function removeFeed(uint256 _emaTimePeriod)
         external
         onlyOwner
+        timeLockUpgrade
     {
-        address emaTimeSeriesFeed = address(emaTimeSeriesFeeds[_emaDays]);
+        address emaTimeSeriesFeed = address(emaTimeSeriesFeeds[_emaTimePeriod]);
 
-        require(emaTimeSeriesFeed != address(0));
+        require(
+            emaTimeSeriesFeed != address(0),
+            "EMAOracle.removeFeed: Feed does not exist."
+        );
 
-        emaTimeSeriesFeeds[_emaDays] = ITimeSeriesFeed(address(0));
+        emaTimeSeriesFeeds[_emaTimePeriod] = ITimeSeriesFeed(address(0));
 
-        emit FeedRemoved(emaTimeSeriesFeed, _emaDays);
+        emit FeedRemoved(emaTimeSeriesFeed, _emaTimePeriod);
     }
 }

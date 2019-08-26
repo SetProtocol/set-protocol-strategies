@@ -2,6 +2,8 @@ require('module-alias/register');
 
 import * as _ from 'lodash';
 import * as chai from 'chai';
+import * as ABIDecoder from 'abi-decoder';
+import * as setProtocolUtils from 'set-protocol-utils';
 
 import { Address } from 'set-protocol-utils';
 import { BigNumber } from 'bignumber.js';
@@ -18,20 +20,27 @@ import {
   OracleProxyContract,
   TimeSeriesFeedContract
 } from '@utils/contracts';
-import { ZERO, ONE_DAY_IN_SECONDS } from '@utils/constants';
+import { ONE_DAY_IN_SECONDS, NULL_ADDRESS } from '@utils/constants';
 import { getWeb3 } from '@utils/web3Helper';
+import { expectRevertError } from '@utils/tokenAssertions';
 
 import { OracleWrapper } from '@utils/wrappers/oracleWrapper';
 
+import { FeedAdded, FeedRemoved } from '@utils/contract_logs/emaOracle';
+
+const EMAOracle = artifacts.require('EMAOracle');
 BigNumberSetup.configure();
 ChaiSetup.configure();
 const web3 = getWeb3();
 const { expect } = chai;
 const blockchain = new Blockchain(web3);
+const { SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
+const setTestUtils = new SetTestUtils(web3);
 
 contract('EMAOracle', accounts => {
   const [
     deployerAccount,
+    fillerValue,
   ] = accounts;
 
   let ethMedianizer: MedianContract;
@@ -46,6 +55,14 @@ contract('EMAOracle', accounts => {
   const oracleWrapper = new OracleWrapper(deployerAccount);
 
   const emaTimePeriodOne = new BigNumber(26);
+
+  before(async () => {
+    ABIDecoder.addABI(EMAOracle.abi);
+  });
+
+  after(async () => {
+    ABIDecoder.removeABI(EMAOracle.abi);
+  });
 
   beforeEach(async () => {
     blockchain.saveSnapshotAsync();
@@ -94,7 +111,6 @@ contract('EMAOracle', accounts => {
     let timeSeriesFeedTwo: TimeSeriesFeedContract;
 
     const emaTimePeriodTwo = new BigNumber(13);
-    const initialEMAValueTwo = ether(300);
 
     beforeEach(async () => {
       const interpolationThreshold = ONE_DAY_IN_SECONDS;
@@ -145,13 +161,21 @@ contract('EMAOracle', accounts => {
 
       expect(actualDataDescription).to.equal(subjectDataDescription);
     });
+
+    describe('when the input lengths differ', async () => {
+      beforeEach(async () => {
+        subjectTimeSeriesFeedDays = [emaTimePeriodOne, emaTimePeriodTwo, new BigNumber(3)];
+      });
+
+      it('reverts', async () => {
+        await expectRevertError(subject());
+      });
+    });
   });
 
   describe('#read', async () => {
-    let updatedValues: BigNumber[];
-
     let subjectDataPoints: BigNumber;
-    let newestEthPrice = ether(500);
+    const newestEthPrice = ether(500);
     let previousEMAValue: BigNumber;
 
     beforeEach(async () => {
@@ -166,7 +190,7 @@ contract('EMAOracle', accounts => {
 
       previousEMAValue = await emaOracle.read.callAsync(subjectDataPoints);
 
-      updatedValues = await oracleWrapper.batchUpdateTimeSeriesFeedAsync(
+      await oracleWrapper.batchUpdateTimeSeriesFeedAsync(
         timeSeriesFeed,
         ethMedianizer,
         1,
@@ -190,6 +214,125 @@ contract('EMAOracle', accounts => {
       );
 
       expect(actualEMA).to.be.bignumber.equal(expectedEMA);
+    });
+  });
+
+  describe('#addFeed', async () => {
+    let subjectFeedAddress: Address;
+    let subjectEMADays: BigNumber;
+
+    beforeEach(async () => {
+      const dataDescription = 'EMA Oracle';
+      emaOracle = await oracleWrapper.deployEMAOracleAsync(
+        [timeSeriesFeed.address],
+        [emaTimePeriodOne],
+        dataDescription
+      );
+
+      subjectFeedAddress = fillerValue;
+      subjectEMADays = new BigNumber(13);
+    });
+
+    async function subject(): Promise<string> {
+      return emaOracle.addFeed.sendTransactionAsync(
+        subjectFeedAddress,
+        subjectEMADays,
+      );
+    }
+
+    it('adds the feed correctly', async () => {
+      await subject();
+
+      const currentFeedValue = await emaOracle.emaTimeSeriesFeeds.callAsync(subjectEMADays);
+
+      expect(currentFeedValue).to.equal(subjectFeedAddress);
+    });
+
+    it('emits the FeedAdded event', async () => {
+      const txHash = await subject();
+
+      const formattedLogs = await setTestUtils.getLogsFromTxHash(txHash);
+      const expectedLogs = FeedAdded(
+        subjectFeedAddress,
+        subjectEMADays,
+        emaOracle.address,
+      );
+
+      await SetTestUtils.assertLogEquivalence(formattedLogs, expectedLogs);
+    });
+
+    describe('when a feed has already been added', async () => {
+      beforeEach(async () => {
+        await emaOracle.addFeed.sendTransactionAsync(
+          subjectFeedAddress,
+          subjectEMADays,
+        );
+      });
+
+      it('reverts', async () => {
+        await expectRevertError(subject());
+      });
+    });
+  });
+
+  describe('#removeFeed', async () => {
+    let subjectFeedAddress: Address;
+    let subjectEMADays: BigNumber;
+
+    beforeEach(async () => {
+      const dataDescription = 'EMA Oracle';
+      emaOracle = await oracleWrapper.deployEMAOracleAsync(
+        [timeSeriesFeed.address],
+        [emaTimePeriodOne],
+        dataDescription
+      );
+
+      subjectFeedAddress = fillerValue;
+      subjectEMADays = new BigNumber(13);
+
+      await emaOracle.addFeed.sendTransactionAsync(
+        subjectFeedAddress,
+        subjectEMADays,
+      );
+    });
+
+    async function subject(): Promise<string> {
+      return emaOracle.removeFeed.sendTransactionAsync(
+        subjectEMADays,
+      );
+    }
+
+    it('removes the feed correctly', async () => {
+      await subject();
+
+      const currentFeedValue = await emaOracle.emaTimeSeriesFeeds.callAsync(subjectEMADays);
+
+      expect(currentFeedValue).to.equal(NULL_ADDRESS);
+    });
+
+    it('emits the FeedRemoved event', async () => {
+      const txHash = await subject();
+
+      const formattedLogs = await setTestUtils.getLogsFromTxHash(txHash);
+      const expectedLogs = FeedRemoved(
+        subjectFeedAddress,
+        subjectEMADays,
+        emaOracle.address,
+      );
+
+      await SetTestUtils.assertLogEquivalence(formattedLogs, expectedLogs);
+    });
+
+    describe('when a feed has not been added', async () => {
+      beforeEach(async () => {
+        await emaOracle.removeFeed.sendTransactionAsync(
+          subjectEMADays,
+        );
+      });
+
+      it('reverts', async () => {
+        await expectRevertError(subject());
+      });
     });
   });
 });

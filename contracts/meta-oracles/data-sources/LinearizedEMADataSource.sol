@@ -59,7 +59,7 @@ contract LinearizedEMADataSource is
     /* ============ Constructor ============ */
 
     /*
-     * Set interpolationThreshold, data description, and instantiate oracle
+     * Set interpolationThreshold, data description, emaTimePeriod, and instantiate oracle
      *
      * @param  _emaTimePeriod             The time period the exponential moving average is based off of
      * @param  _interpolationThreshold    The minimum time in seconds where interpolation is enabled
@@ -163,5 +163,4 @@ contract LinearizedEMADataSource is
 
         emit LogOracleUpdated(address(_newOracleAddress));
     }
-
 }
