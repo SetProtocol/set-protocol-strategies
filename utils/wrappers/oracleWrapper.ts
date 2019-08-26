@@ -8,6 +8,7 @@ import { Blockchain } from '@utils/blockchain';
 import { ether } from '@utils/units';
 
 import {
+  EMAOracleContract,
   FeedFactoryContract,
   HistoricalPriceFeedContract,
   LegacyMakerOracleAdapterContract,
@@ -28,8 +29,10 @@ import { getWeb3 } from '../web3Helper';
 import { FeedCreatedArgs } from '../contract_logs/oracle';
 
 const web3 = getWeb3();
-const HistoricalPriceFeed = artifacts.require('HistoricalPriceFeed');
+
+const EMAOracle = artifacts.require('EMAOracle');
 const FeedFactory = artifacts.require('FeedFactory');
+const HistoricalPriceFeed = artifacts.require('HistoricalPriceFeed');
 const LegacyMakerOracleAdapter = artifacts.require('LegacyMakerOracleAdapter');
 const LinearizedEMADataSource = artifacts.require('LinearizedEMADataSource');
 const LinearizedPriceDataSource = artifacts.require('LinearizedPriceDataSource');
@@ -216,6 +219,25 @@ export class OracleWrapper {
 
     return new MovingAverageOracleV2Contract(
       new web3.eth.Contract(movingAverageOracle.abi, movingAverageOracle.address),
+      { from },
+    );
+  }
+
+  public async deployEMAOracleAsync(
+    timeSeriesFeedAddresses: Address[],
+    timeSeriesFeedDays: BigNumber[],
+    dataDescription: string,
+    from: Address = this._contractOwnerAddress
+  ): Promise<EMAOracleContract> {
+    const emaOracle = await EMAOracle.new(
+      timeSeriesFeedAddresses,
+      timeSeriesFeedDays,
+      dataDescription,
+      { from },
+    );
+
+    return new EMAOracleContract(
+      new web3.eth.Contract(emaOracle.abi, emaOracle.address),
       { from },
     );
   }

@@ -5,6 +5,7 @@ export {
   DataSourceLinearInterpolationLibraryMockContract
 } from '../types/generated/data_source_linear_interpolation_library_mock';
 export { EMALibraryMockContract } from '../types/generated/e_m_a_library_mock';
+export { EMAOracleContract } from '../types/generated/e_m_a_oracle';
 export { ETHDaiRebalancingManagerContract } from '../types/generated/e_t_h_dai_rebalancing_manager';
 export { FeedFactoryContract } from '../types/generated/feed_factory';
 export { FlexibleTimingManagerLibraryMockContract } from '../types/generated/flexible_timing_manager_library_mock';
