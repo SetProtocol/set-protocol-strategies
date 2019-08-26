@@ -20,7 +20,7 @@ import {
   OracleProxyContract,
   TimeSeriesFeedContract
 } from '@utils/contracts';
-import { ONE_DAY_IN_SECONDS, NULL_ADDRESS } from '@utils/constants';
+import { ONE_DAY_IN_SECONDS, NULL_ADDRESS, DEFAULT_GAS } from '@utils/constants';
 import { getWeb3 } from '@utils/web3Helper';
 import { expectRevertError } from '@utils/tokenAssertions';
 
@@ -220,6 +220,7 @@ contract('EMAOracle', accounts => {
   describe('#addFeed', async () => {
     let subjectFeedAddress: Address;
     let subjectEMADays: BigNumber;
+    let subjectCaller: Address;
 
     beforeEach(async () => {
       const dataDescription = 'EMA Oracle';
@@ -231,12 +232,14 @@ contract('EMAOracle', accounts => {
 
       subjectFeedAddress = fillerValue;
       subjectEMADays = new BigNumber(13);
+      subjectCaller = deployerAccount;
     });
 
     async function subject(): Promise<string> {
       return emaOracle.addFeed.sendTransactionAsync(
         subjectFeedAddress,
         subjectEMADays,
+        { from: subjectCaller, gas: DEFAULT_GAS }
       );
     }
 
@@ -266,6 +269,7 @@ contract('EMAOracle', accounts => {
         await emaOracle.addFeed.sendTransactionAsync(
           subjectFeedAddress,
           subjectEMADays,
+          { from: subjectCaller, gas: DEFAULT_GAS }
         );
       });
 
@@ -278,8 +282,11 @@ contract('EMAOracle', accounts => {
   describe('#removeFeed', async () => {
     let subjectFeedAddress: Address;
     let subjectEMADays: BigNumber;
+    let subjectCaller: Address;
 
     beforeEach(async () => {
+      subjectCaller = deployerAccount;
+
       const dataDescription = 'EMA Oracle';
       emaOracle = await oracleWrapper.deployEMAOracleAsync(
         [timeSeriesFeed.address],
@@ -293,12 +300,14 @@ contract('EMAOracle', accounts => {
       await emaOracle.addFeed.sendTransactionAsync(
         subjectFeedAddress,
         subjectEMADays,
+        { from: subjectCaller, gas: DEFAULT_GAS }
       );
     });
 
     async function subject(): Promise<string> {
       return emaOracle.removeFeed.sendTransactionAsync(
         subjectEMADays,
+        { from: subjectCaller, gas: DEFAULT_GAS }
       );
     }
 
@@ -327,6 +336,7 @@ contract('EMAOracle', accounts => {
       beforeEach(async () => {
         await emaOracle.removeFeed.sendTransactionAsync(
           subjectEMADays,
+          { from: subjectCaller, gas: DEFAULT_GAS }
         );
       });
 
