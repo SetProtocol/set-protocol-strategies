@@ -177,9 +177,11 @@ contract('EMAOracle', accounts => {
     let subjectDataPoints: BigNumber;
     const newestEthPrice = ether(500);
     let previousEMAValue: BigNumber;
+    let subjectCaller: Address;
 
     beforeEach(async () => {
       subjectDataPoints = emaTimePeriodOne;
+      subjectCaller = deployerAccount;
 
       const dataDescription = 'EMA Oracle';
       emaOracle = await oracleWrapper.deployEMAOracleAsync(
@@ -204,7 +206,7 @@ contract('EMAOracle', accounts => {
       );
     }
 
-    it('returns the correct moving average', async () => {
+    it('returns the correct EMA value', async () => {
       const actualEMA = await subject();
 
       const expectedEMA = oracleWrapper.calculateEMA(
@@ -214,6 +216,19 @@ contract('EMAOracle', accounts => {
       );
 
       expect(actualEMA).to.be.bignumber.equal(expectedEMA);
+    });
+
+    describe('when a feed has not been added', async () => {
+      beforeEach(async () => {
+        await emaOracle.removeFeed.sendTransactionAsync(
+          subjectDataPoints,
+          { from: subjectCaller, gas: DEFAULT_GAS }
+        );
+      });
+
+      it('reverts', async () => {
+        await expectRevertError(subject());
+      });
     });
   });
 
