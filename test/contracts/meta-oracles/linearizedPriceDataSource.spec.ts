@@ -125,7 +125,7 @@ contract('LinearizedPriceDataSource', accounts => {
     });
   });
 
-  describe.only('#read', async () => {
+  describe('#read', async () => {
     let newEthPrice: BigNumber;
     let interpolationThreshold: BigNumber;
 
