@@ -19,9 +19,6 @@ pragma experimental "ABIEncoderV2";
 import { LinkedListLibraryV2 } from "./LinkedListLibraryV2.sol";
 
 
-
-
-
 /**
  * @title TimeSeriesStateLibrary
  * @author Set Protocol

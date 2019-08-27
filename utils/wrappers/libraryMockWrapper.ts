@@ -2,6 +2,7 @@ import { Address } from 'set-protocol-utils';
 import {
   DataSourceLinearInterpolationLibraryMockContract,
   FlexibleTimingManagerLibraryMockContract,
+  LinkedListHelperMockContract,
   LinkedListLibraryMockContract,
   LinkedListLibraryMockV2Contract,
   ManagerLibraryMockContract,
@@ -14,6 +15,7 @@ import {
 const web3 = getWeb3();
 const DataSourceLinearInterpolationLibraryMock = artifacts.require('DataSourceLinearInterpolationLibraryMock');
 const FlexibleTimingManagerLibraryMock = artifacts.require('FlexibleTimingManagerLibraryMock');
+const LinkedListHelperMock = artifacts.require('LinkedListHelperMock');
 const LinkedListLibraryMock = artifacts.require('LinkedListLibraryMock');
 const LinkedListLibraryMockV2 = artifacts.require('LinkedListLibraryMockV2');
 const ManagerLibraryMock = artifacts.require('ManagerLibraryMock');
@@ -66,6 +68,19 @@ export class LibraryMockWrapper {
 
     return new PriceFeedMockContract(
       new web3.eth.Contract(priceFeedTruffle.abi, priceFeedTruffle.address),
+      { from },
+    );
+  }
+
+  public async deployLinkedListHelperMockAsync(
+    from: Address = this._contractOwnerAddress
+  ): Promise<LinkedListHelperMockContract> {
+    const linkedListHelper = await LinkedListHelperMock.new(
+      { from },
+    );
+
+    return new LinkedListHelperMockContract(
+      new web3.eth.Contract(linkedListHelper.abi, linkedListHelper.address),
       { from },
     );
   }

@@ -17,28 +17,26 @@
 pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
-import { LinkedListLibraryV2 } from "./LinkedListLibraryV2.sol";
-
+import { LinkedListLibraryV2 } from "../../../meta-oracles/lib/LinkedListLibraryV2.sol";
+import { LinkedListHelper } from "../../../meta-oracles/lib/LinkedListHelper.sol";
 
 /**
- * @title LinkedListHelper
+ * @title LinkedListHelperMock
  * @author Set Protocol
  *
  * Convenience methods for the LinkedListLibrary
  */
-library LinkedListHelper {
-    using LinkedListLibraryV2 for LinkedListLibraryV2.LinkedList;
+contract LinkedListHelperMock {
 
-    /* ============ Structs ============ */
+    /* ============ Public Function ============ */
 
-    function getLatestValue(
+    function getLatestValueMock(
         LinkedListLibraryV2.LinkedList memory _self
     )
-        internal
+        public
         view
         returns (uint256)
     {
-        uint256[] memory currentTimeSeriesValues = _self.readListMemory(1);
-        return currentTimeSeriesValues[0];
+        return LinkedListHelper.getLatestValue(_self);
     }
 }
