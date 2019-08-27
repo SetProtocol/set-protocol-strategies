@@ -105,7 +105,7 @@ contract EMAOracle is
         // EMA Feed must be added
         require(
             address(emaFeedInstance) != address(0),
-            "EMAOracle.removeFeed: Feed does not exist"
+            "EMAOracle.read: Feed does not exist"
         );
 
         // Get the current EMA value. The most current value is the first index

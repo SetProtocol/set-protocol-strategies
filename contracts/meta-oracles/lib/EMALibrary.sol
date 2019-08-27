@@ -37,6 +37,8 @@ library EMALibrary{
      * Calculates the new exponential moving average value using the previous value,
      * EMA time period, and the current asset price.
      *
+     * Weighted Multiplier = 2 / (timePeriod + 1)
+     *
      * EMA = Price(Today) x Weighted Multiplier +
      *       EMA(Yesterday) - 
      *       EMA(Yesterday) x Weighted Multiplier
