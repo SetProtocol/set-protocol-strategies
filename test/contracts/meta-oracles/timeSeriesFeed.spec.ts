@@ -330,7 +330,7 @@ contract('TimeSeriesFeed', accounts => {
 
   describe('#getTimeSeriesFeedState', async () => {
     let ethPrice: BigNumber;
-    const numberOfUpdates: number = undefined;
+    const numberOfUpdates: number = 20;
 
     let maxDataPoints: BigNumber;
     let updateInterval: BigNumber;
@@ -355,7 +355,7 @@ contract('TimeSeriesFeed', accounts => {
       updatedPrices = await oracleWrapper.batchUpdateTimeSeriesFeedAsync(
         timeSeriesFeed,
         ethMedianizer,
-        numberOfUpdates || 20,
+        numberOfUpdates,
       );
     });
 
@@ -368,15 +368,15 @@ contract('TimeSeriesFeed', accounts => {
 
       const [actualNextEarliestUpdate, actualUpdateInterval, timeSeriesData] = timeSeriesState;
 
-      const [dataSizeLimit, lastUpdatedIndex, dataArray] = timeSeriesData;
-
       const expectedNextEarliestUpdate = await timeSeriesFeed.nextEarliestUpdate.callAsync();
 
-      expect(lastUpdatedIndex).to.bignumber.equal(20);
-      expect(dataSizeLimit).to.bignumber.equal(maxDataPoints);
+      const expectedDataArray = [ethPrice].concat(updatedPrices);
+
       expect(actualNextEarliestUpdate).to.be.bignumber.equal(expectedNextEarliestUpdate);
       expect(actualUpdateInterval).to.be.bignumber.equal(updateInterval);
-      expect(JSON.stringify(dataArray)).to.equal(JSON.stringify(updatedPrices));
+      expect(JSON.stringify(timeSeriesData.dataArray)).to.equal(JSON.stringify(expectedDataArray));
+      expect(timeSeriesData.lastUpdatedIndex).to.bignumber.equal(numberOfUpdates);
+      expect(timeSeriesData.dataSizeLimit).to.bignumber.equal(maxDataPoints);
     });
   });
 });
