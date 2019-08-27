@@ -16,19 +16,29 @@
 
 pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
+
 import { LinkedListLibraryV2 } from "./LinkedListLibraryV2.sol";
 
 
 /**
- * @title TimeSeriesStateLibrary
+ * @title LinkedListHelper
  * @author Set Protocol
  *
- * Library defining TimeSeries state struct
+ * Convenience methods for the LinkedListLibrary
  */
-library TimeSeriesStateLibrary {
-    struct State {
-        uint256 nextEarliestUpdate;
-        uint256 updateInterval;
-        LinkedListLibraryV2.LinkedList timeSeriesData;
+library LinkedListHelper {
+    using LinkedListLibraryV2 for LinkedListLibraryV2.LinkedList;
+
+    /* ============ Structs ============ */
+
+    function getLatestValue(
+        LinkedListLibraryV2.LinkedList memory _self
+    )
+        internal
+        view
+        returns (uint256)
+    {
+        uint256[] memory currentTimeSeriesValues = _self.readListMemory(1);
+        return currentTimeSeriesValues[0];
     }
 }

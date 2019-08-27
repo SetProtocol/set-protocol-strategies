@@ -330,7 +330,7 @@ contract('TimeSeriesFeed', accounts => {
 
   describe('#getTimeSeriesFeedState', async () => {
     let ethPrice: BigNumber;
-    let numberOfUpdates: number = undefined;
+    const numberOfUpdates: number = 20;
 
     let maxDataPoints: BigNumber;
     let updateInterval: BigNumber;
@@ -355,7 +355,7 @@ contract('TimeSeriesFeed', accounts => {
       updatedPrices = await oracleWrapper.batchUpdateTimeSeriesFeedAsync(
         timeSeriesFeed,
         ethMedianizer,
-        numberOfUpdates || 20,
+        numberOfUpdates,
       );
     });
 
@@ -366,27 +366,17 @@ contract('TimeSeriesFeed', accounts => {
     it('returns the correct TimeSeriesState struct', async () => {
       const timeSeriesState = await subject();
 
-      const expectedDailyPriceOutput = updatedPrices.reverse();
-      expectedDailyPriceOutput.push(ethPrice);
+      const [actualNextEarliestUpdate, actualUpdateInterval, timeSeriesData] = timeSeriesState;
 
       const expectedNextEarliestUpdate = await timeSeriesFeed.nextEarliestUpdate.callAsync();
 
-      expect(timeSeriesState.nextEarliestUpdate).to.be.bignumber.equal(expectedNextEarliestUpdate);
-      expect(timeSeriesState.updateInterval).to.be.bignumber.equal(updateInterval);
-      expect(JSON.stringify(timeSeriesState.timeSeriesDataArray)).to.equal(JSON.stringify(expectedDailyPriceOutput));
-    });
+      const expectedDataArray = [ethPrice].concat(updatedPrices);
 
-    describe('when more than maxDataPoints has been passed', async () => {
-      before(async () => {
-        numberOfUpdates = 205;
-      });
-
-      it('should returns last maxDataPoints values in order', async () => {
-        const timeSeriesState = await subject();
-
-        const expectedDailyPriceOutput = updatedPrices.slice(-maxDataPoints.toNumber()).reverse();
-        expect(JSON.stringify(timeSeriesState.timeSeriesDataArray)).to.equal(JSON.stringify(expectedDailyPriceOutput));
-      });
+      expect(actualNextEarliestUpdate).to.be.bignumber.equal(expectedNextEarliestUpdate);
+      expect(actualUpdateInterval).to.be.bignumber.equal(updateInterval);
+      expect(JSON.stringify(timeSeriesData.dataArray)).to.equal(JSON.stringify(expectedDataArray));
+      expect(timeSeriesData.lastUpdatedIndex).to.bignumber.equal(numberOfUpdates);
+      expect(timeSeriesData.dataSizeLimit).to.bignumber.equal(maxDataPoints);
     });
   });
 });

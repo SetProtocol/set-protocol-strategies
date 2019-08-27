@@ -22,7 +22,7 @@
     "esModuleInterop": true
   },
   "include": [
-    "types/*.ts",
+    "types/**/*.ts",
     "utils/**/*.ts",
     "test/**/*.ts"
   ]

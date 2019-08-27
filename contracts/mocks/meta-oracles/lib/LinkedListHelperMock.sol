@@ -16,19 +16,27 @@
 
 pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
-import { LinkedListLibraryV2 } from "./LinkedListLibraryV2.sol";
 
+import { LinkedListLibraryV2 } from "../../../meta-oracles/lib/LinkedListLibraryV2.sol";
+import { LinkedListHelper } from "../../../meta-oracles/lib/LinkedListHelper.sol";
 
 /**
- * @title TimeSeriesStateLibrary
+ * @title LinkedListHelperMock
  * @author Set Protocol
  *
- * Library defining TimeSeries state struct
+ * Convenience methods for the LinkedListLibrary
  */
-library TimeSeriesStateLibrary {
-    struct State {
-        uint256 nextEarliestUpdate;
-        uint256 updateInterval;
-        LinkedListLibraryV2.LinkedList timeSeriesData;
+contract LinkedListHelperMock {
+
+    /* ============ Public Function ============ */
+
+    function getLatestValueMock(
+        LinkedListLibraryV2.LinkedList memory _self
+    )
+        public
+        view
+        returns (uint256)
+    {
+        return LinkedListHelper.getLatestValue(_self);
     }
 }
