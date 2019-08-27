@@ -5,7 +5,7 @@ import * as ABIDecoder from 'abi-decoder';
 import * as chai from 'chai';
 import * as setProtocolUtils from 'set-protocol-utils';
 
-import { Address, TimeSeriesFeedState } from 'set-protocol-utils';
+import { Address, LinkedList, TimeSeriesFeedState } from 'set-protocol-utils';
 import { BigNumber } from 'bignumber.js';
 
 import ChaiSetup from '@utils/chaiSetup';
@@ -175,10 +175,16 @@ contract('LinearizedEMADataSource', accounts => {
       const updateInterval = ONE_DAY_IN_SECONDS;
       const timeSeriesDataArray = [previousEMAValue];
 
+      const timeSeriesData: LinkedList = {
+        dataSizeLimit: new BigNumber(5),
+        lastUpdatedIndex: new BigNumber(0),
+        dataArray: timeSeriesDataArray,
+      };
+
       subjectTimeSeriesState = {
         nextEarliestUpdate,
         updateInterval,
-        timeSeriesDataArray,
+        timeSeriesData,
       } as TimeSeriesFeedState;
       subjectTimeFastForward = ZERO;
     });
@@ -220,7 +226,8 @@ contract('LinearizedEMADataSource', accounts => {
         const newEMAValue = oracleWrapper.calculateEMA(previousEMAValue, emaTimePeriod, newEthPrice);
 
         const timeFromLastUpdate = timeFromExpectedUpdate.add(subjectTimeSeriesState.updateInterval);
-        const previousLoggedPrice = subjectTimeSeriesState.timeSeriesDataArray[0];
+        const dataArray = subjectTimeSeriesState.timeSeriesData.dataArray;
+        const previousLoggedPrice = dataArray[dataArray.length - 1];
         const expectedNewPrice = newEMAValue
                                      .mul(subjectTimeSeriesState.updateInterval)
                                      .add(previousLoggedPrice.mul(timeFromExpectedUpdate))
@@ -253,7 +260,8 @@ contract('LinearizedEMADataSource', accounts => {
         const newEMAValue = oracleWrapper.calculateEMA(previousEMAValue, emaTimePeriod, newEthPrice);
 
         const timeFromLastUpdate = timeFromExpectedUpdate.add(subjectTimeSeriesState.updateInterval);
-        const previousLoggedPrice = subjectTimeSeriesState.timeSeriesDataArray[0];
+        const dataArray = subjectTimeSeriesState.timeSeriesData.dataArray;
+        const previousLoggedPrice = dataArray[dataArray.length - 1];
         const expectedNewPrice = newEMAValue
                                      .mul(subjectTimeSeriesState.updateInterval)
                                      .add(previousLoggedPrice.mul(timeFromExpectedUpdate))

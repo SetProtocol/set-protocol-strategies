@@ -25,6 +25,8 @@ import { IOracle } from "../interfaces/IOracle.sol";
 import { IDataSource } from "../interfaces/IDataSource.sol";
 import { TimeSeriesStateLibrary } from "../lib/TimeSeriesStateLibrary.sol";
 import { EMALibrary } from "../lib/EMALibrary.sol";
+import { LinkedListHelper } from "../lib/LinkedListHelper.sol";
+import { LinkedListLibraryV2 } from "../lib/LinkedListLibraryV2.sol";
 
 
 /**
@@ -40,6 +42,7 @@ contract LinearizedEMADataSource is
     IDataSource
 {
     using SafeMath for uint256;
+    using LinkedListHelper for LinkedListLibraryV2.LinkedList;
 
     /* ============ State Variables ============ */
     // Number of EMA Days
@@ -98,9 +101,9 @@ contract LinearizedEMADataSource is
      * @returns                         Returns the datapoint from the oracle contract
      */
     function read(
-        TimeSeriesStateLibrary.State calldata _timeSeriesState
+        TimeSeriesStateLibrary.State memory _timeSeriesState
     )
-        external
+        public
         view
         returns (uint256)
     {
@@ -114,7 +117,7 @@ contract LinearizedEMADataSource is
         uint256 oracleValue = oracleInstance.read();
 
         // Get the previous EMA Value
-        uint256 previousEMAValue = _timeSeriesState.timeSeriesDataArray[0];
+        uint256 previousEMAValue = _timeSeriesState.timeSeriesData.getLatestValue();
 
         // Calculate the current EMA
         uint256 currentEMAValue = EMALibrary.calculate(
