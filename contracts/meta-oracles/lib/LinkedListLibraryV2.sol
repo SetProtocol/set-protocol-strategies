@@ -159,6 +159,22 @@ library LinkedListLibraryV2 {
         view
         returns (uint256[] memory)
     {
+        LinkedList memory linkedListMemory = _self;
+
+        return readListMemory(
+            linkedListMemory,
+            _dataPoints
+        );
+    }
+
+    function readListMemory(
+        LinkedList memory _self,
+        uint256 _dataPoints
+    )
+        internal
+        view
+        returns (uint256[] memory)
+    {
         // Make sure query isn't for more data than collected
         require(
             _dataPoints <= _self.dataArray.length,
@@ -180,4 +196,5 @@ library LinkedListLibraryV2 {
 
         return outputArray;
     }
+
 }

@@ -23,6 +23,8 @@ import { TimeLockUpgrade } from "set-protocol-contracts/contracts/lib/TimeLockUp
 import { DataSourceLinearInterpolationLibrary } from "./lib/DataSourceLinearInterpolationLibrary.sol";
 import { IOracle } from "./interfaces/IOracle.sol";
 import { IDataSource } from "./interfaces/IDataSource.sol";
+import { LinkedListHelper } from "./lib/LinkedListHelper.sol";
+import { LinkedListLibraryV2 } from "./lib/LinkedListLibraryV2.sol";
 import { TimeSeriesStateLibrary } from "./lib/TimeSeriesStateLibrary.sol";
 
 
@@ -39,6 +41,7 @@ contract LinearizedPriceDataSource is
     IDataSource
 {
     using SafeMath for uint256;
+    using LinkedListHelper for LinkedListLibraryV2.LinkedList;
 
     /* ============ State Variables ============ */
     // Amount of time after which read interpolates price result, in seconds
@@ -91,9 +94,9 @@ contract LinearizedPriceDataSource is
      * @returns                         Returns the datapoint from the oracle contract
      */
     function read(
-        TimeSeriesStateLibrary.State calldata _timeSeriesState
+        TimeSeriesStateLibrary.State memory _timeSeriesState
     )
-        external
+        public
         view
         returns (uint256)
     {
@@ -114,11 +117,13 @@ contract LinearizedPriceDataSource is
         if (timeFromExpectedUpdate < interpolationThreshold) {
             return oracleValue;
         } else {
+            uint256 mostRecentPrice = _timeSeriesState.timeSeriesData.getLatestValue();
+
             return DataSourceLinearInterpolationLibrary.interpolateDelayedPriceUpdate(
                 oracleValue,
                 _timeSeriesState.updateInterval,
                 timeFromExpectedUpdate,
-                _timeSeriesState.timeSeriesDataArray[0]
+                mostRecentPrice                
             );
         }
     }

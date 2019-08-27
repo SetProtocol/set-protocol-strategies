@@ -148,7 +148,7 @@ contract TimeSeriesFeed is
 
     /*
      * Generate struct that holds TimeSeriesFeed's current nextAvailableUpdate, updateInterval,
-     * and previously logged prices.
+     * and the LinkedList struct
      *
      * @returns                Struct containing the above params                  
      */
@@ -157,16 +157,10 @@ contract TimeSeriesFeed is
         view
         returns (TimeSeriesStateLibrary.State memory)
     {
-        // Get timeSeriesData price values from most recent to oldest
-        uint256[] memory timeSeriesDataArray = timeSeriesData.readList(
-            timeSeriesData.dataArray.length
-        );
-
         return TimeSeriesStateLibrary.State({
             nextEarliestUpdate: nextEarliestUpdate,
             updateInterval: updateInterval,
-            timeSeriesDataArray: timeSeriesDataArray
+            timeSeriesData: timeSeriesData
         });
-
     }
 }

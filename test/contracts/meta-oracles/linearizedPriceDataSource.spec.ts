@@ -5,7 +5,7 @@ import * as ABIDecoder from 'abi-decoder';
 import * as chai from 'chai';
 import * as setProtocolUtils from 'set-protocol-utils';
 
-import { Address, TimeSeriesFeedState } from 'set-protocol-utils';
+import { Address } from 'set-protocol-utils';
 import { BigNumber } from 'bignumber.js';
 
 import ChaiSetup from '@utils/chaiSetup';
@@ -28,6 +28,8 @@ import { getWeb3 } from '@utils/web3Helper';
 import { LogOracleUpdated } from '@utils/contract_logs/linearizedPriceDataSource';
 
 import { OracleWrapper } from '@utils/wrappers/oracleWrapper';
+
+import { TimeSeriesFeedState } from '../../../types/timeSeriesFeed';
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
@@ -123,7 +125,7 @@ contract('LinearizedPriceDataSource', accounts => {
     });
   });
 
-  describe('#read', async () => {
+  describe.only('#read', async () => {
     let newEthPrice: BigNumber;
     let interpolationThreshold: BigNumber;
 
@@ -155,13 +157,17 @@ contract('LinearizedPriceDataSource', accounts => {
 
       const nextEarliestUpdate = new BigNumber(block.timestamp);
       const updateInterval = ONE_DAY_IN_SECONDS;
-      const timeSeriesDataArray = [ether(100)];
 
       subjectTimeSeriesState = {
         nextEarliestUpdate,
         updateInterval,
-        timeSeriesDataArray,
+        timeSeriesData: {
+          dataSizeLimit: new BigNumber(5),
+          lastUpdatedIndex: new BigNumber(0),
+          dataArray: [ether(100)],
+        },
       } as TimeSeriesFeedState;
+
       subjectTimeFastForward = ZERO;
     });
 
@@ -201,7 +207,7 @@ contract('LinearizedPriceDataSource', accounts => {
         const timeFromExpectedUpdate = new BigNumber(block.timestamp).sub(subjectTimeSeriesState.nextEarliestUpdate);
 
         const timeFromLastUpdate = timeFromExpectedUpdate.add(subjectTimeSeriesState.updateInterval);
-        const previousLoggedPrice = subjectTimeSeriesState.timeSeriesDataArray[0];
+        const previousLoggedPrice = subjectTimeSeriesState.timeSeriesData.dataArray[0];
         const expectedNewPrice = newEthPrice
                                      .mul(subjectTimeSeriesState.updateInterval)
                                      .add(previousLoggedPrice.mul(timeFromExpectedUpdate))
@@ -232,7 +238,7 @@ contract('LinearizedPriceDataSource', accounts => {
         const timeFromExpectedUpdate = new BigNumber(block.timestamp).sub(subjectTimeSeriesState.nextEarliestUpdate);
 
         const timeFromLastUpdate = timeFromExpectedUpdate.add(subjectTimeSeriesState.updateInterval);
-        const previousLoggedPrice = subjectTimeSeriesState.timeSeriesDataArray[0];
+        const previousLoggedPrice = subjectTimeSeriesState.timeSeriesData.dataArray[0];
         const expectedNewPrice = newEthPrice
                                      .mul(subjectTimeSeriesState.updateInterval)
                                      .add(previousLoggedPrice.mul(timeFromExpectedUpdate))

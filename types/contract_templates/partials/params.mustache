@@ -1,3 +1,19 @@
 {{#each inputs}}
-this.formatABIDataItem('{{type}}', [{{#components}}{ name: '{{name}}', type: '{{type}}', components: undefined },{{/components}}], {{name}}),
+this.formatABIDataItem(
+	'{{type}}',
+	[
+		{{#components}}
+			{ 
+				name: '{{name}}',
+				type: '{{type}}',
+				{{^components}}components: undefined{{/components}}{{#components.length}}components: [{{/components.length}}{{#components}}
+					{
+						name: '{{name}}',
+						type: '{{type}}',
+						components: undefined
+					},{{/components}}
+				{{#components.length}}]{{/components.length}}
+			},
+		{{/components}}
+	],{{name}}),
 {{/each}}
