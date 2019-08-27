@@ -5,7 +5,7 @@ import * as ABIDecoder from 'abi-decoder';
 import * as chai from 'chai';
 import * as setProtocolUtils from 'set-protocol-utils';
 
-import { Address } from 'set-protocol-utils';
+import { Address, TimeSeriesFeedState } from 'set-protocol-utils';
 import { BigNumber } from 'bignumber.js';
 
 import ChaiSetup from '@utils/chaiSetup';
@@ -28,8 +28,6 @@ import { getWeb3 } from '@utils/web3Helper';
 import { LogOracleUpdated } from '@utils/contract_logs/linearizedPriceDataSource';
 
 import { OracleWrapper } from '@utils/wrappers/oracleWrapper';
-
-import { TimeSeriesFeedState } from '../../../types/timeSeriesFeed';
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
