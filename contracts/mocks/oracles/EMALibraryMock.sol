@@ -16,7 +16,7 @@
 
 pragma solidity 0.5.7;
 
-import { EMALibrary } from "../../../oracles/lib/EMALibrary.sol";
+import { EMALibrary } from "../../meta-oracles/lib/EMALibrary.sol";
 
 /**
  * @title EMALibraryMock
