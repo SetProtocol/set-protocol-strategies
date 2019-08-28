@@ -14,7 +14,7 @@ import { ether } from '@utils/units';
 import { expectRevertError } from '@utils/tokenAssertions';
 import { getWeb3 } from '@utils/web3Helper';
 
-import { LibraryMockWrapper } from '@utils/wrappers/libraryMockWrapper';
+import { LibraryMockHelper } from '@utils/helpers/libraryMockHelper';
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
@@ -29,12 +29,12 @@ contract('FlexibleTimingManagerLibraryMock', accounts => {
 
   let managerLibraryMock: FlexibleTimingManagerLibraryMockContract;
 
-  const libraryMockWrapper = new LibraryMockWrapper(contractDeployer);
+  const libraryMockHelper = new LibraryMockHelper(contractDeployer);
 
   beforeEach(async () => {
     await blockchain.saveSnapshotAsync();
 
-    managerLibraryMock = await libraryMockWrapper.deployFlexibleTimingManagerLibraryMockAsync();
+    managerLibraryMock = await libraryMockHelper.deployFlexibleTimingManagerLibraryMockAsync();
   });
 
   afterEach(async () => {

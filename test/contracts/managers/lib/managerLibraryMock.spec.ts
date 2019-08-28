@@ -13,7 +13,7 @@ import { Blockchain } from '@utils/blockchain';
 import { getWeb3 } from '@utils/web3Helper';
 import { DEFAULT_AUCTION_PRICE_DIVISOR } from '@utils/constants';
 
-import { LibraryMockWrapper } from '@utils/wrappers/libraryMockWrapper';
+import { LibraryMockHelper } from '@utils/helpers/libraryMockHelper';
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
@@ -28,12 +28,12 @@ contract('ManagerLibraryMock', accounts => {
 
   let managerLibraryMock: ManagerLibraryMockContract;
 
-  const libraryMockWrapper = new LibraryMockWrapper(contractDeployer);
+  const libraryMockHelper = new LibraryMockHelper(contractDeployer);
 
   beforeEach(async () => {
     await blockchain.saveSnapshotAsync();
 
-    managerLibraryMock = await libraryMockWrapper.deployManagerLibraryMockAsync();
+    managerLibraryMock = await libraryMockHelper.deployManagerLibraryMockAsync();
   });
 
   afterEach(async () => {

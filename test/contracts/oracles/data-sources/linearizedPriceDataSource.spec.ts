@@ -27,7 +27,7 @@ import { expectRevertError } from '@utils/tokenAssertions';
 import { getWeb3 } from '@utils/web3Helper';
 import { LogOracleUpdated } from '@utils/contract_logs/linearizedPriceDataSource';
 
-import { OracleWrapper } from '@utils/wrappers/oracleWrapper';
+import { OracleHelper } from '@utils/helpers/oracleHelper';
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
@@ -50,7 +50,7 @@ contract('LinearizedPriceDataSource', accounts => {
   let linearizedDataSource: LinearizedPriceDataSourceContract;
   let oracleProxy: OracleProxyContract;
 
-  const oracleWrapper = new OracleWrapper(deployerAccount);
+  const oracleHelper = new OracleHelper(deployerAccount);
 
   before(async () => {
     ABIDecoder.addABI(LinearizedPriceDataSource.abi);
@@ -63,14 +63,14 @@ contract('LinearizedPriceDataSource', accounts => {
   beforeEach(async () => {
     blockchain.saveSnapshotAsync();
 
-    ethMedianizer = await oracleWrapper.deployMedianizerAsync();
-    await oracleWrapper.addPriceFeedOwnerToMedianizer(ethMedianizer, deployerAccount);
+    ethMedianizer = await oracleHelper.deployMedianizerAsync();
+    await oracleHelper.addPriceFeedOwnerToMedianizer(ethMedianizer, deployerAccount);
 
-    legacyMakerOracleAdapter = await oracleWrapper.deployLegacyMakerOracleAdapterAsync(
+    legacyMakerOracleAdapter = await oracleHelper.deployLegacyMakerOracleAdapterAsync(
       ethMedianizer.address,
     );
 
-    oracleProxy = await oracleWrapper.deployOracleProxyAsync(
+    oracleProxy = await oracleHelper.deployOracleProxyAsync(
       legacyMakerOracleAdapter.address,
     );
   });
@@ -91,7 +91,7 @@ contract('LinearizedPriceDataSource', accounts => {
     });
 
     async function subject(): Promise<LinearizedPriceDataSourceContract> {
-      return oracleWrapper.deployLinearizedPriceDataSourceAsync(
+      return oracleHelper.deployLinearizedPriceDataSourceAsync(
         subjectOracleAddress,
         subjectInterpolationThreshold,
         subjectDataDescription,
@@ -134,7 +134,7 @@ contract('LinearizedPriceDataSource', accounts => {
 
     beforeEach(async () => {
       newEthPrice = customEtherPrice || ether(200);
-      await oracleWrapper.updateMedianizerPriceAsync(
+      await oracleHelper.updateMedianizerPriceAsync(
         ethMedianizer,
         newEthPrice,
         SetTestUtils.generateTimestamp(1000)
@@ -142,13 +142,13 @@ contract('LinearizedPriceDataSource', accounts => {
 
       interpolationThreshold = ONE_DAY_IN_SECONDS;
       const oracleAddress = oracleProxy.address;
-      linearizedDataSource = await oracleWrapper.deployLinearizedPriceDataSourceAsync(
+      linearizedDataSource = await oracleHelper.deployLinearizedPriceDataSourceAsync(
         oracleAddress,
         interpolationThreshold,
       );
       const block = await web3.eth.getBlock('latest');
 
-      await oracleWrapper.addAuthorizedAddressesToOracleProxy(
+      await oracleHelper.addAuthorizedAddressesToOracleProxy(
         oracleProxy,
         [linearizedDataSource.address]
       );
@@ -266,14 +266,14 @@ contract('LinearizedPriceDataSource', accounts => {
 
     beforeEach(async () => {
       ethPrice = ether(150);
-      await oracleWrapper.updateMedianizerPriceAsync(
+      await oracleHelper.updateMedianizerPriceAsync(
         ethMedianizer,
         ethPrice,
         SetTestUtils.generateTimestamp(1000),
       );
 
       const oracleAddress = oracleProxy.address;
-      linearizedDataSource = await oracleWrapper.deployLinearizedPriceDataSourceAsync(
+      linearizedDataSource = await oracleHelper.deployLinearizedPriceDataSourceAsync(
         oracleAddress,
       );
 

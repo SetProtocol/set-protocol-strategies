@@ -22,7 +22,7 @@ import {
 import { expectRevertError } from '@utils/tokenAssertions';
 import { getWeb3 } from '@utils/web3Helper';
 
-import { OracleWrapper } from '@utils/wrappers/oracleWrapper';
+import { OracleHelper } from '@utils/helpers/oracleHelper';
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
@@ -41,14 +41,14 @@ contract('HistoricalPriceFeed', accounts => {
   let ethMedianizer: MedianContract;
   let historicalPriceFeed: HistoricalPriceFeedContract;
 
-  const oracleWrapper = new OracleWrapper(deployerAccount);
+  const oracleHelper = new OracleHelper(deployerAccount);
 
 
   beforeEach(async () => {
     blockchain.saveSnapshotAsync();
 
-    ethMedianizer = await oracleWrapper.deployMedianizerAsync();
-    await oracleWrapper.addPriceFeedOwnerToMedianizer(ethMedianizer, deployerAccount);
+    ethMedianizer = await oracleHelper.deployMedianizerAsync();
+    await oracleHelper.addPriceFeedOwnerToMedianizer(ethMedianizer, deployerAccount);
   });
 
   afterEach(async () => {
@@ -65,7 +65,7 @@ contract('HistoricalPriceFeed', accounts => {
 
     beforeEach(async () => {
       ethPrice = ether(150);
-      await oracleWrapper.updateMedianizerPriceAsync(
+      await oracleHelper.updateMedianizerPriceAsync(
         ethMedianizer,
         ethPrice,
         SetTestUtils.generateTimestamp(1000),
@@ -78,7 +78,7 @@ contract('HistoricalPriceFeed', accounts => {
     });
 
     async function subject(): Promise<HistoricalPriceFeedContract> {
-      return oracleWrapper.deployHistoricalPriceFeedAsync(
+      return oracleHelper.deployHistoricalPriceFeedAsync(
         subjectUpdateFrequency,
         subjectMedianizerAddress,
         subjectDataDescription,
@@ -158,7 +158,7 @@ contract('HistoricalPriceFeed', accounts => {
 
     beforeEach(async () => {
       initialEthPrice = ether(150);
-      await oracleWrapper.updateMedianizerPriceAsync(
+      await oracleHelper.updateMedianizerPriceAsync(
         ethMedianizer,
         initialEthPrice,
         SetTestUtils.generateTimestamp(1000),
@@ -168,7 +168,7 @@ contract('HistoricalPriceFeed', accounts => {
       const medianizerAddress = ethMedianizer.address;
       const dataDescription = '200DailyETHPrice';
       const seededValues = [];
-      historicalPriceFeed = await oracleWrapper.deployHistoricalPriceFeedAsync(
+      historicalPriceFeed = await oracleHelper.deployHistoricalPriceFeedAsync(
         updateFrequency,
         medianizerAddress,
         dataDescription,
@@ -176,7 +176,7 @@ contract('HistoricalPriceFeed', accounts => {
       );
 
       newEthPrice = ether(160);
-      await oracleWrapper.updateMedianizerPriceAsync(
+      await oracleHelper.updateMedianizerPriceAsync(
         ethMedianizer,
         newEthPrice,
         SetTestUtils.generateTimestamp(1000)
@@ -231,7 +231,7 @@ contract('HistoricalPriceFeed', accounts => {
 
     beforeEach(async () => {
       ethPrice = ether(150);
-      await oracleWrapper.updateMedianizerPriceAsync(
+      await oracleHelper.updateMedianizerPriceAsync(
         ethMedianizer,
         ethPrice,
         SetTestUtils.generateTimestamp(1000),
@@ -241,14 +241,14 @@ contract('HistoricalPriceFeed', accounts => {
       const medianizerAddress = ethMedianizer.address;
       const dataDescription = '200DailyETHPrice';
       const seededValues = [];
-      historicalPriceFeed = await oracleWrapper.deployHistoricalPriceFeedAsync(
+      historicalPriceFeed = await oracleHelper.deployHistoricalPriceFeedAsync(
         updateFrequency,
         medianizerAddress,
         dataDescription,
         seededValues,
       );
 
-      updatedPrices = await oracleWrapper.batchUpdateHistoricalPriceFeedAsync(
+      updatedPrices = await oracleHelper.batchUpdateHistoricalPriceFeedAsync(
         historicalPriceFeed,
         ethMedianizer,
         20,
@@ -291,7 +291,7 @@ contract('HistoricalPriceFeed', accounts => {
 
     beforeEach(async () => {
       ethPrice = ether(150);
-      await oracleWrapper.updateMedianizerPriceAsync(
+      await oracleHelper.updateMedianizerPriceAsync(
         ethMedianizer,
         ethPrice,
         SetTestUtils.generateTimestamp(1000),
@@ -301,7 +301,7 @@ contract('HistoricalPriceFeed', accounts => {
       const medianizerAddress = ethMedianizer.address;
       const dataDescription = '200DailyETHPrice';
       const seededValues = [];
-      historicalPriceFeed = await oracleWrapper.deployHistoricalPriceFeedAsync(
+      historicalPriceFeed = await oracleHelper.deployHistoricalPriceFeedAsync(
         updateFrequency,
         medianizerAddress,
         dataDescription,

@@ -36,10 +36,10 @@ import { expectRevertError } from '@utils/tokenAssertions';
 import { getWeb3 } from '@utils/web3Helper';
 import { LogManagerProposal } from '@utils/contract_logs/ethDaiRebalancingManager';
 
-import { ProtocolWrapper } from '@utils/wrappers/protocolWrapper';
-import { ERC20Wrapper } from '@utils/wrappers/erc20Wrapper';
-import { OracleWrapper } from '@utils/wrappers/oracleWrapper';
-import { ManagerWrapper } from '@utils/wrappers/managerWrapper';
+import { ProtocolHelper } from '@utils/helpers/protocolHelper';
+import { ERC20Helper } from '@utils/helpers/erc20Helper';
+import { OracleHelper } from '@utils/helpers/oracleHelper';
+import { ManagerHelper } from '@utils/helpers/managerHelper';
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
@@ -69,10 +69,10 @@ contract('ETHDaiRebalancingManager', accounts => {
   let daiMock: StandardTokenMockContract;
   let wrappedETH: WethMockContract;
 
-  const protocolWrapper = new ProtocolWrapper(deployerAccount);
-  const erc20Wrapper = new ERC20Wrapper(deployerAccount);
-  const managerWrapper = new ManagerWrapper(deployerAccount);
-  const oracleWrapper = new OracleWrapper(deployerAccount);
+  const protocolHelper = new ProtocolHelper(deployerAccount);
+  const erc20Helper = new ERC20Helper(deployerAccount);
+  const managerHelper = new ManagerHelper(deployerAccount);
+  const oracleHelper = new OracleHelper(deployerAccount);
 
   before(async () => {
     ABIDecoder.addABI(Core.abi);
@@ -89,20 +89,20 @@ contract('ETHDaiRebalancingManager', accounts => {
   beforeEach(async () => {
     blockchain.saveSnapshotAsync();
 
-    transferProxy = await protocolWrapper.getDeployedTransferProxyAsync();
-    core = await protocolWrapper.getDeployedCoreAsync();
-    rebalanceAuctionModule = await protocolWrapper.getDeployedRebalanceAuctionModuleAsync();
+    transferProxy = await protocolHelper.getDeployedTransferProxyAsync();
+    core = await protocolHelper.getDeployedCoreAsync();
+    rebalanceAuctionModule = await protocolHelper.getDeployedRebalanceAuctionModuleAsync();
 
-    factory = await protocolWrapper.getDeployedSetTokenFactoryAsync();
-    rebalancingFactory = await protocolWrapper.getDeployedRebalancingSetTokenFactoryAsync();
-    linearAuctionPriceCurve = await protocolWrapper.getDeployedLinearAuctionPriceCurveAsync();
+    factory = await protocolHelper.getDeployedSetTokenFactoryAsync();
+    rebalancingFactory = await protocolHelper.getDeployedRebalancingSetTokenFactoryAsync();
+    linearAuctionPriceCurve = await protocolHelper.getDeployedLinearAuctionPriceCurveAsync();
 
-    ethMedianizer = await protocolWrapper.getDeployedWBTCMedianizerAsync();
-    await oracleWrapper.addPriceFeedOwnerToMedianizer(ethMedianizer, deployerAccount);
+    ethMedianizer = await protocolHelper.getDeployedWBTCMedianizerAsync();
+    await oracleHelper.addPriceFeedOwnerToMedianizer(ethMedianizer, deployerAccount);
 
-    daiMock = await protocolWrapper.getDeployedDAIAsync();
-    wrappedETH = await protocolWrapper.getDeployedWETHAsync();
-    await erc20Wrapper.approveTransfersAsync(
+    daiMock = await protocolHelper.getDeployedDAIAsync();
+    wrappedETH = await protocolHelper.getDeployedWETHAsync();
+    await erc20Helper.approveTransfersAsync(
       [daiMock, wrappedETH],
       transferProxy.address
     );
@@ -140,7 +140,7 @@ contract('ETHDaiRebalancingManager', accounts => {
     });
 
     async function subject(): Promise<ETHDaiRebalancingManagerContract> {
-      return managerWrapper.deployETHDaiRebalancingManagerAsync(
+      return managerHelper.deployETHDaiRebalancingManagerAsync(
         subjectCoreAddress,
         subjectEthPriceFeedAddress,
         subjectDaiAddress,
@@ -276,7 +276,7 @@ contract('ETHDaiRebalancingManager', accounts => {
     beforeEach(async () => {
       lowerAllocationBound = new BigNumber(48);
       upperAllocationBound = new BigNumber(52);
-      ethDaiRebalancingManager = await managerWrapper.deployETHDaiRebalancingManagerAsync(
+      ethDaiRebalancingManager = await managerHelper.deployETHDaiRebalancingManagerAsync(
         core.address,
         ethMedianizer.address,
         daiMock.address,
@@ -288,7 +288,7 @@ contract('ETHDaiRebalancingManager', accounts => {
         [lowerAllocationBound, upperAllocationBound]
       );
 
-      initialAllocationToken = await protocolWrapper.createSetTokenAsync(
+      initialAllocationToken = await protocolHelper.createSetTokenAsync(
         core,
         factory.address,
         [daiMock.address, wrappedETH.address],
@@ -297,7 +297,7 @@ contract('ETHDaiRebalancingManager', accounts => {
       );
 
       proposalPeriod = ONE_DAY_IN_SECONDS;
-      rebalancingSetToken = await protocolWrapper.createDefaultRebalancingSetTokenAsync(
+      rebalancingSetToken = await protocolHelper.createDefaultRebalancingSetTokenAsync(
         core,
         rebalancingFactory.address,
         ethDaiRebalancingManager.address,
@@ -309,7 +309,7 @@ contract('ETHDaiRebalancingManager', accounts => {
       subjectCaller = otherAccount;
       subjectTimeFastForward = ONE_DAY_IN_SECONDS.add(1);
 
-      await oracleWrapper.updateMedianizerPriceAsync(
+      await oracleHelper.updateMedianizerPriceAsync(
         ethMedianizer,
         ethPrice,
         SetTestUtils.generateTimestamp(1000),
@@ -321,7 +321,7 @@ contract('ETHDaiRebalancingManager', accounts => {
         ether(9),
         {from: deployerAccount, gas: DEFAULT_GAS},
       );
-      await erc20Wrapper.approveTransfersAsync([initialAllocationToken], transferProxy.address);
+      await erc20Helper.approveTransfersAsync([initialAllocationToken], transferProxy.address);
 
       // Use issued currentSetToken to issue rebalancingSetToken
       await core.issue.sendTransactionAsync(
@@ -344,10 +344,10 @@ contract('ETHDaiRebalancingManager', accounts => {
         await subject();
 
         const nextSetAddress = await rebalancingSetToken.nextSet.callAsync();
-        const nextSet = await protocolWrapper.getSetTokenAsync(nextSetAddress);
+        const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
         const nextSetNaturalUnit = await nextSet.naturalUnit.callAsync();
 
-        const expectedNextSetParams = managerWrapper.getExpectedGeneralNextSetParameters(
+        const expectedNextSetParams = managerHelper.getExpectedGeneralNextSetParameters(
           DAI_PRICE,
           ethPrice,
           daiMultiplier,
@@ -362,10 +362,10 @@ contract('ETHDaiRebalancingManager', accounts => {
         await subject();
 
         const nextSetAddress = await rebalancingSetToken.nextSet.callAsync();
-        const nextSet = await protocolWrapper.getSetTokenAsync(nextSetAddress);
+        const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
         const nextSetUnits = await nextSet.getUnits.callAsync();
 
-        const expectedNextSetParams = managerWrapper.getExpectedGeneralNextSetParameters(
+        const expectedNextSetParams = managerHelper.getExpectedGeneralNextSetParameters(
           DAI_PRICE,
           ethPrice,
           daiMultiplier,
@@ -380,7 +380,7 @@ contract('ETHDaiRebalancingManager', accounts => {
         await subject();
 
         const nextSetAddress = await rebalancingSetToken.nextSet.callAsync();
-        const nextSet = await protocolWrapper.getSetTokenAsync(nextSetAddress);
+        const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
         const nextSetComponents = await nextSet.getComponents.callAsync();
 
         const expectedNextSetComponents = [daiMock.address, wrappedETH.address];
@@ -405,7 +405,7 @@ contract('ETHDaiRebalancingManager', accounts => {
       it('updates the auction start price correctly', async () => {
         await subject();
 
-        const auctionPriceParameters = await managerWrapper.getExpectedGeneralAuctionParameters(
+        const auctionPriceParameters = await managerHelper.getExpectedGeneralAuctionParameters(
           DAI_PRICE,
           ethPrice,
           daiMultiplier,
@@ -426,7 +426,7 @@ contract('ETHDaiRebalancingManager', accounts => {
       it('updates the auction pivot price correctly', async () => {
         await subject();
 
-        const auctionPriceParameters = await managerWrapper.getExpectedGeneralAuctionParameters(
+        const auctionPriceParameters = await managerHelper.getExpectedGeneralAuctionParameters(
           DAI_PRICE,
           ethPrice,
           daiMultiplier,
@@ -471,10 +471,10 @@ contract('ETHDaiRebalancingManager', accounts => {
           await subject();
 
           const nextSetAddress = await rebalancingSetToken.nextSet.callAsync();
-          const nextSet = await protocolWrapper.getSetTokenAsync(nextSetAddress);
+          const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
           const nextSetNaturalUnit = await nextSet.naturalUnit.callAsync();
 
-          const expectedNextSetParams = managerWrapper.getExpectedGeneralNextSetParameters(
+          const expectedNextSetParams = managerHelper.getExpectedGeneralNextSetParameters(
             DAI_PRICE,
             ethPrice,
             daiMultiplier,
@@ -489,10 +489,10 @@ contract('ETHDaiRebalancingManager', accounts => {
           await subject();
 
           const nextSetAddress = await rebalancingSetToken.nextSet.callAsync();
-          const nextSet = await protocolWrapper.getSetTokenAsync(nextSetAddress);
+          const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
           const nextSetUnits = await nextSet.getUnits.callAsync();
 
-          const expectedNextSetParams = managerWrapper.getExpectedGeneralNextSetParameters(
+          const expectedNextSetParams = managerHelper.getExpectedGeneralNextSetParameters(
             DAI_PRICE,
             ethPrice,
             daiMultiplier,
@@ -520,10 +520,10 @@ contract('ETHDaiRebalancingManager', accounts => {
           await subject();
 
           const nextSetAddress = await rebalancingSetToken.nextSet.callAsync();
-          const nextSet = await protocolWrapper.getSetTokenAsync(nextSetAddress);
+          const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
           const nextSetNaturalUnit = await nextSet.naturalUnit.callAsync();
 
-          const expectedNextSetParams = managerWrapper.getExpectedGeneralNextSetParameters(
+          const expectedNextSetParams = managerHelper.getExpectedGeneralNextSetParameters(
             DAI_PRICE,
             ethPrice,
             daiMultiplier,
@@ -538,10 +538,10 @@ contract('ETHDaiRebalancingManager', accounts => {
           await subject();
 
           const nextSetAddress = await rebalancingSetToken.nextSet.callAsync();
-          const nextSet = await protocolWrapper.getSetTokenAsync(nextSetAddress);
+          const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
           const nextSetUnits = await nextSet.getUnits.callAsync();
 
-          const expectedNextSetParams = managerWrapper.getExpectedGeneralNextSetParameters(
+          const expectedNextSetParams = managerHelper.getExpectedGeneralNextSetParameters(
             DAI_PRICE,
             ethPrice,
             daiMultiplier,
@@ -555,7 +555,7 @@ contract('ETHDaiRebalancingManager', accounts => {
         it('updates the auction start price correctly', async () => {
           await subject();
 
-          const auctionPriceParameters = await managerWrapper.getExpectedGeneralAuctionParameters(
+          const auctionPriceParameters = await managerHelper.getExpectedGeneralAuctionParameters(
             DAI_PRICE,
             ethPrice,
             daiMultiplier,
@@ -576,7 +576,7 @@ contract('ETHDaiRebalancingManager', accounts => {
         it('updates the auction pivot price correctly', async () => {
           await subject();
 
-          const auctionPriceParameters = await managerWrapper.getExpectedGeneralAuctionParameters(
+          const auctionPriceParameters = await managerHelper.getExpectedGeneralAuctionParameters(
             DAI_PRICE,
             ethPrice,
             daiMultiplier,
@@ -609,10 +609,10 @@ contract('ETHDaiRebalancingManager', accounts => {
             await subject();
 
             const nextSetAddress = await rebalancingSetToken.nextSet.callAsync();
-            const nextSet = await protocolWrapper.getSetTokenAsync(nextSetAddress);
+            const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
             const nextSetNaturalUnit = await nextSet.naturalUnit.callAsync();
 
-            const expectedNextSetParams = managerWrapper.getExpectedGeneralNextSetParameters(
+            const expectedNextSetParams = managerHelper.getExpectedGeneralNextSetParameters(
               DAI_PRICE,
               ethPrice,
               daiMultiplier,
@@ -627,10 +627,10 @@ contract('ETHDaiRebalancingManager', accounts => {
             await subject();
 
             const nextSetAddress = await rebalancingSetToken.nextSet.callAsync();
-            const nextSet = await protocolWrapper.getSetTokenAsync(nextSetAddress);
+            const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
             const nextSetUnits = await nextSet.getUnits.callAsync();
 
-            const expectedNextSetParams = managerWrapper.getExpectedGeneralNextSetParameters(
+            const expectedNextSetParams = managerHelper.getExpectedGeneralNextSetParameters(
               DAI_PRICE,
               ethPrice,
               daiMultiplier,
@@ -645,7 +645,7 @@ contract('ETHDaiRebalancingManager', accounts => {
 
       describe('but the passed rebalancing set address was not created by Core', async () => {
         beforeEach(async () => {
-          const unTrackedSetToken = await protocolWrapper.createDefaultRebalancingSetTokenAsync(
+          const unTrackedSetToken = await protocolHelper.createDefaultRebalancingSetTokenAsync(
             core,
             rebalancingFactory.address,
             ethDaiRebalancingManager.address,

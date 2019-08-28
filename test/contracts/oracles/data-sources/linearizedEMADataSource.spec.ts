@@ -27,7 +27,7 @@ import { expectRevertError } from '@utils/tokenAssertions';
 import { getWeb3 } from '@utils/web3Helper';
 import { LogOracleUpdated } from '@utils/contract_logs/linearizedPriceDataSource';
 
-import { OracleWrapper } from '@utils/wrappers/oracleWrapper';
+import { OracleHelper } from '@utils/helpers/oracleHelper';
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
@@ -50,7 +50,7 @@ contract('LinearizedEMADataSource', accounts => {
   let linearizedDataSource: LinearizedEMADataSourceContract;
   let oracleProxy: OracleProxyContract;
 
-  const oracleWrapper = new OracleWrapper(deployerAccount);
+  const oracleHelper = new OracleHelper(deployerAccount);
 
   before(async () => {
     ABIDecoder.addABI(LinearizedEMADataSource.abi);
@@ -63,14 +63,14 @@ contract('LinearizedEMADataSource', accounts => {
   beforeEach(async () => {
     blockchain.saveSnapshotAsync();
 
-    ethMedianizer = await oracleWrapper.deployMedianizerAsync();
-    await oracleWrapper.addPriceFeedOwnerToMedianizer(ethMedianizer, deployerAccount);
+    ethMedianizer = await oracleHelper.deployMedianizerAsync();
+    await oracleHelper.addPriceFeedOwnerToMedianizer(ethMedianizer, deployerAccount);
 
-    legacyMakerOracleAdapter = await oracleWrapper.deployLegacyMakerOracleAdapterAsync(
+    legacyMakerOracleAdapter = await oracleHelper.deployLegacyMakerOracleAdapterAsync(
       ethMedianizer.address,
     );
 
-    oracleProxy = await oracleWrapper.deployOracleProxyAsync(
+    oracleProxy = await oracleHelper.deployOracleProxyAsync(
       legacyMakerOracleAdapter.address,
     );
   });
@@ -93,7 +93,7 @@ contract('LinearizedEMADataSource', accounts => {
     });
 
     async function subject(): Promise<LinearizedEMADataSourceContract> {
-      return oracleWrapper.deployLinearizedEMADataSourceAsync(
+      return oracleHelper.deployLinearizedEMADataSourceAsync(
         subjectOracleAddress,
         subjectEmaTimePeriod,
         subjectInterpolationThreshold,
@@ -151,7 +151,7 @@ contract('LinearizedEMADataSource', accounts => {
       previousEMAValue = ether(100);
 
       newEthPrice = customEtherPrice || ether(200);
-      await oracleWrapper.updateMedianizerPriceAsync(
+      await oracleHelper.updateMedianizerPriceAsync(
         ethMedianizer,
         newEthPrice,
         SetTestUtils.generateTimestamp(1000)
@@ -159,14 +159,14 @@ contract('LinearizedEMADataSource', accounts => {
 
       interpolationThreshold = ONE_DAY_IN_SECONDS;
       const oracleAddress = oracleProxy.address;
-      linearizedDataSource = await oracleWrapper.deployLinearizedEMADataSourceAsync(
+      linearizedDataSource = await oracleHelper.deployLinearizedEMADataSourceAsync(
         oracleAddress,
         emaTimePeriod,
         interpolationThreshold,
       );
       const block = await web3.eth.getBlock('latest');
 
-      await oracleWrapper.addAuthorizedAddressesToOracleProxy(
+      await oracleHelper.addAuthorizedAddressesToOracleProxy(
         oracleProxy,
         [linearizedDataSource.address]
       );
@@ -208,7 +208,7 @@ contract('LinearizedEMADataSource', accounts => {
     it('updates the linearizedDataSource with the correct price', async () => {
       const output = await subject();
 
-      const newEMAValue = oracleWrapper.calculateEMA(previousEMAValue, emaTimePeriod, newEthPrice);
+      const newEMAValue = oracleHelper.calculateEMA(previousEMAValue, emaTimePeriod, newEthPrice);
       expect(output).to.bignumber.equal(newEMAValue);
     });
 
@@ -223,7 +223,7 @@ contract('LinearizedEMADataSource', accounts => {
         const block = await web3.eth.getBlock('latest');
         const timeFromExpectedUpdate = new BigNumber(block.timestamp).sub(subjectTimeSeriesState.nextEarliestUpdate);
 
-        const newEMAValue = oracleWrapper.calculateEMA(previousEMAValue, emaTimePeriod, newEthPrice);
+        const newEMAValue = oracleHelper.calculateEMA(previousEMAValue, emaTimePeriod, newEthPrice);
 
         const timeFromLastUpdate = timeFromExpectedUpdate.add(subjectTimeSeriesState.updateInterval);
         const dataArray = subjectTimeSeriesState.timeSeriesData.dataArray;
@@ -257,7 +257,7 @@ contract('LinearizedEMADataSource', accounts => {
         const block = await web3.eth.getBlock('latest');
         const timeFromExpectedUpdate = new BigNumber(block.timestamp).sub(subjectTimeSeriesState.nextEarliestUpdate);
 
-        const newEMAValue = oracleWrapper.calculateEMA(previousEMAValue, emaTimePeriod, newEthPrice);
+        const newEMAValue = oracleHelper.calculateEMA(previousEMAValue, emaTimePeriod, newEthPrice);
 
         const timeFromLastUpdate = timeFromExpectedUpdate.add(subjectTimeSeriesState.updateInterval);
         const dataArray = subjectTimeSeriesState.timeSeriesData.dataArray;
@@ -292,14 +292,14 @@ contract('LinearizedEMADataSource', accounts => {
 
     beforeEach(async () => {
       ethPrice = ether(150);
-      await oracleWrapper.updateMedianizerPriceAsync(
+      await oracleHelper.updateMedianizerPriceAsync(
         ethMedianizer,
         ethPrice,
         SetTestUtils.generateTimestamp(1000),
       );
 
       const oracleAddress = oracleProxy.address;
-      linearizedDataSource = await oracleWrapper.deployLinearizedEMADataSourceAsync(
+      linearizedDataSource = await oracleHelper.deployLinearizedEMADataSourceAsync(
         oracleAddress,
         emaTimePeriod,
       );

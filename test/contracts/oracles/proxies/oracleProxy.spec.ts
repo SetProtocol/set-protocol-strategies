@@ -23,7 +23,7 @@ import { expectRevertError } from '@utils/tokenAssertions';
 
 import { getWeb3 } from '@utils/web3Helper';
 
-import { OracleWrapper } from '@utils/wrappers/oracleWrapper';
+import { OracleHelper } from '@utils/helpers/oracleHelper';
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
@@ -44,19 +44,19 @@ contract('OracleProxy', accounts => {
   let legacyMakerOracleAdapter: LegacyMakerOracleAdapterContract;
   let oracleProxy: OracleProxyContract;
 
-  const oracleWrapper = new OracleWrapper(deployerAccount);
+  const oracleHelper = new OracleHelper(deployerAccount);
 
   beforeEach(async () => {
     blockchain.saveSnapshotAsync();
 
-    ethMedianizer = await oracleWrapper.deployMedianizerAsync();
-    await oracleWrapper.addPriceFeedOwnerToMedianizer(
+    ethMedianizer = await oracleHelper.deployMedianizerAsync();
+    await oracleHelper.addPriceFeedOwnerToMedianizer(
       ethMedianizer,
       deployerAccount
     );
 
     // Use adapter to convert medianizer output to uint256
-    legacyMakerOracleAdapter = await  oracleWrapper.deployLegacyMakerOracleAdapterAsync(
+    legacyMakerOracleAdapter = await  oracleHelper.deployLegacyMakerOracleAdapterAsync(
       ethMedianizer.address,
     );
   });
@@ -73,7 +73,7 @@ contract('OracleProxy', accounts => {
     });
 
     async function subject(): Promise<OracleProxyContract> {
-      return oracleWrapper.deployOracleProxyAsync(
+      return oracleHelper.deployOracleProxyAsync(
         subjectOracleAddress,
       );
     }
@@ -93,21 +93,21 @@ contract('OracleProxy', accounts => {
 
     beforeEach(async () => {
       ethPrice = ether(200);
-      await oracleWrapper.updateMedianizerPriceAsync(
+      await oracleHelper.updateMedianizerPriceAsync(
         ethMedianizer,
         ethPrice,
         SetTestUtils.generateTimestamp(1000)
       );
 
-      oracleProxy = await oracleWrapper.deployOracleProxyAsync(
+      oracleProxy = await oracleHelper.deployOracleProxyAsync(
         legacyMakerOracleAdapter.address,
       );
 
-      oracleProxyCaller = await oracleWrapper.deployOracleProxyCallerAsync(
+      oracleProxyCaller = await oracleHelper.deployOracleProxyCallerAsync(
         oracleProxy.address,
       );
 
-      await oracleWrapper.addAuthorizedAddressesToOracleProxy(
+      await oracleHelper.addAuthorizedAddressesToOracleProxy(
         oracleProxy,
         [oracleProxyCaller.address]
       );
@@ -142,11 +142,11 @@ contract('OracleProxy', accounts => {
     let subjectCaller: Address;
 
     beforeEach(async () => {
-      legacyMakerOracleAdapter = await oracleWrapper.deployLegacyMakerOracleAdapterAsync(
+      legacyMakerOracleAdapter = await oracleHelper.deployLegacyMakerOracleAdapterAsync(
         ethMedianizer.address,
       );
 
-      oracleProxy = await oracleWrapper.deployOracleProxyAsync(
+      oracleProxy = await oracleHelper.deployOracleProxyAsync(
         legacyMakerOracleAdapter.address,
       );
 

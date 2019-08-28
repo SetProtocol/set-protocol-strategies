@@ -13,8 +13,8 @@ import { Blockchain } from '@utils/blockchain';
 import { ether } from '@utils/units';
 import { getWeb3 } from '@utils/web3Helper';
 
-import { LibraryMockWrapper } from '@utils/wrappers/libraryMockWrapper';
-import { OracleWrapper } from '@utils/wrappers/oracleWrapper';
+import { LibraryMockHelper } from '@utils/helpers/libraryMockHelper';
+import { OracleHelper } from '@utils/helpers/oracleHelper';
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
@@ -29,13 +29,13 @@ contract('EMALibrary', accounts => {
 
   let emaLibraryMock: EMALibraryMockContract;
 
-  const libraryMockWrapper = new LibraryMockWrapper(deployerAccount);
-  const oracleWrapper = new OracleWrapper(deployerAccount);
+  const libraryMockHelper = new LibraryMockHelper(deployerAccount);
+  const oracleHelper = new OracleHelper(deployerAccount);
 
   beforeEach(async () => {
     blockchain.saveSnapshotAsync();
 
-    emaLibraryMock = await libraryMockWrapper.deployEMALibraryMockAsync();
+    emaLibraryMock = await libraryMockHelper.deployEMALibraryMockAsync();
   });
 
   afterEach(async () => {
@@ -73,7 +73,7 @@ contract('EMALibrary', accounts => {
 
     it('returns the correct price', async () => {
       const output = await subject();
-      const expectedOutput = oracleWrapper.calculateEMA(
+      const expectedOutput = oracleHelper.calculateEMA(
         subjectPreviousEMAValue,
         subjectTimePeriod,
         subjectCurrentAssetPrice,
@@ -90,7 +90,7 @@ contract('EMALibrary', accounts => {
 
       it('returns the correct price', async () => {
         const output = await subject();
-        const expectedOutput = oracleWrapper.calculateEMA(
+        const expectedOutput = oracleHelper.calculateEMA(
           subjectPreviousEMAValue,
           subjectTimePeriod,
           subjectCurrentAssetPrice,

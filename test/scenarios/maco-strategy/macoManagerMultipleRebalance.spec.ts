@@ -22,7 +22,7 @@ import {
   FullRebalanceProgram,
 } from './types';
 
-import { MACOStrategyMultipleRebalanceWrapper } from './macoStrategyMultipleRebalanceHelper';
+import { MACOStrategyMultipleRebalanceHelper } from './macoStrategyMultipleRebalanceHelper';
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
@@ -33,7 +33,7 @@ const blockchain = new Blockchain(web3);
 
 contract('Multiple Rebalance MACO Strategy', accounts => {
 
-  let btcEthRebalanceWrapper: MACOStrategyMultipleRebalanceWrapper;
+  let btcEthRebalanceHelper: MACOStrategyMultipleRebalanceHelper;
   let scenarioData: FullRebalanceProgram;
 
   before(async () => {
@@ -53,7 +53,7 @@ contract('Multiple Rebalance MACO Strategy', accounts => {
 
     scenarioData = getScenarioData(accounts);
 
-    btcEthRebalanceWrapper = new MACOStrategyMultipleRebalanceWrapper(accounts, scenarioData);
+    btcEthRebalanceHelper = new MACOStrategyMultipleRebalanceHelper(accounts, scenarioData);
   });
 
   afterEach(async () => {
@@ -61,7 +61,7 @@ contract('Multiple Rebalance MACO Strategy', accounts => {
   });
 
   async function subject(): Promise<DataOutput> {
-    return btcEthRebalanceWrapper.runFullRebalanceProgram();
+    return btcEthRebalanceHelper.runFullRebalanceProgram();
   }
 
   describe('for multiple rebalance cycles', async () => {

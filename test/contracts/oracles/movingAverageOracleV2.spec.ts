@@ -21,7 +21,7 @@ import {
 import { ZERO, ONE_DAY_IN_SECONDS } from '@utils/constants';
 import { getWeb3 } from '@utils/web3Helper';
 
-import { OracleWrapper } from '@utils/wrappers/oracleWrapper';
+import { OracleHelper } from '@utils/helpers/oracleHelper';
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
@@ -43,37 +43,37 @@ contract('MovingAverageOracleV2', accounts => {
 
   let initialEthPrice: BigNumber;
 
-  const oracleWrapper = new OracleWrapper(deployerAccount);
+  const oracleHelper = new OracleHelper(deployerAccount);
 
 
   beforeEach(async () => {
     blockchain.saveSnapshotAsync();
 
-    ethMedianizer = await oracleWrapper.deployMedianizerAsync();
-    await oracleWrapper.addPriceFeedOwnerToMedianizer(ethMedianizer, deployerAccount);
+    ethMedianizer = await oracleHelper.deployMedianizerAsync();
+    await oracleHelper.addPriceFeedOwnerToMedianizer(ethMedianizer, deployerAccount);
 
-    legacyMakerOracleAdapter = await oracleWrapper.deployLegacyMakerOracleAdapterAsync(
+    legacyMakerOracleAdapter = await oracleHelper.deployLegacyMakerOracleAdapterAsync(
       ethMedianizer.address,
     );
 
-    oracleProxy = await oracleWrapper.deployOracleProxyAsync(
+    oracleProxy = await oracleHelper.deployOracleProxyAsync(
       legacyMakerOracleAdapter.address,
     );
 
     const interpolationThreshold = ONE_DAY_IN_SECONDS;
-    linearizedDataSource = await oracleWrapper.deployLinearizedPriceDataSourceAsync(
+    linearizedDataSource = await oracleHelper.deployLinearizedPriceDataSourceAsync(
       oracleProxy.address,
       interpolationThreshold,
     );
 
-    await oracleWrapper.addAuthorizedAddressesToOracleProxy(
+    await oracleHelper.addAuthorizedAddressesToOracleProxy(
       oracleProxy,
       [linearizedDataSource.address]
     );
 
     initialEthPrice = ether(150);
     const seededValues = [initialEthPrice];
-    timeSeriesFeed = await oracleWrapper.deployTimeSeriesFeedAsync(
+    timeSeriesFeed = await oracleHelper.deployTimeSeriesFeedAsync(
       linearizedDataSource.address,
       seededValues
     );
@@ -93,7 +93,7 @@ contract('MovingAverageOracleV2', accounts => {
     });
 
     async function subject(): Promise<MovingAverageOracleV2Contract> {
-      return oracleWrapper.deployMovingAverageOracleV2Async(
+      return oracleHelper.deployMovingAverageOracleV2Async(
         subjectTimeSeriesFeedAddress,
         subjectDataDescription
       );
@@ -122,14 +122,14 @@ contract('MovingAverageOracleV2', accounts => {
     let subjectDataPoints: BigNumber;
 
     beforeEach(async () => {
-      updatedValues = await oracleWrapper.batchUpdateTimeSeriesFeedAsync(
+      updatedValues = await oracleHelper.batchUpdateTimeSeriesFeedAsync(
         timeSeriesFeed,
         ethMedianizer,
         19
       );
 
       const dataDescription = 'ETH20dayMA';
-      movingAverageOracle = await oracleWrapper.deployMovingAverageOracleV2Async(
+      movingAverageOracle = await oracleHelper.deployMovingAverageOracleV2Async(
         timeSeriesFeed.address,
         dataDescription
       );
