@@ -8,9 +8,11 @@ import { Blockchain } from '@utils/blockchain';
 import { ether } from '@utils/units';
 
 import {
+  EMAOracleContract,
   FeedFactoryContract,
   HistoricalPriceFeedContract,
   LegacyMakerOracleAdapterContract,
+  LinearizedEMADataSourceContract,
   LinearizedPriceDataSourceContract,
   MovingAverageOracleContract,
   MovingAverageOracleV2Contract,
@@ -27,9 +29,12 @@ import { getWeb3 } from '../web3Helper';
 import { FeedCreatedArgs } from '../contract_logs/oracle';
 
 const web3 = getWeb3();
-const HistoricalPriceFeed = artifacts.require('HistoricalPriceFeed');
+
+const EMAOracle = artifacts.require('EMAOracle');
 const FeedFactory = artifacts.require('FeedFactory');
+const HistoricalPriceFeed = artifacts.require('HistoricalPriceFeed');
 const LegacyMakerOracleAdapter = artifacts.require('LegacyMakerOracleAdapter');
+const LinearizedEMADataSource = artifacts.require('LinearizedEMADataSource');
 const LinearizedPriceDataSource = artifacts.require('LinearizedPriceDataSource');
 const Median = artifacts.require('Median');
 const MovingAverageOracle = artifacts.require('MovingAverageOracle');
@@ -142,6 +147,27 @@ export class OracleWrapper {
     );
   }
 
+  public async deployLinearizedEMADataSourceAsync(
+    medianizerInstance: Address,
+    emaDays: BigNumber,
+    updateTolerance: BigNumber = ONE_DAY_IN_SECONDS,
+    dataDescription: string = '200DailyETHPrice',
+    from: Address = this._contractOwnerAddress
+  ): Promise<LinearizedEMADataSourceContract> {
+    const linearizedEMADataSource = await LinearizedEMADataSource.new(
+      emaDays,
+      updateTolerance,
+      medianizerInstance,
+      dataDescription,
+      { from },
+    );
+
+    return new LinearizedEMADataSourceContract(
+      new web3.eth.Contract(linearizedEMADataSource.abi, linearizedEMADataSource.address),
+      { from },
+    );
+  }
+
   public async deployHistoricalPriceFeedAsync(
     updateFrequency: BigNumber,
     medianizerAddress: Address,
@@ -193,6 +219,25 @@ export class OracleWrapper {
 
     return new MovingAverageOracleV2Contract(
       new web3.eth.Contract(movingAverageOracle.abi, movingAverageOracle.address),
+      { from },
+    );
+  }
+
+  public async deployEMAOracleAsync(
+    timeSeriesFeedAddresses: Address[],
+    timeSeriesFeedDays: BigNumber[],
+    dataDescription: string,
+    from: Address = this._contractOwnerAddress
+  ): Promise<EMAOracleContract> {
+    const emaOracle = await EMAOracle.new(
+      timeSeriesFeedAddresses,
+      timeSeriesFeedDays,
+      dataDescription,
+      { from },
+    );
+
+    return new EMAOracleContract(
+      new web3.eth.Contract(emaOracle.abi, emaOracle.address),
       { from },
     );
   }
@@ -411,5 +456,22 @@ export class OracleWrapper {
     }
 
     return priceArray;
+  }
+
+  public calculateEMA(
+    previousEMAValue: BigNumber,
+    timePeriod: BigNumber,
+    currentAssetPrice: BigNumber
+  ): BigNumber {
+    const weightedNumerator: BigNumber = new BigNumber(2);
+    const weightedDenominator: BigNumber = timePeriod.plus(1);
+
+    const currentWeightedValue = currentAssetPrice
+                                   .mul(weightedNumerator).div(weightedDenominator).round(0, 3);
+
+    const previousWeightedValue = previousEMAValue
+                                   .mul(weightedNumerator).div(weightedDenominator).round(0, 3);
+
+    return currentWeightedValue.add(previousEMAValue).sub(previousWeightedValue);
   }
 }
