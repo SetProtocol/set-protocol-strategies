@@ -24,7 +24,7 @@ const EMALibraryMock = artifacts.require('EMALibraryMock');
 const PriceFeedMock = artifacts.require('PriceFeedMock');
 
 
-export class LibraryMockWrapper {
+export class LibraryMockHelper {
   private _contractOwnerAddress: Address;
 
   constructor(contractOwnerAddress: Address) {

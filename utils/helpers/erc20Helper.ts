@@ -25,7 +25,7 @@ const USDCMock = artifacts.require('USDCMock');
 
 const web3 = getWeb3();
 
-export class ERC20Wrapper {
+export class ERC20Helper {
   private _senderAccountAddress: Address;
 
   constructor(senderAccountAddress: Address) {

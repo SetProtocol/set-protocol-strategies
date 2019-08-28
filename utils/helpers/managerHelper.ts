@@ -38,7 +38,7 @@ const {
   WETH_FULL_TOKEN_UNITS,
 } = SetUtils.CONSTANTS;
 
-export class ManagerWrapper {
+export class ManagerHelper {
   private _tokenOwnerAddress: Address;
 
   constructor(

@@ -49,7 +49,7 @@ const setTestUtils = new SetTestUtils(web3);
 const setUtils = new SetUtils(web3);
 
 
-export class OracleWrapper {
+export class OracleHelper {
   private _contractOwnerAddress: Address;
   private _blockchain: Blockchain;
 
