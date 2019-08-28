@@ -98,24 +98,5 @@ contract('EMALibrary', accounts => {
         expect(output).to.be.bignumber.equal(expectedOutput);
       });
     });
-
-    describe('using custom value set 2', async () => {
-      before(async () => {
-        customPreviousEMAValue = ether(13.2);
-        customTimePeriod = new BigNumber(100);
-        customCurrentAssetPrice = ether(12);
-      });
-
-      it('returns the correct price', async () => {
-        const output = await subject();
-        const expectedOutput = oracleWrapper.calculateEMA(
-          subjectPreviousEMAValue,
-          subjectTimePeriod,
-          subjectCurrentAssetPrice,
-        );
-        expect(output).to.be.bignumber.equal(expectedOutput);
-      });
-    });
-
   });
 });
