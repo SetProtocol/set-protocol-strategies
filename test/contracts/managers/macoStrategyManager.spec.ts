@@ -45,10 +45,10 @@ import { expectRevertError } from '@utils/tokenAssertions';
 import { getWeb3 } from '@utils/web3Helper';
 import { LogManagerProposal } from '@utils/contract_logs/macoStrategyManager';
 
-import { ERC20Wrapper } from '@utils/wrappers/erc20Wrapper';
-import { ManagerWrapper } from '@utils/wrappers/managerWrapper';
-import { OracleWrapper } from '@utils/wrappers/oracleWrapper';
-import { ProtocolWrapper } from '@utils/wrappers/protocolWrapper';
+import { ERC20Helper } from '@utils/helpers/erc20Helper';
+import { ManagerHelper } from '@utils/helpers/managerHelper';
+import { OracleHelper } from '@utils/helpers/oracleHelper';
+import { ProtocolHelper } from '@utils/helpers/protocolHelper';
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
@@ -87,10 +87,10 @@ contract('MACOStrategyManager', accounts => {
 
   let initialEthPrice: BigNumber;
 
-  const protocolWrapper = new ProtocolWrapper(deployerAccount);
-  const erc20Wrapper = new ERC20Wrapper(deployerAccount);
-  const managerWrapper = new ManagerWrapper(deployerAccount);
-  const oracleWrapper = new OracleWrapper(deployerAccount);
+  const protocolHelper = new ProtocolHelper(deployerAccount);
+  const erc20Helper = new ERC20Helper(deployerAccount);
+  const managerHelper = new ManagerHelper(deployerAccount);
+  const oracleHelper = new OracleHelper(deployerAccount);
 
   before(async () => {
     ABIDecoder.addABI(Core.abi);
@@ -105,31 +105,31 @@ contract('MACOStrategyManager', accounts => {
   beforeEach(async () => {
     blockchain.saveSnapshotAsync();
 
-    transferProxy = await protocolWrapper.getDeployedTransferProxyAsync();
-    core = await protocolWrapper.getDeployedCoreAsync();
+    transferProxy = await protocolHelper.getDeployedTransferProxyAsync();
+    core = await protocolHelper.getDeployedCoreAsync();
 
-    factory = await protocolWrapper.getDeployedSetTokenFactoryAsync();
-    rebalancingFactory = await protocolWrapper.getDeployedRebalancingSetTokenFactoryAsync();
-    linearAuctionPriceCurve = await protocolWrapper.getDeployedLinearAuctionPriceCurveAsync();
-    whiteList = await protocolWrapper.getDeployedWhiteList();
+    factory = await protocolHelper.getDeployedSetTokenFactoryAsync();
+    rebalancingFactory = await protocolHelper.getDeployedRebalancingSetTokenFactoryAsync();
+    linearAuctionPriceCurve = await protocolHelper.getDeployedLinearAuctionPriceCurveAsync();
+    whiteList = await protocolHelper.getDeployedWhiteList();
 
-    ethMedianizer = await protocolWrapper.getDeployedWETHMedianizerAsync();
-    await oracleWrapper.addPriceFeedOwnerToMedianizer(ethMedianizer, deployerAccount);
+    ethMedianizer = await protocolHelper.getDeployedWETHMedianizerAsync();
+    await oracleHelper.addPriceFeedOwnerToMedianizer(ethMedianizer, deployerAccount);
 
     initialEthPrice = ether(150);
-    await oracleWrapper.updateMedianizerPriceAsync(
+    await oracleHelper.updateMedianizerPriceAsync(
       ethMedianizer,
       initialEthPrice,
       SetTestUtils.generateTimestamp(1000),
     );
 
-    usdcMock = await erc20Wrapper.deployUSDCTokenAsync(deployerAccount);
-    await protocolWrapper.addTokenToWhiteList(usdcMock.address, whiteList);
+    usdcMock = await erc20Helper.deployUSDCTokenAsync(deployerAccount);
+    await protocolHelper.addTokenToWhiteList(usdcMock.address, whiteList);
     await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS.mul(7));
-    await protocolWrapper.addTokenToWhiteList(usdcMock.address, whiteList);
+    await protocolHelper.addTokenToWhiteList(usdcMock.address, whiteList);
 
-    wrappedETH = await protocolWrapper.getDeployedWETHAsync();
-    await erc20Wrapper.approveTransfersAsync(
+    wrappedETH = await protocolHelper.getDeployedWETHAsync();
+    await erc20Helper.approveTransfersAsync(
       [usdcMock, wrappedETH],
       transferProxy.address
     );
@@ -137,7 +137,7 @@ contract('MACOStrategyManager', accounts => {
     const updateFrequency = ONE_DAY_IN_SECONDS;
     const feedDataDescription = '200DailyETHPrice';
     const seededValues = [];
-    dailyPriceFeed = await oracleWrapper.deployHistoricalPriceFeedAsync(
+    dailyPriceFeed = await oracleHelper.deployHistoricalPriceFeedAsync(
       updateFrequency,
       ethMedianizer.address,
       feedDataDescription,
@@ -145,12 +145,12 @@ contract('MACOStrategyManager', accounts => {
     );
 
     const dataDescription = 'ETH20dayMA';
-    movingAverageOracle = await oracleWrapper.deployMovingAverageOracleAsync(
+    movingAverageOracle = await oracleHelper.deployMovingAverageOracleAsync(
       dailyPriceFeed.address,
       dataDescription
     );
 
-    stableCollateral = await protocolWrapper.createSetTokenAsync(
+    stableCollateral = await protocolHelper.createSetTokenAsync(
       core,
       factory.address,
       [usdcMock.address],
@@ -158,7 +158,7 @@ contract('MACOStrategyManager', accounts => {
       STABLE_COLLATERAL_NATURAL_UNIT,
     );
 
-    riskCollateral = await protocolWrapper.createSetTokenAsync(
+    riskCollateral = await protocolHelper.createSetTokenAsync(
       core,
       factory.address,
       [wrappedETH.address],
@@ -199,7 +199,7 @@ contract('MACOStrategyManager', accounts => {
     });
 
     async function subject(): Promise<MACOStrategyManagerContract> {
-      return managerWrapper.deployMACOStrategyManagerAsync(
+      return managerHelper.deployMACOStrategyManagerAsync(
         subjectCoreAddress,
         subjectMovingAveragePriceFeed,
         subjectStableAssetAddress,
@@ -367,7 +367,7 @@ contract('MACOStrategyManager', accounts => {
     });
 
     beforeEach(async () => {
-      await oracleWrapper.batchUpdateHistoricalPriceFeedAsync(
+      await oracleHelper.batchUpdateHistoricalPriceFeedAsync(
         dailyPriceFeed,
         ethMedianizer,
         updatedValues.length,
@@ -377,7 +377,7 @@ contract('MACOStrategyManager', accounts => {
       crossoverConfirmationBounds = [ONE_HOUR_IN_SECONDS.mul(6), ONE_HOUR_IN_SECONDS.mul(12)];
 
       auctionTimeToPivot = ONE_DAY_IN_SECONDS.div(4);
-      const initialAllocationAddress = await managerWrapper.getMACOInitialAllocationAsync(
+      const initialAllocationAddress = await managerHelper.getMACOInitialAllocationAsync(
         stableCollateral,
         riskCollateral,
         ethMedianizer,
@@ -386,7 +386,7 @@ contract('MACOStrategyManager', accounts => {
       );
 
       const movingAverageDays = new BigNumber(20);
-      macoStrategyManager = await managerWrapper.deployMACOStrategyManagerAsync(
+      macoStrategyManager = await managerHelper.deployMACOStrategyManagerAsync(
         core.address,
         movingAverageOracle.address,
         usdcMock.address,
@@ -401,7 +401,7 @@ contract('MACOStrategyManager', accounts => {
       );
 
       proposalPeriod = ONE_DAY_IN_SECONDS;
-      rebalancingSetToken = await protocolWrapper.createDefaultRebalancingSetTokenAsync(
+      rebalancingSetToken = await protocolHelper.createDefaultRebalancingSetTokenAsync(
         core,
         rebalancingFactory.address,
         macoStrategyManager.address,
@@ -440,7 +440,7 @@ contract('MACOStrategyManager', accounts => {
 
     describe('but the passed rebalancing set address was not created by Core', async () => {
       beforeEach(async () => {
-        const unTrackedSetToken = await protocolWrapper.createDefaultRebalancingSetTokenAsync(
+        const unTrackedSetToken = await protocolHelper.createDefaultRebalancingSetTokenAsync(
           core,
           rebalancingFactory.address,
           macoStrategyManager.address,
@@ -478,7 +478,7 @@ contract('MACOStrategyManager', accounts => {
     });
 
     beforeEach(async () => {
-      await oracleWrapper.batchUpdateHistoricalPriceFeedAsync(
+      await oracleHelper.batchUpdateHistoricalPriceFeedAsync(
         dailyPriceFeed,
         ethMedianizer,
         updatedValues.length,
@@ -486,7 +486,7 @@ contract('MACOStrategyManager', accounts => {
       );
 
       auctionTimeToPivot = ONE_DAY_IN_SECONDS.div(4);
-      const initialAllocationAddress = await managerWrapper.getMACOInitialAllocationAsync(
+      const initialAllocationAddress = await managerHelper.getMACOInitialAllocationAsync(
         stableCollateral,
         riskCollateral,
         ethMedianizer,
@@ -497,7 +497,7 @@ contract('MACOStrategyManager', accounts => {
       crossoverConfirmationBounds = [ONE_HOUR_IN_SECONDS.mul(6), ONE_HOUR_IN_SECONDS.mul(12)];
 
       const movingAverageDays = new BigNumber(20);
-      macoStrategyManager = await managerWrapper.deployMACOStrategyManagerAsync(
+      macoStrategyManager = await managerHelper.deployMACOStrategyManagerAsync(
         core.address,
         movingAverageOracle.address,
         usdcMock.address,
@@ -512,7 +512,7 @@ contract('MACOStrategyManager', accounts => {
       );
 
       proposalPeriod = ONE_DAY_IN_SECONDS;
-      rebalancingSetToken = await protocolWrapper.createDefaultRebalancingSetTokenAsync(
+      rebalancingSetToken = await protocolHelper.createDefaultRebalancingSetTokenAsync(
         core,
         rebalancingFactory.address,
         macoStrategyManager.address,
@@ -526,7 +526,7 @@ contract('MACOStrategyManager', accounts => {
       );
 
       const blockInfo = await web3.eth.getBlock('latest');
-      await oracleWrapper.updateMedianizerPriceAsync(
+      await oracleHelper.updateMedianizerPriceAsync(
         ethMedianizer,
         lastPrice,
         new BigNumber(blockInfo.timestamp + 1),
@@ -645,13 +645,13 @@ contract('MACOStrategyManager', accounts => {
       beforeEach(async () => {
         // Issue currentSetToken
         const initialAllocationTokenAddress = await rebalancingSetToken.currentSet.callAsync();
-        const initialAllocationToken = await protocolWrapper.getSetTokenAsync(initialAllocationTokenAddress);
+        const initialAllocationToken = await protocolHelper.getSetTokenAsync(initialAllocationTokenAddress);
         await core.issue.sendTransactionAsync(
           initialAllocationToken.address,
           ether(9),
           {from: deployerAccount, gas: DEFAULT_GAS},
         );
-        await erc20Wrapper.approveTransfersAsync([initialAllocationToken], transferProxy.address);
+        await erc20Helper.approveTransfersAsync([initialAllocationToken], transferProxy.address);
 
         // Use issued currentSetToken to issue rebalancingSetToken
         await core.issue.sendTransactionAsync(
@@ -696,7 +696,7 @@ contract('MACOStrategyManager', accounts => {
     });
 
     beforeEach(async () => {
-      await oracleWrapper.batchUpdateHistoricalPriceFeedAsync(
+      await oracleHelper.batchUpdateHistoricalPriceFeedAsync(
         dailyPriceFeed,
         ethMedianizer,
         updatedValues.length,
@@ -704,7 +704,7 @@ contract('MACOStrategyManager', accounts => {
       );
 
       auctionTimeToPivot = ONE_DAY_IN_SECONDS.div(4);
-      const initialAllocationAddress = await managerWrapper.getMACOInitialAllocationAsync(
+      const initialAllocationAddress = await managerHelper.getMACOInitialAllocationAsync(
         stableCollateral,
         riskCollateral,
         ethMedianizer,
@@ -715,7 +715,7 @@ contract('MACOStrategyManager', accounts => {
       crossoverConfirmationBounds = [ONE_HOUR_IN_SECONDS.mul(6), ONE_HOUR_IN_SECONDS.mul(12)];
 
       const movingAverageDays = new BigNumber(20);
-      macoStrategyManager = await managerWrapper.deployMACOStrategyManagerAsync(
+      macoStrategyManager = await managerHelper.deployMACOStrategyManagerAsync(
         core.address,
         movingAverageOracle.address,
         usdcMock.address,
@@ -730,7 +730,7 @@ contract('MACOStrategyManager', accounts => {
       );
 
       proposalPeriod = ONE_DAY_IN_SECONDS;
-      rebalancingSetToken = await protocolWrapper.createDefaultRebalancingSetTokenAsync(
+      rebalancingSetToken = await protocolHelper.createDefaultRebalancingSetTokenAsync(
         core,
         rebalancingFactory.address,
         macoStrategyManager.address,
@@ -744,7 +744,7 @@ contract('MACOStrategyManager', accounts => {
       );
 
       const triggerBlockInfo = await web3.eth.getBlock('latest');
-      await oracleWrapper.updateMedianizerPriceAsync(
+      await oracleHelper.updateMedianizerPriceAsync(
         ethMedianizer,
         triggerPrice,
         new BigNumber(triggerBlockInfo.timestamp + 1),
@@ -754,7 +754,7 @@ contract('MACOStrategyManager', accounts => {
       await macoStrategyManager.initialPropose.sendTransactionAsync();
 
       const lastBlockInfo = await web3.eth.getBlock('latest');
-      await oracleWrapper.updateMedianizerPriceAsync(
+      await oracleHelper.updateMedianizerPriceAsync(
         ethMedianizer,
         lastPrice,
         new BigNumber(lastBlockInfo.timestamp + 1),
@@ -799,7 +799,7 @@ contract('MACOStrategyManager', accounts => {
           await subject();
 
           const timeIncrement = new BigNumber(600);
-          const auctionPriceParameters = await managerWrapper.getExpectedMACOAuctionParametersAsync(
+          const auctionPriceParameters = await managerHelper.getExpectedMACOAuctionParametersAsync(
             riskCollateral,
             stableCollateral,
             true,
@@ -818,7 +818,7 @@ contract('MACOStrategyManager', accounts => {
           await subject();
 
           const timeIncrement = new BigNumber(600);
-          const auctionPriceParameters = await managerWrapper.getExpectedMACOAuctionParametersAsync(
+          const auctionPriceParameters = await managerHelper.getExpectedMACOAuctionParametersAsync(
             riskCollateral,
             stableCollateral,
             true,
@@ -867,10 +867,10 @@ contract('MACOStrategyManager', accounts => {
             await subject();
 
             const nextSetAddress = await rebalancingSetToken.nextSet.callAsync();
-            const nextSet = await protocolWrapper.getSetTokenAsync(nextSetAddress);
+            const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
             const nextSetNaturalUnit = await nextSet.naturalUnit.callAsync();
 
-            const expectedNextSetParams = await managerWrapper.getExpectedMACONewCollateralParametersAsync(
+            const expectedNextSetParams = await managerHelper.getExpectedMACONewCollateralParametersAsync(
               stableCollateral,
               riskCollateral,
               ethMedianizer,
@@ -885,10 +885,10 @@ contract('MACOStrategyManager', accounts => {
             await subject();
 
             const nextSetAddress = await rebalancingSetToken.nextSet.callAsync();
-            const nextSet = await protocolWrapper.getSetTokenAsync(nextSetAddress);
+            const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
             const nextSetUnits = await nextSet.getUnits.callAsync();
 
-            const expectedNextSetParams = await managerWrapper.getExpectedMACONewCollateralParametersAsync(
+            const expectedNextSetParams = await managerHelper.getExpectedMACONewCollateralParametersAsync(
               stableCollateral,
               riskCollateral,
               ethMedianizer,
@@ -903,7 +903,7 @@ contract('MACOStrategyManager', accounts => {
             await subject();
 
             const nextSetAddress = await rebalancingSetToken.nextSet.callAsync();
-            const nextSet = await protocolWrapper.getSetTokenAsync(nextSetAddress);
+            const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
             const nextSetComponents = await nextSet.getComponents.callAsync();
 
             const expectedNextSetComponents = [usdcMock.address];
@@ -915,10 +915,10 @@ contract('MACOStrategyManager', accounts => {
 
             const logs = await setTestUtils.getLogsFromTxHash(txHash);
             const newSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
-            const newSet = await protocolWrapper.getSetTokenAsync(newSetAddress);
+            const newSet = await protocolHelper.getSetTokenAsync(newSetAddress);
 
             const timeIncrement = new BigNumber(600);
-            const auctionPriceParameters = await managerWrapper.getExpectedMACOAuctionParametersAsync(
+            const auctionPriceParameters = await managerHelper.getExpectedMACOAuctionParametersAsync(
               riskCollateral,
               newSet,
               true,
@@ -938,10 +938,10 @@ contract('MACOStrategyManager', accounts => {
 
             const logs = await setTestUtils.getLogsFromTxHash(txHash);
             const newSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
-            const newSet = await protocolWrapper.getSetTokenAsync(newSetAddress);
+            const newSet = await protocolHelper.getSetTokenAsync(newSetAddress);
 
             const timeIncrement = new BigNumber(600);
-            const auctionPriceParameters = await managerWrapper.getExpectedMACOAuctionParametersAsync(
+            const auctionPriceParameters = await managerHelper.getExpectedMACOAuctionParametersAsync(
               riskCollateral,
               newSet,
               true,
@@ -977,10 +977,10 @@ contract('MACOStrategyManager', accounts => {
             await subject();
 
             const newSetAddress = await rebalancingSetToken.nextSet.callAsync();
-            const newSet = await protocolWrapper.getSetTokenAsync(newSetAddress);
+            const newSet = await protocolHelper.getSetTokenAsync(newSetAddress);
             const newSetNaturalUnit = await newSet.naturalUnit.callAsync();
 
-            const expectedNextSetParams = await managerWrapper.getExpectedMACONewCollateralParametersAsync(
+            const expectedNextSetParams = await managerHelper.getExpectedMACONewCollateralParametersAsync(
               stableCollateral,
               riskCollateral,
               ethMedianizer,
@@ -995,10 +995,10 @@ contract('MACOStrategyManager', accounts => {
             await subject();
 
             const newSetAddress = await rebalancingSetToken.nextSet.callAsync();
-            const newSet = await protocolWrapper.getSetTokenAsync(newSetAddress);
+            const newSet = await protocolHelper.getSetTokenAsync(newSetAddress);
             const newSetUnits = await newSet.getUnits.callAsync();
 
-            const expectedNextSetParams = await managerWrapper.getExpectedMACONewCollateralParametersAsync(
+            const expectedNextSetParams = await managerHelper.getExpectedMACONewCollateralParametersAsync(
               stableCollateral,
               riskCollateral,
               ethMedianizer,
@@ -1013,7 +1013,7 @@ contract('MACOStrategyManager', accounts => {
             await subject();
 
             const nextSetAddress = await rebalancingSetToken.nextSet.callAsync();
-            const nextSet = await protocolWrapper.getSetTokenAsync(nextSetAddress);
+            const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
             const nextSetComponents = await nextSet.getComponents.callAsync();
 
             const expectedNextSetComponents = [usdcMock.address];
@@ -1025,10 +1025,10 @@ contract('MACOStrategyManager', accounts => {
 
             const logs = await setTestUtils.getLogsFromTxHash(txHash);
             const newSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
-            const newSet = await protocolWrapper.getSetTokenAsync(newSetAddress);
+            const newSet = await protocolHelper.getSetTokenAsync(newSetAddress);
 
             const timeIncrement = new BigNumber(600);
-            const auctionPriceParameters = await managerWrapper.getExpectedMACOAuctionParametersAsync(
+            const auctionPriceParameters = await managerHelper.getExpectedMACOAuctionParametersAsync(
               riskCollateral,
               newSet,
               true,
@@ -1048,10 +1048,10 @@ contract('MACOStrategyManager', accounts => {
 
             const logs = await setTestUtils.getLogsFromTxHash(txHash);
             const newSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
-            const newSet = await protocolWrapper.getSetTokenAsync(newSetAddress);
+            const newSet = await protocolHelper.getSetTokenAsync(newSetAddress);
 
             const timeIncrement = new BigNumber(600);
-            const auctionPriceParameters = await managerWrapper.getExpectedMACOAuctionParametersAsync(
+            const auctionPriceParameters = await managerHelper.getExpectedMACOAuctionParametersAsync(
               riskCollateral,
               newSet,
               true,
@@ -1133,7 +1133,7 @@ contract('MACOStrategyManager', accounts => {
           await subject();
 
           const timeIncrement = new BigNumber(600);
-          const auctionPriceParameters = await managerWrapper.getExpectedMACOAuctionParametersAsync(
+          const auctionPriceParameters = await managerHelper.getExpectedMACOAuctionParametersAsync(
             stableCollateral,
             riskCollateral,
             false,
@@ -1152,7 +1152,7 @@ contract('MACOStrategyManager', accounts => {
           await subject();
 
           const timeIncrement = new BigNumber(600);
-          const auctionPriceParameters = await managerWrapper.getExpectedMACOAuctionParametersAsync(
+          const auctionPriceParameters = await managerHelper.getExpectedMACOAuctionParametersAsync(
             stableCollateral,
             riskCollateral,
             false,
@@ -1201,10 +1201,10 @@ contract('MACOStrategyManager', accounts => {
             await subject();
 
             const newSetAddress = await rebalancingSetToken.nextSet.callAsync();
-            const newSet = await protocolWrapper.getSetTokenAsync(newSetAddress);
+            const newSet = await protocolHelper.getSetTokenAsync(newSetAddress);
             const newSetNaturalUnit = await newSet.naturalUnit.callAsync();
 
-            const expectedNextSetParams = await managerWrapper.getExpectedMACONewCollateralParametersAsync(
+            const expectedNextSetParams = await managerHelper.getExpectedMACONewCollateralParametersAsync(
               stableCollateral,
               newSet,
               ethMedianizer,
@@ -1219,10 +1219,10 @@ contract('MACOStrategyManager', accounts => {
             await subject();
 
             const newSetAddress = await rebalancingSetToken.nextSet.callAsync();
-            const newSet = await protocolWrapper.getSetTokenAsync(newSetAddress);
+            const newSet = await protocolHelper.getSetTokenAsync(newSetAddress);
             const newSetUnits = await newSet.getUnits.callAsync();
 
-            const expectedNextSetParams = await managerWrapper.getExpectedMACONewCollateralParametersAsync(
+            const expectedNextSetParams = await managerHelper.getExpectedMACONewCollateralParametersAsync(
               stableCollateral,
               newSet,
               ethMedianizer,
@@ -1237,7 +1237,7 @@ contract('MACOStrategyManager', accounts => {
             await subject();
 
             const nextSetAddress = await rebalancingSetToken.nextSet.callAsync();
-            const nextSet = await protocolWrapper.getSetTokenAsync(nextSetAddress);
+            const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
             const nextSetComponents = await nextSet.getComponents.callAsync();
 
             const expectedNextSetComponents = [wrappedETH.address];
@@ -1249,10 +1249,10 @@ contract('MACOStrategyManager', accounts => {
 
             const logs = await setTestUtils.getLogsFromTxHash(txHash);
             const newSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
-            const newSet = await protocolWrapper.getSetTokenAsync(newSetAddress);
+            const newSet = await protocolHelper.getSetTokenAsync(newSetAddress);
 
             const timeIncrement = new BigNumber(600);
-            const auctionPriceParameters = await managerWrapper.getExpectedMACOAuctionParametersAsync(
+            const auctionPriceParameters = await managerHelper.getExpectedMACOAuctionParametersAsync(
               stableCollateral,
               newSet,
               false,
@@ -1272,10 +1272,10 @@ contract('MACOStrategyManager', accounts => {
 
             const logs = await setTestUtils.getLogsFromTxHash(txHash);
             const newSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
-            const newSet = await protocolWrapper.getSetTokenAsync(newSetAddress);
+            const newSet = await protocolHelper.getSetTokenAsync(newSetAddress);
 
             const timeIncrement = new BigNumber(600);
-            const auctionPriceParameters = await managerWrapper.getExpectedMACOAuctionParametersAsync(
+            const auctionPriceParameters = await managerHelper.getExpectedMACOAuctionParametersAsync(
               stableCollateral,
               newSet,
               false,
@@ -1311,10 +1311,10 @@ contract('MACOStrategyManager', accounts => {
             await subject();
 
             const newSetAddress = await rebalancingSetToken.nextSet.callAsync();
-            const newSet = await protocolWrapper.getSetTokenAsync(newSetAddress);
+            const newSet = await protocolHelper.getSetTokenAsync(newSetAddress);
             const newSetNaturalUnit = await newSet.naturalUnit.callAsync();
 
-            const expectedNextSetParams = await managerWrapper.getExpectedMACONewCollateralParametersAsync(
+            const expectedNextSetParams = await managerHelper.getExpectedMACONewCollateralParametersAsync(
               stableCollateral,
               riskCollateral,
               ethMedianizer,
@@ -1330,10 +1330,10 @@ contract('MACOStrategyManager', accounts => {
             await subject();
 
             const newSetAddress = await rebalancingSetToken.nextSet.callAsync();
-            const newSet = await protocolWrapper.getSetTokenAsync(newSetAddress);
+            const newSet = await protocolHelper.getSetTokenAsync(newSetAddress);
             const newSetUnits = await newSet.getUnits.callAsync();
 
-            const expectedNextSetParams = await managerWrapper.getExpectedMACONewCollateralParametersAsync(
+            const expectedNextSetParams = await managerHelper.getExpectedMACONewCollateralParametersAsync(
               stableCollateral,
               riskCollateral,
               ethMedianizer,
@@ -1348,7 +1348,7 @@ contract('MACOStrategyManager', accounts => {
             await subject();
 
             const nextSetAddress = await rebalancingSetToken.nextSet.callAsync();
-            const nextSet = await protocolWrapper.getSetTokenAsync(nextSetAddress);
+            const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
             const nextSetComponents = await nextSet.getComponents.callAsync();
 
             const expectedNextSetComponents = [wrappedETH.address];
@@ -1360,10 +1360,10 @@ contract('MACOStrategyManager', accounts => {
 
             const logs = await setTestUtils.getLogsFromTxHash(txHash);
             const newSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
-            const newSet = await protocolWrapper.getSetTokenAsync(newSetAddress);
+            const newSet = await protocolHelper.getSetTokenAsync(newSetAddress);
 
             const timeIncrement = new BigNumber(600);
-            const auctionPriceParameters = await managerWrapper.getExpectedMACOAuctionParametersAsync(
+            const auctionPriceParameters = await managerHelper.getExpectedMACOAuctionParametersAsync(
               stableCollateral,
               newSet,
               false,
@@ -1383,10 +1383,10 @@ contract('MACOStrategyManager', accounts => {
 
             const logs = await setTestUtils.getLogsFromTxHash(txHash);
             const newSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
-            const newSet = await protocolWrapper.getSetTokenAsync(newSetAddress);
+            const newSet = await protocolHelper.getSetTokenAsync(newSetAddress);
 
             const timeIncrement = new BigNumber(600);
-            const auctionPriceParameters = await managerWrapper.getExpectedMACOAuctionParametersAsync(
+            const auctionPriceParameters = await managerHelper.getExpectedMACOAuctionParametersAsync(
               stableCollateral,
               newSet,
               false,
@@ -1457,13 +1457,13 @@ contract('MACOStrategyManager', accounts => {
       beforeEach(async () => {
         // Issue currentSetToken
         const initialAllocationTokenAddress = await rebalancingSetToken.currentSet.callAsync();
-        const initialAllocationToken = await protocolWrapper.getSetTokenAsync(initialAllocationTokenAddress);
+        const initialAllocationToken = await protocolHelper.getSetTokenAsync(initialAllocationTokenAddress);
         await core.issue.sendTransactionAsync(
           initialAllocationToken.address,
           ether(9),
           {from: deployerAccount, gas: DEFAULT_GAS},
         );
-        await erc20Wrapper.approveTransfersAsync([initialAllocationToken], transferProxy.address);
+        await erc20Helper.approveTransfersAsync([initialAllocationToken], transferProxy.address);
 
         // Use issued currentSetToken to issue rebalancingSetToken
         await core.issue.sendTransactionAsync(

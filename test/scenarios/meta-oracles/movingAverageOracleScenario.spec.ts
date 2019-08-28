@@ -17,7 +17,7 @@ import {
 import { ONE_DAY_IN_SECONDS } from '@utils/constants';
 import { getWeb3 } from '@utils/web3Helper';
 
-import { OracleWrapper } from '@utils/wrappers/oracleWrapper';
+import { OracleHelper } from '@utils/helpers/oracleHelper';
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
@@ -37,17 +37,17 @@ contract('MovingAverageOracle:Scenario', accounts => {
 
   let initialEthPrice: BigNumber;
 
-  const oracleWrapper = new OracleWrapper(deployerAccount);
+  const oracleHelper = new OracleHelper(deployerAccount);
 
 
   beforeEach(async () => {
     blockchain.saveSnapshotAsync();
 
-    ethMedianizer = await oracleWrapper.deployMedianizerAsync();
-    await oracleWrapper.addPriceFeedOwnerToMedianizer(ethMedianizer, deployerAccount);
+    ethMedianizer = await oracleHelper.deployMedianizerAsync();
+    await oracleHelper.addPriceFeedOwnerToMedianizer(ethMedianizer, deployerAccount);
 
     initialEthPrice = new BigNumber(251720000000000000000);
-    await oracleWrapper.updateMedianizerPriceAsync(
+    await oracleHelper.updateMedianizerPriceAsync(
       ethMedianizer,
       initialEthPrice,
       SetTestUtils.generateTimestamp(1000),
@@ -95,7 +95,7 @@ contract('MovingAverageOracle:Scenario', accounts => {
     beforeEach(async () => {
       const updateFrequency = ONE_DAY_IN_SECONDS;
       const feedDataDescription = '200DailyETHPrice';
-      dailyPriceFeed = await oracleWrapper.deployHistoricalPriceFeedAsync(
+      dailyPriceFeed = await oracleHelper.deployHistoricalPriceFeedAsync(
         updateFrequency,
         ethMedianizer.address,
         feedDataDescription,
@@ -103,7 +103,7 @@ contract('MovingAverageOracle:Scenario', accounts => {
       );
 
       const dataDescription = 'ETH20dayMA';
-      movingAverageOracle = await oracleWrapper.deployMovingAverageOracleAsync(
+      movingAverageOracle = await oracleHelper.deployMovingAverageOracleAsync(
         dailyPriceFeed.address,
         dataDescription
       );
@@ -130,7 +130,7 @@ contract('MovingAverageOracle:Scenario', accounts => {
         const newEthPrice = new BigNumber(267140000000000000000);
 
         // Update medianizer and price feed
-        await oracleWrapper.updateHistoricalPriceFeedAsync(
+        await oracleHelper.updateHistoricalPriceFeedAsync(
           dailyPriceFeed,
           ethMedianizer,
           newEthPrice,

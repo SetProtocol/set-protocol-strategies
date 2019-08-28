@@ -19,7 +19,7 @@ import {
 
 import { getWeb3 } from '@utils/web3Helper';
 
-import { OracleWrapper } from '@utils/wrappers/oracleWrapper';
+import { OracleHelper } from '@utils/helpers/oracleHelper';
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
@@ -37,13 +37,13 @@ contract('LegacyMakerOracleAdapter', accounts => {
   let ethMedianizer: MedianContract;
   let legacyMakerOracleAdapter: LegacyMakerOracleAdapterContract;
 
-  const oracleWrapper = new OracleWrapper(deployerAccount);
+  const oracleHelper = new OracleHelper(deployerAccount);
 
   beforeEach(async () => {
     blockchain.saveSnapshotAsync();
 
-    ethMedianizer = await oracleWrapper.deployMedianizerAsync();
-    await oracleWrapper.addPriceFeedOwnerToMedianizer(
+    ethMedianizer = await oracleHelper.deployMedianizerAsync();
+    await oracleHelper.addPriceFeedOwnerToMedianizer(
       ethMedianizer,
       deployerAccount
     );
@@ -61,7 +61,7 @@ contract('LegacyMakerOracleAdapter', accounts => {
     });
 
     async function subject(): Promise<LegacyMakerOracleAdapterContract> {
-      return oracleWrapper.deployLegacyMakerOracleAdapterAsync(
+      return oracleHelper.deployLegacyMakerOracleAdapterAsync(
         subjectMedianizerAddress,
       );
     }
@@ -80,13 +80,13 @@ contract('LegacyMakerOracleAdapter', accounts => {
 
     beforeEach(async () => {
       ethPrice = ether(200);
-      await oracleWrapper.updateMedianizerPriceAsync(
+      await oracleHelper.updateMedianizerPriceAsync(
         ethMedianizer,
         ethPrice,
         SetTestUtils.generateTimestamp(1000)
       );
 
-      legacyMakerOracleAdapter = await oracleWrapper.deployLegacyMakerOracleAdapterAsync(
+      legacyMakerOracleAdapter = await oracleHelper.deployLegacyMakerOracleAdapterAsync(
         ethMedianizer.address,
       );
     });

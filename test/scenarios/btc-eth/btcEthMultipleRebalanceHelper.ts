@@ -41,10 +41,10 @@ import {
   DataOutput,
 } from './types';
 
-import { ProtocolWrapper } from '@utils/wrappers/protocolWrapper';
-import { ERC20Wrapper } from '@utils/wrappers/erc20Wrapper';
-import { OracleWrapper } from '@utils/wrappers/oracleWrapper';
-import { ManagerWrapper } from '@utils/wrappers/managerWrapper';
+import { ProtocolHelper } from '@utils/helpers/protocolHelper';
+import { ERC20Helper } from '@utils/helpers/erc20Helper';
+import { OracleHelper } from '@utils/helpers/oracleHelper';
+import { ManagerHelper } from '@utils/helpers/managerHelper';
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
@@ -52,16 +52,16 @@ const web3 = getWeb3();
 const { SetProtocolTestUtils: SetTestUtils, SetProtocolUtils: SetUtils } = setProtocolUtils;
 const web3Utils = new Web3Utils(web3);
 
-export class BTCETHMultipleRebalanceWrapper {
+export class BTCETHMultipleRebalanceHelper {
   private _accounts: UserAccountData;
   private _rebalanceProgram: FullRebalanceProgram;
   private _dataLogger: DataOutput;
 
   private _contractOwnerAddress: Address;
-  private _protocolWrapper: ProtocolWrapper;
-  private _erc20Wrapper: ERC20Wrapper;
-  private _oracleWrapper: OracleWrapper;
-  private _managerWrapper: ManagerWrapper;
+  private _protocolHelper: ProtocolHelper;
+  private _erc20Helper: ERC20Helper;
+  private _oracleHelper: OracleHelper;
+  private _managerHelper: ManagerHelper;
 
   private _rebalancingSetToken: RebalancingSetTokenContract;
 
@@ -94,10 +94,10 @@ export class BTCETHMultipleRebalanceWrapper {
       gasProfile: {},
     };
 
-    this._protocolWrapper = new ProtocolWrapper(this._contractOwnerAddress);
-    this._erc20Wrapper = new ERC20Wrapper(this._contractOwnerAddress);
-    this._managerWrapper = new ManagerWrapper(this._contractOwnerAddress);
-    this._oracleWrapper = new OracleWrapper(this._contractOwnerAddress);
+    this._protocolHelper = new ProtocolHelper(this._contractOwnerAddress);
+    this._erc20Helper = new ERC20Helper(this._contractOwnerAddress);
+    this._managerHelper = new ManagerHelper(this._contractOwnerAddress);
+    this._oracleHelper = new OracleHelper(this._contractOwnerAddress);
   }
 
   public async runFullRebalanceProgram(): Promise<DataOutput> {
@@ -112,43 +112,43 @@ export class BTCETHMultipleRebalanceWrapper {
     deployerAccount: Address = this._contractOwnerAddress,
   ): Promise<void> {
     // Deploy core contracts
-    this._transferProxy = await this._protocolWrapper.getDeployedTransferProxyAsync();
+    this._transferProxy = await this._protocolHelper.getDeployedTransferProxyAsync();
 
-    this._vault = await this._protocolWrapper.getDeployedVaultAsync();
+    this._vault = await this._protocolHelper.getDeployedVaultAsync();
 
-    this._core = await this._protocolWrapper.getDeployedCoreAsync();
+    this._core = await this._protocolHelper.getDeployedCoreAsync();
 
-    this._rebalanceAuctionModule = await this._protocolWrapper.getDeployedRebalanceAuctionModuleAsync();
+    this._rebalanceAuctionModule = await this._protocolHelper.getDeployedRebalanceAuctionModuleAsync();
 
-    this._factory = await this._protocolWrapper.getDeployedSetTokenFactoryAsync();
+    this._factory = await this._protocolHelper.getDeployedSetTokenFactoryAsync();
 
-    this._rebalancingFactory = await this._protocolWrapper.getDeployedRebalancingSetTokenFactoryAsync();
+    this._rebalancingFactory = await this._protocolHelper.getDeployedRebalancingSetTokenFactoryAsync();
 
-    this._linearAuctionPriceCurve = await this._protocolWrapper.getDeployedLinearAuctionPriceCurveAsync();
+    this._linearAuctionPriceCurve = await this._protocolHelper.getDeployedLinearAuctionPriceCurveAsync();
 
     // Deploy Oracles and set initial prices
-    this._btcMedianizer = await this._protocolWrapper.getDeployedWBTCMedianizerAsync();
-    await this._oracleWrapper.addPriceFeedOwnerToMedianizer(this._btcMedianizer, deployerAccount);
-    this._ethMedianizer = await this._protocolWrapper.getDeployedWETHMedianizerAsync();
-    await this._oracleWrapper.addPriceFeedOwnerToMedianizer(this._ethMedianizer, deployerAccount);
+    this._btcMedianizer = await this._protocolHelper.getDeployedWBTCMedianizerAsync();
+    await this._oracleHelper.addPriceFeedOwnerToMedianizer(this._btcMedianizer, deployerAccount);
+    this._ethMedianizer = await this._protocolHelper.getDeployedWETHMedianizerAsync();
+    await this._oracleHelper.addPriceFeedOwnerToMedianizer(this._ethMedianizer, deployerAccount);
 
-    await this._oracleWrapper.updateMedianizerPriceAsync(
+    await this._oracleHelper.updateMedianizerPriceAsync(
       this._btcMedianizer,
       this._rebalanceProgram.initializationParams.initialTokenPrices.WBTCPrice,
       SetTestUtils.generateTimestamp(1000),
     );
-    await this._oracleWrapper.updateMedianizerPriceAsync(
+    await this._oracleHelper.updateMedianizerPriceAsync(
       this._ethMedianizer,
       this._rebalanceProgram.initializationParams.initialTokenPrices.WETHPrice,
       SetTestUtils.generateTimestamp(1000),
     );
 
     // Deploy WBTC, WETH and add tokens to whitelise
-    this._wrappedBTC = await this._protocolWrapper.getDeployedWBTCAsync();
-    this._wrappedETH = await this._protocolWrapper.getDeployedWETHAsync();
+    this._wrappedBTC = await this._protocolHelper.getDeployedWBTCAsync();
+    this._wrappedETH = await this._protocolHelper.getDeployedWETHAsync();
 
     // Deploy manager contract
-    this._btcethRebalancingManager = await this._managerWrapper.deployBTCETHRebalancingManagerAsync(
+    this._btcethRebalancingManager = await this._managerHelper.deployBTCETHRebalancingManagerAsync(
       this._core.address,
       this._btcMedianizer.address,
       this._ethMedianizer.address,
@@ -169,7 +169,7 @@ export class BTCETHMultipleRebalanceWrapper {
   }
 
   public async createRebalancingSetToken(): Promise<void> {
-    this._initialBtcEthSet = await this._protocolWrapper.createSetTokenAsync(
+    this._initialBtcEthSet = await this._protocolHelper.createSetTokenAsync(
       this._core,
       this._factory.address,
       [this._wrappedBTC.address, this._wrappedETH.address],
@@ -187,7 +187,7 @@ export class BTCETHMultipleRebalanceWrapper {
       this._rebalanceProgram.initializationParams.rebalanceInterval,
     );
 
-    this._rebalancingSetToken = await this._protocolWrapper.createRebalancingTokenAsync(
+    this._rebalancingSetToken = await this._protocolHelper.createRebalancingTokenAsync(
       this._core,
       this._rebalancingFactory.address,
       [this._initialBtcEthSet.address],
@@ -299,7 +299,7 @@ export class BTCETHMultipleRebalanceWrapper {
 
   private async _issueAndDistributeRebalancingSetsAsync(): Promise<void> {
     // Approve transfers for WBTC and WETH
-    await this._erc20Wrapper.approveTransfersAsync(
+    await this._erc20Helper.approveTransfersAsync(
       [this._wrappedBTC],
       this._transferProxy.address
     );
@@ -431,14 +431,14 @@ export class BTCETHMultipleRebalanceWrapper {
     newPrices: TokenPrices,
   ): Promise<void> {
 
-    await this._oracleWrapper.updateMedianizerPriceAsync(
+    await this._oracleHelper.updateMedianizerPriceAsync(
       this._btcMedianizer,
       newPrices.WBTCPrice,
       SetTestUtils.generateTimestamp(1000),
     );
 
 
-    await this._oracleWrapper.updateMedianizerPriceAsync(
+    await this._oracleHelper.updateMedianizerPriceAsync(
       this._ethMedianizer,
       newPrices.WETHPrice,
       SetTestUtils.generateTimestamp(1000),
@@ -534,7 +534,7 @@ export class BTCETHMultipleRebalanceWrapper {
   private async _issueRebalancingSetsAsync(
     issuance: IssuanceTxn,
   ): Promise<void> {
-    const currentSetInstance = await this._protocolWrapper.getSetTokenAsync(
+    const currentSetInstance = await this._protocolHelper.getSetTokenAsync(
       this._getRecentBaseSet()
     );
     const currentSetNaturalUnit = await currentSetInstance.naturalUnit.callAsync();

@@ -16,7 +16,7 @@ import {
 } from '@utils/constants';
 import { getWeb3 } from '@utils/web3Helper';
 
-import { LibraryMockWrapper } from '@utils/wrappers/libraryMockWrapper';
+import { LibraryMockHelper } from '@utils/helpers/libraryMockHelper';
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
@@ -31,12 +31,12 @@ contract('LinkedListHelper', accounts => {
 
   let linkedListLibraryMock: LinkedListHelperMockContract;
 
-  const libraryMockWrapper = new LibraryMockWrapper(deployerAccount);
+  const libraryMockHelper = new LibraryMockHelper(deployerAccount);
 
   beforeEach(async () => {
     blockchain.saveSnapshotAsync();
 
-    linkedListLibraryMock = await libraryMockWrapper.deployLinkedListHelperMockAsync();
+    linkedListLibraryMock = await libraryMockHelper.deployLinkedListHelperMockAsync();
   });
 
   afterEach(async () => {

@@ -23,7 +23,7 @@ import {
 import { expectRevertError } from '@utils/tokenAssertions';
 import { getWeb3 } from '@utils/web3Helper';
 
-import { OracleWrapper } from '@utils/wrappers/oracleWrapper';
+import { OracleHelper } from '@utils/helpers/oracleHelper';
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
@@ -45,16 +45,16 @@ contract('TimeSeriesFeed with DataSource', accounts => {
   let updateInterval: BigNumber;
   let interpolationThreshold: BigNumber;
 
-  const oracleWrapper = new OracleWrapper(deployerAccount);
+  const oracleHelper = new OracleHelper(deployerAccount);
 
   beforeEach(async () => {
     blockchain.saveSnapshotAsync();
 
-    ethMedianizer = await oracleWrapper.deployMedianizerAsync();
-    await oracleWrapper.addPriceFeedOwnerToMedianizer(ethMedianizer, deployerAccount);
+    ethMedianizer = await oracleHelper.deployMedianizerAsync();
+    await oracleHelper.addPriceFeedOwnerToMedianizer(ethMedianizer, deployerAccount);
 
     initialEthPrice = ether(150);
-    await oracleWrapper.updateMedianizerPriceAsync(
+    await oracleHelper.updateMedianizerPriceAsync(
       ethMedianizer,
       initialEthPrice,
       SetTestUtils.generateTimestamp(1000000000),
@@ -62,7 +62,7 @@ contract('TimeSeriesFeed with DataSource', accounts => {
 
     // Deploy DataSource
     interpolationThreshold = ONE_DAY_IN_SECONDS.div(4);
-    dataSource = await oracleWrapper.deployLinearizedPriceDataSourceAsync(
+    dataSource = await oracleHelper.deployLinearizedPriceDataSourceAsync(
       ethMedianizer.address,
       interpolationThreshold,
     );
@@ -73,7 +73,7 @@ contract('TimeSeriesFeed with DataSource', accounts => {
     const sourceDataAddress = dataSource.address;
     const dataDescription = '200DailyETHPrice';
     const seededValues = [initialEthPrice];
-    timeSeriesFeed = await oracleWrapper.deployTimeSeriesFeedAsync(
+    timeSeriesFeed = await oracleHelper.deployTimeSeriesFeedAsync(
       sourceDataAddress,
       seededValues,
       updateInterval,
@@ -95,7 +95,7 @@ contract('TimeSeriesFeed with DataSource', accounts => {
 
     beforeEach(async () => {
       newEthPrice = customEthPrice || ether(160);
-      await oracleWrapper.updateMedianizerPriceAsync(
+      await oracleHelper.updateMedianizerPriceAsync(
         ethMedianizer,
         newEthPrice,
         SetTestUtils.generateTimestamp(1000000000)

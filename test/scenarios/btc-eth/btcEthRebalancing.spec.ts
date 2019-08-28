@@ -34,10 +34,10 @@ import {
 import { Blockchain } from '@utils/blockchain';
 import { getWeb3 } from '@utils/web3Helper';
 
-import { ProtocolWrapper } from '@utils/wrappers/protocolWrapper';
-import { ERC20Wrapper } from '@utils/wrappers/erc20Wrapper';
-import { OracleWrapper } from '@utils/wrappers/oracleWrapper';
-import { ManagerWrapper } from '@utils/wrappers/managerWrapper';
+import { ProtocolHelper } from '@utils/helpers/protocolHelper';
+import { ERC20Helper } from '@utils/helpers/erc20Helper';
+import { OracleHelper } from '@utils/helpers/oracleHelper';
+import { ManagerHelper } from '@utils/helpers/managerHelper';
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
@@ -72,10 +72,10 @@ contract('Rebalancing BTC-ETH 50/50', accounts => {
   let wrappedETH: WethMockContract;
   let baseBtcEthSet: SetTokenContract;
 
-  const protocolWrapper = new ProtocolWrapper(deployerAccount);
-  const erc20Wrapper = new ERC20Wrapper(deployerAccount);
-  const managerWrapper = new ManagerWrapper(deployerAccount);
-  const oracleWrapper = new OracleWrapper(deployerAccount);
+  const protocolHelper = new ProtocolHelper(deployerAccount);
+  const erc20Helper = new ERC20Helper(deployerAccount);
+  const managerHelper = new ManagerHelper(deployerAccount);
+  const oracleHelper = new OracleHelper(deployerAccount);
 
   // Initial MKR Price Feed Values
   const BTC_PRICE_INITIAL = new BigNumber(3.711).mul(10 ** 21);
@@ -161,27 +161,27 @@ contract('Rebalancing BTC-ETH 50/50', accounts => {
   beforeEach(async () => {
     await blockchain.saveSnapshotAsync();
 
-    vault = await protocolWrapper.getDeployedVaultAsync();
-    transferProxy = await protocolWrapper.getDeployedTransferProxyAsync();
-    core = await protocolWrapper.getDeployedCoreAsync();
-    rebalanceAuctionModule = await protocolWrapper.getDeployedRebalanceAuctionModuleAsync();
+    vault = await protocolHelper.getDeployedVaultAsync();
+    transferProxy = await protocolHelper.getDeployedTransferProxyAsync();
+    core = await protocolHelper.getDeployedCoreAsync();
+    rebalanceAuctionModule = await protocolHelper.getDeployedRebalanceAuctionModuleAsync();
 
-    factory = await protocolWrapper.getDeployedSetTokenFactoryAsync();
-    rebalancingFactory = await protocolWrapper.getDeployedRebalancingSetTokenFactoryAsync();
+    factory = await protocolHelper.getDeployedSetTokenFactoryAsync();
+    rebalancingFactory = await protocolHelper.getDeployedRebalancingSetTokenFactoryAsync();
 
-    linearAuctionPriceCurve = await protocolWrapper.getDeployedLinearAuctionPriceCurveAsync();
+    linearAuctionPriceCurve = await protocolHelper.getDeployedLinearAuctionPriceCurveAsync();
 
-    btcMedianizer = await protocolWrapper.getDeployedWBTCMedianizerAsync();
-    await oracleWrapper.addPriceFeedOwnerToMedianizer(btcMedianizer, deployerAccount);
-    ethMedianizer = await protocolWrapper.getDeployedWETHMedianizerAsync();
-    await oracleWrapper.addPriceFeedOwnerToMedianizer(ethMedianizer, deployerAccount);
+    btcMedianizer = await protocolHelper.getDeployedWBTCMedianizerAsync();
+    await oracleHelper.addPriceFeedOwnerToMedianizer(btcMedianizer, deployerAccount);
+    ethMedianizer = await protocolHelper.getDeployedWETHMedianizerAsync();
+    await oracleHelper.addPriceFeedOwnerToMedianizer(ethMedianizer, deployerAccount);
 
-    wrappedBTC = await protocolWrapper.getDeployedWBTCAsync();
-    wrappedETH = await protocolWrapper.getDeployedWETHAsync();
+    wrappedBTC = await protocolHelper.getDeployedWBTCAsync();
+    wrappedETH = await protocolHelper.getDeployedWETHAsync();
 
     const btcMultiplier = new BigNumber(1);
     const ethMultiplier = new BigNumber(1);
-    btcethRebalancingManager = await managerWrapper.deployBTCETHRebalancingManagerAsync(
+    btcethRebalancingManager = await managerHelper.deployBTCETHRebalancingManagerAsync(
       core.address,
       btcMedianizer.address,
       ethMedianizer.address,
@@ -194,7 +194,7 @@ contract('Rebalancing BTC-ETH 50/50', accounts => {
       [new BigNumber(48), new BigNumber(52)],
     );
 
-    baseBtcEthSet = await protocolWrapper.createSetTokenAsync(
+    baseBtcEthSet = await protocolHelper.createSetTokenAsync(
       core,
       factory.address,
       [wrappedBTC.address, wrappedETH.address],
@@ -208,7 +208,7 @@ contract('Rebalancing BTC-ETH 50/50', accounts => {
       REBALANCE_INTERVAL,
     );
 
-    rebalancingSetToken = await protocolWrapper.createRebalancingTokenAsync(
+    rebalancingSetToken = await protocolHelper.createRebalancingTokenAsync(
       core,
       rebalancingFactory.address,
       [baseBtcEthSet.address],
@@ -217,19 +217,19 @@ contract('Rebalancing BTC-ETH 50/50', accounts => {
       rebalancingSetCallData,
     );
 
-    await oracleWrapper.updateMedianizerPriceAsync(
+    await oracleHelper.updateMedianizerPriceAsync(
       btcMedianizer,
       BTC_PRICE_INITIAL,
       SetProtocolTestUtils.generateTimestamp(1000),
     );
 
-    await oracleWrapper.updateMedianizerPriceAsync(
+    await oracleHelper.updateMedianizerPriceAsync(
       ethMedianizer,
       ETH_PRICE_INITIAL,
       SetProtocolTestUtils.generateTimestamp(1000),
     );
 
-    await erc20Wrapper.approveTransfersAsync(
+    await erc20Helper.approveTransfersAsync(
       [wrappedBTC],
       transferProxy.address
     );
@@ -265,13 +265,13 @@ contract('Rebalancing BTC-ETH 50/50', accounts => {
       { from: deployerAccount, gas: DEFAULT_GAS }
     );
 
-    await oracleWrapper.updateMedianizerPriceAsync(
+    await oracleHelper.updateMedianizerPriceAsync(
       btcMedianizer,
       BTC_PRICE_PROPOSAL,
       SetProtocolTestUtils.generateTimestamp(1000),
     );
 
-    await oracleWrapper.updateMedianizerPriceAsync(
+    await oracleHelper.updateMedianizerPriceAsync(
       ethMedianizer,
       ETH_PRICE_INITIAL,
       SetProtocolTestUtils.generateTimestamp(1000),
@@ -350,7 +350,7 @@ contract('Rebalancing BTC-ETH 50/50', accounts => {
       await subject();
 
       const newBaseSetAddress = await rebalancingSetToken.currentSet.callAsync();
-      const newBaseSetInstance = await protocolWrapper.getSetTokenAsync(newBaseSetAddress);
+      const newBaseSetInstance = await protocolHelper.getSetTokenAsync(newBaseSetAddress);
 
       const [bitcoinUnit, etherUnit] = await newBaseSetInstance.getUnits.callAsync();
 
@@ -387,7 +387,7 @@ contract('Rebalancing BTC-ETH 50/50', accounts => {
       await subject();
 
       const newBaseSetAddress = await rebalancingSetToken.currentSet.callAsync();
-      const newBaseSetInstance = await protocolWrapper.getSetTokenAsync(newBaseSetAddress);
+      const newBaseSetInstance = await protocolHelper.getSetTokenAsync(newBaseSetAddress);
 
       const [bitcoinUnit] = await newBaseSetInstance.getUnits.callAsync();
       expect(bitcoinUnit).to.bignumber.equal(expectedBTCUnit);
@@ -398,7 +398,7 @@ contract('Rebalancing BTC-ETH 50/50', accounts => {
       await subject();
 
       const newBaseSetAddress = await rebalancingSetToken.currentSet.callAsync();
-      const newBaseSetInstance = await protocolWrapper.getSetTokenAsync(newBaseSetAddress);
+      const newBaseSetInstance = await protocolHelper.getSetTokenAsync(newBaseSetAddress);
 
       const [, etherUnit] = await newBaseSetInstance.getUnits.callAsync();
       expect(etherUnit).to.bignumber.equal(expecetdEtherUnit);

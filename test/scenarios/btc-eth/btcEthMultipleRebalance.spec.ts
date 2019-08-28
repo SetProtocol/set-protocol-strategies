@@ -22,7 +22,7 @@ import {
   FullRebalanceProgram,
 } from './types';
 
-import { BTCETHMultipleRebalanceWrapper } from './btcEthMultipleRebalanceHelper';
+import { BTCETHMultipleRebalanceHelper } from './btcEthMultipleRebalanceHelper';
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
@@ -33,7 +33,7 @@ const blockchain = new Blockchain(web3);
 
 contract('Multiple Rebalance BTC-ETH 50/50', accounts => {
 
-  let btcEthRebalanceWrapper: BTCETHMultipleRebalanceWrapper;
+  let btcEthRebalanceHelper: BTCETHMultipleRebalanceHelper;
   let scenarioData: FullRebalanceProgram;
 
   before(async () => {
@@ -53,7 +53,7 @@ contract('Multiple Rebalance BTC-ETH 50/50', accounts => {
 
     scenarioData = getScenarioData(accounts);
 
-    btcEthRebalanceWrapper = new BTCETHMultipleRebalanceWrapper(accounts, scenarioData);
+    btcEthRebalanceHelper = new BTCETHMultipleRebalanceHelper(accounts, scenarioData);
   });
 
   afterEach(async () => {
@@ -61,7 +61,7 @@ contract('Multiple Rebalance BTC-ETH 50/50', accounts => {
   });
 
   async function subject(): Promise<DataOutput> {
-    return btcEthRebalanceWrapper.runFullRebalanceProgram();
+    return btcEthRebalanceHelper.runFullRebalanceProgram();
   }
 
   describe('for multiple rebalance cycles', async () => {

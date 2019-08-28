@@ -26,7 +26,7 @@ import {
 import { expectRevertError } from '@utils/tokenAssertions';
 import { getWeb3 } from '@utils/web3Helper';
 
-import { OracleWrapper } from '@utils/wrappers/oracleWrapper';
+import { OracleHelper } from '@utils/helpers/oracleHelper';
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
@@ -47,7 +47,7 @@ contract('TimeSeriesFeed', accounts => {
   let linearizedDataSource: LinearizedPriceDataSourceContract;
   let timeSeriesFeed: TimeSeriesFeedContract;
 
-  const oracleWrapper = new OracleWrapper(deployerAccount);
+  const oracleHelper = new OracleHelper(deployerAccount);
 
   before(async () => {
     ABIDecoder.addABI(FeedFactory.abi);
@@ -60,24 +60,24 @@ contract('TimeSeriesFeed', accounts => {
   beforeEach(async () => {
     blockchain.saveSnapshotAsync();
 
-    ethMedianizer = await oracleWrapper.deployMedianizerAsync();
-    await oracleWrapper.addPriceFeedOwnerToMedianizer(ethMedianizer, deployerAccount);
+    ethMedianizer = await oracleHelper.deployMedianizerAsync();
+    await oracleHelper.addPriceFeedOwnerToMedianizer(ethMedianizer, deployerAccount);
 
-    legacyMakerOracleAdapter = await oracleWrapper.deployLegacyMakerOracleAdapterAsync(
+    legacyMakerOracleAdapter = await oracleHelper.deployLegacyMakerOracleAdapterAsync(
       ethMedianizer.address,
     );
 
-    oracleProxy = await oracleWrapper.deployOracleProxyAsync(
+    oracleProxy = await oracleHelper.deployOracleProxyAsync(
       legacyMakerOracleAdapter.address,
     );
 
     const interpolationThreshold = ONE_DAY_IN_SECONDS;
-    linearizedDataSource = await oracleWrapper.deployLinearizedPriceDataSourceAsync(
+    linearizedDataSource = await oracleHelper.deployLinearizedPriceDataSourceAsync(
       oracleProxy.address,
       interpolationThreshold,
     );
 
-    await oracleWrapper.addAuthorizedAddressesToOracleProxy(
+    await oracleHelper.addAuthorizedAddressesToOracleProxy(
       oracleProxy,
       [linearizedDataSource.address]
     );
@@ -103,7 +103,7 @@ contract('TimeSeriesFeed', accounts => {
     });
 
     async function subject(): Promise<TimeSeriesFeedContract> {
-      return oracleWrapper.deployTimeSeriesFeedAsync(
+      return oracleHelper.deployTimeSeriesFeedAsync(
         subjectDataSourceAddress,
         subjectSeededValues,
         subjectUpdateInterval,
@@ -209,7 +209,7 @@ contract('TimeSeriesFeed', accounts => {
       const sourceDataAddress = linearizedDataSource.address;
       const dataDescription = '200DailyETHPrice';
       const seededValues = [initialEthPrice];
-      timeSeriesFeed = await oracleWrapper.deployTimeSeriesFeedAsync(
+      timeSeriesFeed = await oracleHelper.deployTimeSeriesFeedAsync(
         sourceDataAddress,
         seededValues,
         updateInterval,
@@ -218,7 +218,7 @@ contract('TimeSeriesFeed', accounts => {
       );
 
       newEthPrice = ether(160);
-      await oracleWrapper.updateMedianizerPriceAsync(
+      await oracleHelper.updateMedianizerPriceAsync(
         ethMedianizer,
         newEthPrice,
         SetTestUtils.generateTimestamp(ONE_DAY_IN_SECONDS.mul(2).toNumber()),
@@ -274,7 +274,7 @@ contract('TimeSeriesFeed', accounts => {
 
     beforeEach(async () => {
       ethPrice = ether(150);
-      await oracleWrapper.updateMedianizerPriceAsync(
+      await oracleHelper.updateMedianizerPriceAsync(
         ethMedianizer,
         ethPrice,
         SetTestUtils.generateTimestamp(1000),
@@ -285,7 +285,7 @@ contract('TimeSeriesFeed', accounts => {
       const sourceDataAddress = linearizedDataSource.address;
       const dataDescription = '200DailyETHPrice';
       const seededValues = [ethPrice];
-      timeSeriesFeed = await oracleWrapper.deployTimeSeriesFeedAsync(
+      timeSeriesFeed = await oracleHelper.deployTimeSeriesFeedAsync(
         sourceDataAddress,
         seededValues,
         updateInterval,
@@ -293,7 +293,7 @@ contract('TimeSeriesFeed', accounts => {
         dataDescription,
       );
 
-      updatedPrices = await oracleWrapper.batchUpdateTimeSeriesFeedAsync(
+      updatedPrices = await oracleHelper.batchUpdateTimeSeriesFeedAsync(
         timeSeriesFeed,
         ethMedianizer,
         20,
@@ -344,7 +344,7 @@ contract('TimeSeriesFeed', accounts => {
       const sourceDataAddress = linearizedDataSource.address;
       const dataDescription = '200DailyETHPrice';
       const seededValues = [ethPrice];
-      timeSeriesFeed = await oracleWrapper.deployTimeSeriesFeedAsync(
+      timeSeriesFeed = await oracleHelper.deployTimeSeriesFeedAsync(
         sourceDataAddress,
         seededValues,
         updateInterval,
@@ -352,7 +352,7 @@ contract('TimeSeriesFeed', accounts => {
         dataDescription,
       );
 
-      updatedPrices = await oracleWrapper.batchUpdateTimeSeriesFeedAsync(
+      updatedPrices = await oracleHelper.batchUpdateTimeSeriesFeedAsync(
         timeSeriesFeed,
         ethMedianizer,
         numberOfUpdates,

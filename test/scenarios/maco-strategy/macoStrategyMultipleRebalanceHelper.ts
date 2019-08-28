@@ -47,10 +47,10 @@ import {
   DataOutput,
 } from './types';
 
-import { ProtocolWrapper } from '@utils/wrappers/protocolWrapper';
-import { ERC20Wrapper } from '@utils/wrappers/erc20Wrapper';
-import { OracleWrapper } from '@utils/wrappers/oracleWrapper';
-import { ManagerWrapper } from '@utils/wrappers/managerWrapper';
+import { ProtocolHelper } from '@utils/helpers/protocolHelper';
+import { ERC20Helper } from '@utils/helpers/erc20Helper';
+import { OracleHelper } from '@utils/helpers/oracleHelper';
+import { ManagerHelper } from '@utils/helpers/managerHelper';
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
@@ -58,16 +58,16 @@ const web3 = getWeb3();
 const { SetProtocolTestUtils: SetTestUtils, SetProtocolUtils: SetUtils } = setProtocolUtils;
 const web3Utils = new Web3Utils(web3);
 
-export class MACOStrategyMultipleRebalanceWrapper {
+export class MACOStrategyMultipleRebalanceHelper {
   private _accounts: UserAccountData;
   private _rebalanceProgram: FullRebalanceProgram;
   private _dataLogger: DataOutput;
 
   private _contractOwnerAddress: Address;
-  private _protocolWrapper: ProtocolWrapper;
-  private _erc20Wrapper: ERC20Wrapper;
-  private _oracleWrapper: OracleWrapper;
-  private _managerWrapper: ManagerWrapper;
+  private _protocolHelper: ProtocolHelper;
+  private _erc20Helper: ERC20Helper;
+  private _oracleHelper: OracleHelper;
+  private _managerHelper: ManagerHelper;
 
   private _rebalancingSetToken: RebalancingSetTokenContract;
 
@@ -103,10 +103,10 @@ export class MACOStrategyMultipleRebalanceWrapper {
       gasProfile: {},
     };
 
-    this._protocolWrapper = new ProtocolWrapper(this._contractOwnerAddress);
-    this._erc20Wrapper = new ERC20Wrapper(this._contractOwnerAddress);
-    this._managerWrapper = new ManagerWrapper(this._contractOwnerAddress);
-    this._oracleWrapper = new OracleWrapper(this._contractOwnerAddress);
+    this._protocolHelper = new ProtocolHelper(this._contractOwnerAddress);
+    this._erc20Helper = new ERC20Helper(this._contractOwnerAddress);
+    this._managerHelper = new ManagerHelper(this._contractOwnerAddress);
+    this._oracleHelper = new OracleHelper(this._contractOwnerAddress);
   }
 
   public async runFullRebalanceProgram(): Promise<DataOutput> {
@@ -126,56 +126,56 @@ export class MACOStrategyMultipleRebalanceWrapper {
     deployerAccount: Address = this._contractOwnerAddress,
   ): Promise<void> {
     // Deploy core contracts
-    this._transferProxy = await this._protocolWrapper.getDeployedTransferProxyAsync();
+    this._transferProxy = await this._protocolHelper.getDeployedTransferProxyAsync();
 
-    this._vault = await this._protocolWrapper.getDeployedVaultAsync();
+    this._vault = await this._protocolHelper.getDeployedVaultAsync();
 
-    this._core = await this._protocolWrapper.getDeployedCoreAsync();
+    this._core = await this._protocolHelper.getDeployedCoreAsync();
 
-    this._rebalanceAuctionModule = await this._protocolWrapper.getDeployedRebalanceAuctionModuleAsync();
+    this._rebalanceAuctionModule = await this._protocolHelper.getDeployedRebalanceAuctionModuleAsync();
 
-    this._factory = await this._protocolWrapper.getDeployedSetTokenFactoryAsync();
+    this._factory = await this._protocolHelper.getDeployedSetTokenFactoryAsync();
 
-    this._linearAuctionPriceCurve = await this._protocolWrapper.getDeployedLinearAuctionPriceCurveAsync();
+    this._linearAuctionPriceCurve = await this._protocolHelper.getDeployedLinearAuctionPriceCurveAsync();
 
-    this._whiteList = await this._protocolWrapper.getDeployedWhiteList();
+    this._whiteList = await this._protocolHelper.getDeployedWhiteList();
 
-    this._rebalancingFactory = await this._protocolWrapper.getDeployedRebalancingSetTokenFactoryTwoAsync();
+    this._rebalancingFactory = await this._protocolHelper.getDeployedRebalancingSetTokenFactoryTwoAsync();
 
     // Deploy Oracles and set initial prices
-    this._ethMedianizer = await this._protocolWrapper.getDeployedWETHMedianizerAsync();
-    await this._oracleWrapper.addPriceFeedOwnerToMedianizer(this._ethMedianizer, deployerAccount);
-    await this._oracleWrapper.updateMedianizerPriceAsync(
+    this._ethMedianizer = await this._protocolHelper.getDeployedWETHMedianizerAsync();
+    await this._oracleHelper.addPriceFeedOwnerToMedianizer(this._ethMedianizer, deployerAccount);
+    await this._oracleHelper.updateMedianizerPriceAsync(
       this._ethMedianizer,
       this._rebalanceProgram.initializationParams.initialTokenPrices.RiskAssetPrice,
       SetTestUtils.generateTimestamp(1000),
     );
 
-    this._historicalPriceFeed = await this._oracleWrapper.deployHistoricalPriceFeedAsync(
+    this._historicalPriceFeed = await this._oracleHelper.deployHistoricalPriceFeedAsync(
       ONE_DAY_IN_SECONDS,
       this._ethMedianizer.address,
       'ETH200Daily',
       this._rebalanceProgram.initializationParams.seededValues,
     );
 
-    this._movingAverageOracle = await this._oracleWrapper.deployMovingAverageOracleAsync(
+    this._movingAverageOracle = await this._oracleHelper.deployMovingAverageOracleAsync(
       this._historicalPriceFeed.address,
       'ETHDailyMA',
     );
 
     // Deploy USDC, WETH and add usdc to whitelist (must add twice due to timelock)
-    this._usdc = await this._erc20Wrapper.deployUSDCTokenAsync(deployerAccount);
-    await this._protocolWrapper.addTokenToWhiteList(this._usdc.address, this._whiteList);
+    this._usdc = await this._erc20Helper.deployUSDCTokenAsync(deployerAccount);
+    await this._protocolHelper.addTokenToWhiteList(this._usdc.address, this._whiteList);
     await web3Utils.increaseTime(
       1
     );
-    await this._protocolWrapper.addTokenToWhiteList(this._usdc.address, this._whiteList);
+    await this._protocolHelper.addTokenToWhiteList(this._usdc.address, this._whiteList);
 
-    this._wrappedETH = await this._protocolWrapper.getDeployedWETHAsync();
+    this._wrappedETH = await this._protocolHelper.getDeployedWETHAsync();
   }
 
   public async createRebalancingSetToken(): Promise<void> {
-    this._stableCollateralSet = await this._protocolWrapper.createSetTokenAsync(
+    this._stableCollateralSet = await this._protocolHelper.createSetTokenAsync(
       this._core,
       this._factory.address,
       [this._usdc.address],
@@ -187,7 +187,7 @@ export class MACOStrategyMultipleRebalanceWrapper {
       this._stableCollateralSet.address
     );
 
-    this._riskCollateralSet = await this._protocolWrapper.createSetTokenAsync(
+    this._riskCollateralSet = await this._protocolHelper.createSetTokenAsync(
       this._core,
       this._factory.address,
       [this._wrappedETH.address],
@@ -199,7 +199,7 @@ export class MACOStrategyMultipleRebalanceWrapper {
     );
 
     // Deploy manager contract
-    this._macoStrategyManager = await this._managerWrapper.deployMACOStrategyManagerAsync(
+    this._macoStrategyManager = await this._managerHelper.deployMACOStrategyManagerAsync(
       this._core.address,
       this._movingAverageOracle.address,
       this._usdc.address,
@@ -219,7 +219,7 @@ export class MACOStrategyMultipleRebalanceWrapper {
       this._rebalanceProgram.initializationParams.rebalanceInterval,
     );
 
-    this._rebalancingSetToken = await this._protocolWrapper.createRebalancingTokenAsync(
+    this._rebalancingSetToken = await this._protocolHelper.createRebalancingTokenAsync(
       this._core,
       this._rebalancingFactory.address,
       [this._riskCollateralSet.address],
@@ -341,7 +341,7 @@ export class MACOStrategyMultipleRebalanceWrapper {
 
   private async _issueAndDistributeRebalancingSetsAsync(): Promise<void> {
     // Approve transfers for WBTC and WETH
-    await this._erc20Wrapper.approveTransfersAsync(
+    await this._erc20Helper.approveTransfersAsync(
       [this._usdc],
       this._transferProxy.address
     );
@@ -473,7 +473,7 @@ export class MACOStrategyMultipleRebalanceWrapper {
   private async _logDailyPriceChangesAsync(
     priceChanges: BigNumber[],
   ): Promise<void> {
-    await this._oracleWrapper.batchUpdateHistoricalPriceFeedAsync(
+    await this._oracleHelper.batchUpdateHistoricalPriceFeedAsync(
       this._historicalPriceFeed,
       this._ethMedianizer,
       priceChanges.length,
@@ -484,7 +484,7 @@ export class MACOStrategyMultipleRebalanceWrapper {
   private async _proposeAndTransitionToRebalanceAsync(
     newPrices: TokenPrices,
   ): Promise<void> {
-    await this._oracleWrapper.updateHistoricalPriceFeedAsync(
+    await this._oracleHelper.updateHistoricalPriceFeedAsync(
       this._historicalPriceFeed,
       this._ethMedianizer,
       newPrices.RiskAssetPrice,
@@ -575,7 +575,7 @@ export class MACOStrategyMultipleRebalanceWrapper {
     issuance: IssuanceTxn,
   ): Promise<void> {
     const currentSet = await this._rebalancingSetToken.currentSet.callAsync();
-    const currentSetInstance = await this._protocolWrapper.getSetTokenAsync(currentSet);
+    const currentSetInstance = await this._protocolHelper.getSetTokenAsync(currentSet);
     const currentSetNaturalUnit = await currentSetInstance.naturalUnit.callAsync();
 
     const rebalancingSetUnitShares = await this._rebalancingSetToken.unitShares.callAsync();
@@ -744,12 +744,12 @@ export class MACOStrategyMultipleRebalanceWrapper {
     const currentRiskCollateral = await this._macoStrategyManager.riskCollateralAddress.callAsync();
 
     if (currentStableCollateral != this._stableCollateralSet.address) {
-      this._stableCollateralSet = await this._protocolWrapper.getSetTokenAsync(currentStableCollateral);
+      this._stableCollateralSet = await this._protocolHelper.getSetTokenAsync(currentStableCollateral);
       this._rebalanceProgram.generalRebalancingData.stableCollateralSets.push(currentStableCollateral);
     }
 
     if (currentRiskCollateral != this._riskCollateralSet.address) {
-      this._riskCollateralSet = await this._protocolWrapper.getSetTokenAsync(currentRiskCollateral);
+      this._riskCollateralSet = await this._protocolHelper.getSetTokenAsync(currentRiskCollateral);
       this._rebalanceProgram.generalRebalancingData.riskCollateralSets.push(currentRiskCollateral);
     }
   }

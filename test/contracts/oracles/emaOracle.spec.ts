@@ -24,7 +24,7 @@ import { ONE_DAY_IN_SECONDS, NULL_ADDRESS, DEFAULT_GAS } from '@utils/constants'
 import { getWeb3 } from '@utils/web3Helper';
 import { expectRevertError } from '@utils/tokenAssertions';
 
-import { OracleWrapper } from '@utils/wrappers/oracleWrapper';
+import { OracleHelper } from '@utils/helpers/oracleHelper';
 
 import { FeedAdded, FeedRemoved } from '@utils/contract_logs/emaOracle';
 
@@ -52,7 +52,7 @@ contract('EMAOracle', accounts => {
 
   let initialEMAValue: BigNumber;
 
-  const oracleWrapper = new OracleWrapper(deployerAccount);
+  const oracleHelper = new OracleHelper(deployerAccount);
 
   const emaTimePeriodOne = new BigNumber(26);
 
@@ -67,32 +67,32 @@ contract('EMAOracle', accounts => {
   beforeEach(async () => {
     blockchain.saveSnapshotAsync();
 
-    ethMedianizer = await oracleWrapper.deployMedianizerAsync();
-    await oracleWrapper.addPriceFeedOwnerToMedianizer(ethMedianizer, deployerAccount);
+    ethMedianizer = await oracleHelper.deployMedianizerAsync();
+    await oracleHelper.addPriceFeedOwnerToMedianizer(ethMedianizer, deployerAccount);
 
-    legacyMakerOracleAdapter = await oracleWrapper.deployLegacyMakerOracleAdapterAsync(
+    legacyMakerOracleAdapter = await oracleHelper.deployLegacyMakerOracleAdapterAsync(
       ethMedianizer.address,
     );
 
-    oracleProxy = await oracleWrapper.deployOracleProxyAsync(
+    oracleProxy = await oracleHelper.deployOracleProxyAsync(
       legacyMakerOracleAdapter.address,
     );
 
     const interpolationThreshold = ONE_DAY_IN_SECONDS.mul(3);
-    ema26DayDataSource = await oracleWrapper.deployLinearizedEMADataSourceAsync(
+    ema26DayDataSource = await oracleHelper.deployLinearizedEMADataSourceAsync(
       oracleProxy.address,
       emaTimePeriodOne,
       interpolationThreshold,
     );
 
-    await oracleWrapper.addAuthorizedAddressesToOracleProxy(
+    await oracleHelper.addAuthorizedAddressesToOracleProxy(
       oracleProxy,
       [ema26DayDataSource.address]
     );
 
     initialEMAValue = ether(150);
     const seededValues = [initialEMAValue];
-    timeSeriesFeed = await oracleWrapper.deployTimeSeriesFeedAsync(
+    timeSeriesFeed = await oracleHelper.deployTimeSeriesFeedAsync(
       ema26DayDataSource.address,
       seededValues
     );
@@ -114,19 +114,19 @@ contract('EMAOracle', accounts => {
 
     beforeEach(async () => {
       const interpolationThreshold = ONE_DAY_IN_SECONDS;
-      ema13DayDataSource = await oracleWrapper.deployLinearizedEMADataSourceAsync(
+      ema13DayDataSource = await oracleHelper.deployLinearizedEMADataSourceAsync(
         oracleProxy.address,
         emaTimePeriodTwo,
         interpolationThreshold,
       );
 
-      await oracleWrapper.addAuthorizedAddressesToOracleProxy(
+      await oracleHelper.addAuthorizedAddressesToOracleProxy(
         oracleProxy,
         [ema13DayDataSource.address]
       );
 
       const seededValues = [initialEMAValue];
-      timeSeriesFeedTwo = await oracleWrapper.deployTimeSeriesFeedAsync(
+      timeSeriesFeedTwo = await oracleHelper.deployTimeSeriesFeedAsync(
         ema13DayDataSource.address,
         seededValues
       );
@@ -137,7 +137,7 @@ contract('EMAOracle', accounts => {
     });
 
     async function subject(): Promise<EMAOracleContract> {
-      return oracleWrapper.deployEMAOracleAsync(
+      return oracleHelper.deployEMAOracleAsync(
         subjectTimeSeriesFeedAddresses,
         subjectTimeSeriesFeedDays,
         subjectDataDescription
@@ -184,7 +184,7 @@ contract('EMAOracle', accounts => {
       subjectCaller = deployerAccount;
 
       const dataDescription = 'EMA Oracle';
-      emaOracle = await oracleWrapper.deployEMAOracleAsync(
+      emaOracle = await oracleHelper.deployEMAOracleAsync(
         [timeSeriesFeed.address],
         [emaTimePeriodOne],
         dataDescription
@@ -192,7 +192,7 @@ contract('EMAOracle', accounts => {
 
       previousEMAValue = await emaOracle.read.callAsync(subjectDataPoints);
 
-      await oracleWrapper.batchUpdateTimeSeriesFeedAsync(
+      await oracleHelper.batchUpdateTimeSeriesFeedAsync(
         timeSeriesFeed,
         ethMedianizer,
         1,
@@ -209,7 +209,7 @@ contract('EMAOracle', accounts => {
     it('returns the correct EMA value', async () => {
       const actualEMA = await subject();
 
-      const expectedEMA = oracleWrapper.calculateEMA(
+      const expectedEMA = oracleHelper.calculateEMA(
         previousEMAValue,
         subjectDataPoints,
         newestEthPrice,
@@ -239,7 +239,7 @@ contract('EMAOracle', accounts => {
 
     beforeEach(async () => {
       const dataDescription = 'EMA Oracle';
-      emaOracle = await oracleWrapper.deployEMAOracleAsync(
+      emaOracle = await oracleHelper.deployEMAOracleAsync(
         [timeSeriesFeed.address],
         [emaTimePeriodOne],
         dataDescription
@@ -303,7 +303,7 @@ contract('EMAOracle', accounts => {
       subjectCaller = deployerAccount;
 
       const dataDescription = 'EMA Oracle';
-      emaOracle = await oracleWrapper.deployEMAOracleAsync(
+      emaOracle = await oracleHelper.deployEMAOracleAsync(
         [timeSeriesFeed.address],
         [emaTimePeriodOne],
         dataDescription

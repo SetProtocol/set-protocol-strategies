@@ -39,10 +39,10 @@ import { getDeployedAddress } from '@utils/snapshotUtils';
 import { getWeb3 } from '@utils/web3Helper';
 import { LogManagerProposal } from '@utils/contract_logs/btcEthRebalancingManager';
 
-import { ProtocolWrapper } from '@utils/wrappers/protocolWrapper';
-import { ERC20Wrapper } from '@utils/wrappers/erc20Wrapper';
-import { OracleWrapper } from '@utils/wrappers/oracleWrapper';
-import { ManagerWrapper } from '@utils/wrappers/managerWrapper';
+import { ProtocolHelper } from '@utils/helpers/protocolHelper';
+import { ERC20Helper } from '@utils/helpers/erc20Helper';
+import { OracleHelper } from '@utils/helpers/oracleHelper';
+import { ManagerHelper } from '@utils/helpers/managerHelper';
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
@@ -73,10 +73,10 @@ contract('BTCETHRebalancingManager', accounts => {
   let wrappedBTC: StandardTokenMockContract;
   let wrappedETH: WethMockContract;
 
-  const protocolWrapper = new ProtocolWrapper(deployerAccount);
-  const erc20Wrapper = new ERC20Wrapper(deployerAccount);
-  const managerWrapper = new ManagerWrapper(deployerAccount);
-  const oracleWrapper = new OracleWrapper(deployerAccount);
+  const protocolHelper = new ProtocolHelper(deployerAccount);
+  const erc20Helper = new ERC20Helper(deployerAccount);
+  const managerHelper = new ManagerHelper(deployerAccount);
+  const oracleHelper = new OracleHelper(deployerAccount);
 
   before(async () => {
     ABIDecoder.addABI(Core.abi);
@@ -91,18 +91,18 @@ contract('BTCETHRebalancingManager', accounts => {
   beforeEach(async () => {
     blockchain.saveSnapshotAsync();
 
-    core = await protocolWrapper.getDeployedCoreAsync();
-    transferProxy = await protocolWrapper.getDeployedTransferProxyAsync();
-    wrappedBTC = await protocolWrapper.getDeployedWBTCAsync();
-    wrappedETH = await protocolWrapper.getDeployedWETHAsync();
-    factory = await protocolWrapper.getDeployedSetTokenFactoryAsync();
-    rebalancingFactory = await protocolWrapper.getDeployedRebalancingSetTokenFactoryAsync();
-    rebalanceAuctionModule = await protocolWrapper.getDeployedRebalanceAuctionModuleAsync();
+    core = await protocolHelper.getDeployedCoreAsync();
+    transferProxy = await protocolHelper.getDeployedTransferProxyAsync();
+    wrappedBTC = await protocolHelper.getDeployedWBTCAsync();
+    wrappedETH = await protocolHelper.getDeployedWETHAsync();
+    factory = await protocolHelper.getDeployedSetTokenFactoryAsync();
+    rebalancingFactory = await protocolHelper.getDeployedRebalancingSetTokenFactoryAsync();
+    rebalanceAuctionModule = await protocolHelper.getDeployedRebalanceAuctionModuleAsync();
 
-    linearAuctionPriceCurve = await protocolWrapper.getDeployedLinearAuctionPriceCurveAsync();
+    linearAuctionPriceCurve = await protocolHelper.getDeployedLinearAuctionPriceCurveAsync();
 
-    ethMedianizer = await protocolWrapper.getDeployedWETHMedianizerAsync();
-    btcMedianizer = await protocolWrapper.getDeployedWBTCMedianizerAsync();
+    ethMedianizer = await protocolHelper.getDeployedWETHMedianizerAsync();
+    btcMedianizer = await protocolHelper.getDeployedWBTCMedianizerAsync();
   });
 
   afterEach(async () => {
@@ -139,7 +139,7 @@ contract('BTCETHRebalancingManager', accounts => {
     });
 
     async function subject(): Promise<BTCETHRebalancingManagerContract> {
-      return managerWrapper.deployBTCETHRebalancingManagerAsync(
+      return managerHelper.deployBTCETHRebalancingManagerAsync(
         subjectCoreAddress,
         subjectBtcPriceFeedAddress,
         subjectEthPriceFeedAddress,
@@ -281,7 +281,7 @@ contract('BTCETHRebalancingManager', accounts => {
     beforeEach(async () => {
       lowerAllocationBound = new BigNumber(48);
       upperAllocationBound = new BigNumber(52);
-      btcethRebalancingManager = await managerWrapper.deployBTCETHRebalancingManagerAsync(
+      btcethRebalancingManager = await managerHelper.deployBTCETHRebalancingManagerAsync(
         core.address,
         btcMedianizer.address,
         ethMedianizer.address,
@@ -294,7 +294,7 @@ contract('BTCETHRebalancingManager', accounts => {
         [lowerAllocationBound, upperAllocationBound]
       );
 
-      initialAllocationToken = await protocolWrapper.createSetTokenAsync(
+      initialAllocationToken = await protocolHelper.createSetTokenAsync(
         core,
         factory.address,
         [wrappedBTC.address, wrappedETH.address],
@@ -303,7 +303,7 @@ contract('BTCETHRebalancingManager', accounts => {
       );
 
       proposalPeriod = ONE_DAY_IN_SECONDS;
-      rebalancingSetToken = await protocolWrapper.createDefaultRebalancingSetTokenAsync(
+      rebalancingSetToken = await protocolHelper.createDefaultRebalancingSetTokenAsync(
         core,
         rebalancingFactory.address,
         btcethRebalancingManager.address,
@@ -315,21 +315,21 @@ contract('BTCETHRebalancingManager', accounts => {
       subjectCaller = otherAccount;
       subjectTimeFastForward = ONE_DAY_IN_SECONDS.add(1);
 
-      await oracleWrapper.addPriceFeedOwnerToMedianizer(btcMedianizer, deployerAccount);
-      await oracleWrapper.updateMedianizerPriceAsync(
+      await oracleHelper.addPriceFeedOwnerToMedianizer(btcMedianizer, deployerAccount);
+      await oracleHelper.updateMedianizerPriceAsync(
         btcMedianizer,
         btcPrice,
         SetTestUtils.generateTimestamp(1000),
       );
 
-      await oracleWrapper.addPriceFeedOwnerToMedianizer(ethMedianizer, deployerAccount);
-      await oracleWrapper.updateMedianizerPriceAsync(
+      await oracleHelper.addPriceFeedOwnerToMedianizer(ethMedianizer, deployerAccount);
+      await oracleHelper.updateMedianizerPriceAsync(
         ethMedianizer,
         ethPrice,
         SetTestUtils.generateTimestamp(1000),
       );
 
-      await erc20Wrapper.approveTransfersAsync([wrappedBTC, wrappedETH], transferProxy.address);
+      await erc20Helper.approveTransfersAsync([wrappedBTC, wrappedETH], transferProxy.address);
 
       // Issue currentSetToken
       await core.issue.sendTransactionAsync(
@@ -338,7 +338,7 @@ contract('BTCETHRebalancingManager', accounts => {
         {from: deployerAccount, gas: DEFAULT_GAS},
       );
 
-      await erc20Wrapper.approveTransfersAsync([initialAllocationToken], transferProxy.address);
+      await erc20Helper.approveTransfersAsync([initialAllocationToken], transferProxy.address);
 
       // Use issued currentSetToken to issue rebalancingSetToken
       await core.issue.sendTransactionAsync(rebalancingSetToken.address, ether(7), {
@@ -359,10 +359,10 @@ contract('BTCETHRebalancingManager', accounts => {
         await subject();
 
         const nextSetAddress = await rebalancingSetToken.nextSet.callAsync();
-        const nextSet = await protocolWrapper.getSetTokenAsync(nextSetAddress);
+        const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
         const nextSetNaturalUnit = await nextSet.naturalUnit.callAsync();
 
-        const expectedNextSetParams = managerWrapper.getExpectedBtcEthNextSetParameters(
+        const expectedNextSetParams = managerHelper.getExpectedBtcEthNextSetParameters(
           btcPrice,
           ethPrice,
           btcMultiplier,
@@ -375,10 +375,10 @@ contract('BTCETHRebalancingManager', accounts => {
         await subject();
 
         const nextSetAddress = await rebalancingSetToken.nextSet.callAsync();
-        const nextSet = await protocolWrapper.getSetTokenAsync(nextSetAddress);
+        const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
         const nextSetUnits = await nextSet.getUnits.callAsync();
 
-        const expectedNextSetParams = managerWrapper.getExpectedBtcEthNextSetParameters(
+        const expectedNextSetParams = managerHelper.getExpectedBtcEthNextSetParameters(
           btcPrice,
           ethPrice,
           btcMultiplier,
@@ -391,7 +391,7 @@ contract('BTCETHRebalancingManager', accounts => {
         await subject();
 
         const nextSetAddress = await rebalancingSetToken.nextSet.callAsync();
-        const nextSet = await protocolWrapper.getSetTokenAsync(nextSetAddress);
+        const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
         const nextSetComponents = await nextSet.getComponents.callAsync();
 
         const expectedNextSetComponents = [wrappedBTC.address, wrappedETH.address];
@@ -416,7 +416,7 @@ contract('BTCETHRebalancingManager', accounts => {
       it('updates the auction start price correctly', async () => {
         await subject();
 
-        const auctionPriceParameters = await managerWrapper.getExpectedBtcEthAuctionParameters(
+        const auctionPriceParameters = await managerHelper.getExpectedBtcEthAuctionParameters(
           btcPrice,
           ethPrice,
           btcMultiplier,
@@ -434,7 +434,7 @@ contract('BTCETHRebalancingManager', accounts => {
       it('updates the auction pivot price correctly', async () => {
         await subject();
 
-        const auctionPriceParameters = await managerWrapper.getExpectedBtcEthAuctionParameters(
+        const auctionPriceParameters = await managerHelper.getExpectedBtcEthAuctionParameters(
           btcPrice,
           ethPrice,
           btcMultiplier,
@@ -477,10 +477,10 @@ contract('BTCETHRebalancingManager', accounts => {
           await subject();
 
           const nextSetAddress = await rebalancingSetToken.nextSet.callAsync();
-          const nextSet = await protocolWrapper.getSetTokenAsync(nextSetAddress);
+          const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
           const nextSetNaturalUnit = await nextSet.naturalUnit.callAsync();
 
-          const expectedNextSetParams = managerWrapper.getExpectedBtcEthNextSetParameters(
+          const expectedNextSetParams = managerHelper.getExpectedBtcEthNextSetParameters(
             btcPrice,
             ethPrice,
             btcMultiplier,
@@ -493,10 +493,10 @@ contract('BTCETHRebalancingManager', accounts => {
           await subject();
 
           const nextSetAddress = await rebalancingSetToken.nextSet.callAsync();
-          const nextSet = await protocolWrapper.getSetTokenAsync(nextSetAddress);
+          const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
           const nextSetUnits = await nextSet.getUnits.callAsync();
 
-          const expectedNextSetParams = managerWrapper.getExpectedBtcEthNextSetParameters(
+          const expectedNextSetParams = managerHelper.getExpectedBtcEthNextSetParameters(
             btcPrice,
             ethPrice,
             btcMultiplier,
@@ -524,10 +524,10 @@ contract('BTCETHRebalancingManager', accounts => {
           await subject();
 
           const nextSetAddress = await rebalancingSetToken.nextSet.callAsync();
-          const nextSet = await protocolWrapper.getSetTokenAsync(nextSetAddress);
+          const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
           const nextSetNaturalUnit = await nextSet.naturalUnit.callAsync();
 
-          const expectedNextSetParams = managerWrapper.getExpectedBtcEthNextSetParameters(
+          const expectedNextSetParams = managerHelper.getExpectedBtcEthNextSetParameters(
             btcPrice,
             ethPrice,
             btcMultiplier,
@@ -540,10 +540,10 @@ contract('BTCETHRebalancingManager', accounts => {
           await subject();
 
           const nextSetAddress = await rebalancingSetToken.nextSet.callAsync();
-          const nextSet = await protocolWrapper.getSetTokenAsync(nextSetAddress);
+          const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
           const nextSetUnits = await nextSet.getUnits.callAsync();
 
-          const expectedNextSetParams = managerWrapper.getExpectedBtcEthNextSetParameters(
+          const expectedNextSetParams = managerHelper.getExpectedBtcEthNextSetParameters(
             btcPrice,
             ethPrice,
             btcMultiplier,
@@ -555,7 +555,7 @@ contract('BTCETHRebalancingManager', accounts => {
         it('updates the auction start price correctly', async () => {
           await subject();
 
-          const auctionPriceParameters = await managerWrapper.getExpectedBtcEthAuctionParameters(
+          const auctionPriceParameters = await managerHelper.getExpectedBtcEthAuctionParameters(
             btcPrice,
             ethPrice,
             btcMultiplier,
@@ -573,7 +573,7 @@ contract('BTCETHRebalancingManager', accounts => {
         it('updates the auction pivot price correctly', async () => {
           await subject();
 
-          const auctionPriceParameters = await managerWrapper.getExpectedBtcEthAuctionParameters(
+          const auctionPriceParameters = await managerHelper.getExpectedBtcEthAuctionParameters(
             btcPrice,
             ethPrice,
             btcMultiplier,
@@ -603,10 +603,10 @@ contract('BTCETHRebalancingManager', accounts => {
             await subject();
 
             const nextSetAddress = await rebalancingSetToken.nextSet.callAsync();
-            const nextSet = await protocolWrapper.getSetTokenAsync(nextSetAddress);
+            const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
             const nextSetNaturalUnit = await nextSet.naturalUnit.callAsync();
 
-            const expectedNextSetParams = managerWrapper.getExpectedBtcEthNextSetParameters(
+            const expectedNextSetParams = managerHelper.getExpectedBtcEthNextSetParameters(
               btcPrice,
               ethPrice,
               btcMultiplier,
@@ -619,10 +619,10 @@ contract('BTCETHRebalancingManager', accounts => {
             await subject();
 
             const nextSetAddress = await rebalancingSetToken.nextSet.callAsync();
-            const nextSet = await protocolWrapper.getSetTokenAsync(nextSetAddress);
+            const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
             const nextSetUnits = await nextSet.getUnits.callAsync();
 
-            const expectedNextSetParams = managerWrapper.getExpectedBtcEthNextSetParameters(
+            const expectedNextSetParams = managerHelper.getExpectedBtcEthNextSetParameters(
               btcPrice,
               ethPrice,
               btcMultiplier,
@@ -635,7 +635,7 @@ contract('BTCETHRebalancingManager', accounts => {
 
       describe('but the passed rebalancing set address was not created by Core', async () => {
         beforeEach(async () => {
-          const unTrackedSetToken = await protocolWrapper.createDefaultRebalancingSetTokenAsync(
+          const unTrackedSetToken = await protocolHelper.createDefaultRebalancingSetTokenAsync(
             core,
             rebalancingFactory.address,
             btcethRebalancingManager.address,

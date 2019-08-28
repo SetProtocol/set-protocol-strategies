@@ -44,7 +44,7 @@ const { SetProtocolTestUtils: SetTestUtils, SetProtocolUtils: SetUtils } = setPr
 const setTestUtils = new SetTestUtils(web3);
 
 
-export class ProtocolWrapper {
+export class ProtocolHelper {
   private _tokenOwnerAddress: Address;
 
   constructor(tokenOwnerAddress: Address) {
