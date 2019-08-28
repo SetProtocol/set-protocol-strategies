@@ -16,7 +16,7 @@
 
 pragma solidity 0.5.7;
 
-import { IMedian } from "../external/DappHub/interfaces/IMedian.sol";
+import { IMedian } from "../../external/DappHub/interfaces/IMedian.sol";
 
 
 /**

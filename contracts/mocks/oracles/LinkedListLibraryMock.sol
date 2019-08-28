@@ -17,7 +17,7 @@
 pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
-import { LinkedListLibrary } from "../meta-oracles/lib/LinkedListLibrary.sol";
+import { LinkedListLibrary } from "../../meta-oracles/lib/LinkedListLibrary.sol";
 
 /**
  * @title LinkedListLibraryMock

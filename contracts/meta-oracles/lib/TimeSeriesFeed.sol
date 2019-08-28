@@ -20,9 +20,9 @@ pragma experimental "ABIEncoderV2";
 import { ReentrancyGuard } from "openzeppelin-solidity/contracts/utils/ReentrancyGuard.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
-import { IDataSource } from "./interfaces/IDataSource.sol";
-import { LinkedListLibraryV2 } from "./lib/LinkedListLibraryV2.sol";
-import { TimeSeriesStateLibrary } from "./lib/TimeSeriesStateLibrary.sol";
+import { IDataSource } from "../interfaces/IDataSource.sol";
+import { LinkedListLibraryV2 } from "./LinkedListLibraryV2.sol";
+import { TimeSeriesStateLibrary } from "./TimeSeriesStateLibrary.sol";
 
 
 /**

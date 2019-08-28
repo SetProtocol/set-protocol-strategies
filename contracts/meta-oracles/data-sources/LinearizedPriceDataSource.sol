@@ -20,12 +20,12 @@ pragma experimental "ABIEncoderV2";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { TimeLockUpgrade } from "set-protocol-contracts/contracts/lib/TimeLockUpgrade.sol";
 
-import { DataSourceLinearInterpolationLibrary } from "./lib/DataSourceLinearInterpolationLibrary.sol";
-import { IOracle } from "./interfaces/IOracle.sol";
-import { IDataSource } from "./interfaces/IDataSource.sol";
-import { LinkedListHelper } from "./lib/LinkedListHelper.sol";
-import { LinkedListLibraryV2 } from "./lib/LinkedListLibraryV2.sol";
-import { TimeSeriesStateLibrary } from "./lib/TimeSeriesStateLibrary.sol";
+import { DataSourceLinearInterpolationLibrary } from "../lib/DataSourceLinearInterpolationLibrary.sol";
+import { IOracle } from "../interfaces/IOracle.sol";
+import { IDataSource } from "../interfaces/IDataSource.sol";
+import { LinkedListHelper } from "../lib/LinkedListHelper.sol";
+import { LinkedListLibraryV2 } from "../lib/LinkedListLibraryV2.sol";
+import { TimeSeriesStateLibrary } from "../lib/TimeSeriesStateLibrary.sol";
 
 
 /**
