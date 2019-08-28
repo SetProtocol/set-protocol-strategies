@@ -18,7 +18,7 @@ pragma solidity 0.5.7;
 
 import { Authorizable } from "set-protocol-contracts/contracts/lib/Authorizable.sol";
 
-import { IOracle } from "./interfaces/IOracle.sol";
+import { IOracle } from "../interfaces/IOracle.sol";
 
 
 /**

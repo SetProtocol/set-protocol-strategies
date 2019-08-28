@@ -15,31 +15,28 @@
 */
 
 pragma solidity 0.5.7;
+pragma experimental "ABIEncoderV2";
 
-import { EMALibrary } from "../../../meta-oracles/lib/EMALibrary.sol";
+import { LinkedListLibraryV2 } from "../../../oracles/lib/LinkedListLibraryV2.sol";
+import { LinkedListHelper } from "../../../oracles/lib/LinkedListHelper.sol";
 
 /**
- * @title EMALibraryMock
+ * @title LinkedListHelperMock
  * @author Set Protocol
  *
- * Mock contract for interacting with EMALibrary
+ * Convenience methods for the LinkedListLibrary
  */
-contract EMALibraryMock {
+contract LinkedListHelperMock {
 
-    /* ============ External Function ============ */
+    /* ============ Public Function ============ */
 
-    function calculateMock(
-        uint256 _previousEMAValue,
-        uint256 _timePeriod,
-        uint256 _currentAssetPrice
+    function getLatestValueMock(
+        LinkedListLibraryV2.LinkedList memory _self
     )
-        external
+        public
+        view
         returns (uint256)
     {
-        return EMALibrary.calculate(
-            _previousEMAValue,
-            _timePeriod,
-            _currentAssetPrice
-        );
+        return LinkedListHelper.getLatestValue(_self);
     }
 }

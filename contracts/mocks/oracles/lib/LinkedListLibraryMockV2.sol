@@ -17,7 +17,7 @@
 pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
-import { LinkedListLibrary } from "../meta-oracles/lib/LinkedListLibrary.sol";
+import { LinkedListLibraryV2 } from "../../../oracles/lib/LinkedListLibraryV2.sol";
 
 /**
  * @title LinkedListLibraryMock
@@ -25,12 +25,13 @@ import { LinkedListLibrary } from "../meta-oracles/lib/LinkedListLibrary.sol";
  *
  * Mock contract for interacting with LinkedListLibrary
  */
-contract LinkedListLibraryMock is
-    LinkedListLibrary
+contract LinkedListLibraryMockV2
 {
+    using LinkedListLibraryV2 for LinkedListLibraryV2.LinkedList;
+
     /* ============ State Variables ============ */
 
-    LinkedListLibrary.LinkedList private linkedList;
+    LinkedListLibraryV2.LinkedList private linkedList;
 
     /* ============ Public Function ============ */
 
@@ -38,10 +39,9 @@ contract LinkedListLibraryMock is
         uint256 _dataSizeLimit,
         uint256 _initialValue
     )
-        external
+        public
     {
-        initialize(
-            linkedList,
+        linkedList.initialize(
             _dataSizeLimit,
             _initialValue
         );
@@ -50,10 +50,9 @@ contract LinkedListLibraryMock is
     function editListMock(
         uint256 _addedValue
     )
-        external
+        public
     {
-        editList(
-            linkedList,
+        linkedList.editList(
             _addedValue
         );
     }
@@ -61,10 +60,9 @@ contract LinkedListLibraryMock is
     function addNodeMock(
         uint256 _addedValue
     )
-        external
+        public
     {
-        addNode(
-            linkedList,
+        linkedList.addNode(
             _addedValue
         );
     }
@@ -72,10 +70,9 @@ contract LinkedListLibraryMock is
     function updateNodeMock(
         uint256 _addedValue
     )
-        external
+        public
     {
-        updateNode(
-            linkedList,
+        linkedList.updateNode(
             _addedValue
         );
     }
@@ -83,11 +80,10 @@ contract LinkedListLibraryMock is
     function readListMock(
         uint256 _dataPoints
     )
-        external
+        public
         returns (uint256[] memory)
     {
-        return readList(
-            linkedList,
+        return linkedList.readList(
             _dataPoints
         );
     }
@@ -95,7 +91,7 @@ contract LinkedListLibraryMock is
     function addBadValue(
         uint256 _badValue
     )
-        external
+        public
     {
         linkedList.dataArray.push(_badValue);
     }
@@ -103,7 +99,7 @@ contract LinkedListLibraryMock is
     /* ============ Getters ============ */
 
     function getDataSizeLimit()
-        external
+        public
         view
         returns (uint256)
     {
@@ -111,7 +107,7 @@ contract LinkedListLibraryMock is
     }
 
     function getLastUpdatedIndex()
-        external
+        public
         view
         returns (uint256)
     {
@@ -119,7 +115,7 @@ contract LinkedListLibraryMock is
     }
 
     function getDataArray()
-        external
+        public
         view
         returns (uint256[] memory)
     {

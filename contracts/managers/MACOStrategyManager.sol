@@ -25,7 +25,7 @@ import { ISetToken } from "set-protocol-contracts/contracts/core/interfaces/ISet
 import { SetTokenLibrary } from "set-protocol-contracts/contracts/core/lib/SetTokenLibrary.sol";
 
 import { IMedian } from "../external/DappHub/interfaces/IMedian.sol";
-import { IMetaOracle } from "../meta-oracles/interfaces/IMetaOracle.sol";
+import { IMetaOracle } from "../oracles/interfaces/IMetaOracle.sol";
 import { FlexibleTimingManagerLibrary } from "./lib/FlexibleTimingManagerLibrary.sol";
 
 
