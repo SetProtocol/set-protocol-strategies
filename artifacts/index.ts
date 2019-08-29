@@ -1,9 +1,11 @@
 export { BTCDaiRebalancingManager } from './ts/BTCDaiRebalancingManager';
 export { BTCETHRebalancingManager } from './ts/BTCETHRebalancingManager';
 export { ETHDaiRebalancingManager } from './ts/ETHDaiRebalancingManager';
+export { EMAOracle } from './ts/EMAOracle';
 export { FeedFactory } from './ts/FeedFactory';
 export { HistoricalPriceFeed } from './ts/HistoricalPriceFeed';
 export { LegacyMakerOracleAdapter } from './ts/LegacyMakerOracleAdapter';
+export { LinearizedEMADataSource } from './ts/LinearizedEMADataSource';
 export { LinearizedPriceDataSource } from './ts/LinearizedPriceDataSource';
 export { MACOStrategyManager } from './ts/MACOStrategyManager';
 export { MACOStrategyManagerV2 } from './ts/MACOStrategyManagerV2';
@@ -20,10 +22,12 @@ export {
 	BTCDaiRebalancingManagerContract,
 	BTCETHRebalancingManagerContract,
 	ETHDaiRebalancingManagerContract,
+	EMAOracleContract,
 	FeedFactoryContract,
 	HistoricalPriceFeedContract,
 	LegacyMakerOracleAdapterContract,
 	LinkedListLibraryMockContract,
+	LinearizedEMADataSourceContract,
 	LinearizedPriceDataSourceContract,
 	MACOStrategyManagerContract,
 	MACOStrategyManagerV2Contract,
