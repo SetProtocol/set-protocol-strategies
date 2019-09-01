@@ -146,7 +146,7 @@ contract EMAOracle is
     function removeFeed(uint256 _emaTimePeriod)
         external
         onlyOwner
-        timeLockUpgrade
+        timeLockUpgrade // Must be placed after onlyOwner
     {
         address emaTimeSeriesFeed = address(emaTimeSeriesFeeds[_emaTimePeriod]);
 
@@ -155,7 +155,7 @@ contract EMAOracle is
             "EMAOracle.removeFeed: Feed does not exist."
         );
 
-        emaTimeSeriesFeeds[_emaTimePeriod] = ITimeSeriesFeed(address(0));
+        delete emaTimeSeriesFeeds[_emaTimePeriod];
 
         emit FeedRemoved(emaTimeSeriesFeed, _emaTimePeriod);
     }

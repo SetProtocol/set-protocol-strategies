@@ -18,8 +18,6 @@ pragma solidity 0.5.7;
 
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
-import { CommonMath } from "set-protocol-contracts/contracts/lib/CommonMath.sol";
-
 
 /**
  * @title EMALibrary
@@ -31,7 +29,6 @@ import { CommonMath } from "set-protocol-contracts/contracts/lib/CommonMath.sol"
 library EMALibrary{
 
     using SafeMath for uint256;
-    using CommonMath for uint256;
 
     /*
      * Calculates the new exponential moving average value using the previous value,
@@ -42,6 +39,11 @@ library EMALibrary{
      * EMA = Price(Today) x Weighted Multiplier +
      *       EMA(Yesterday) - 
      *       EMA(Yesterday) x Weighted Multiplier
+     *
+     * Our implementation is simplified to the following for efficiency:
+     *
+     * EMA = (Price(Today) * 2 + EMA(Yesterday) * (timePeriod - 1)) / (timePeriod + 1)
+     *
      *
      * @param  _previousEMAValue         The previous Exponential Moving average value         
      * @param  _timePeriod               The number of days the calculate the EMA with         
@@ -54,22 +56,13 @@ library EMALibrary{
         uint256 _currentAssetPrice
     )
         internal
-        view
+        pure
         returns (uint256)
     {
-        uint256 weightedMultiplierNumerator = 2;
-        uint256 weightedMultiplierDenominator = _timePeriod.add(1);
+        uint256 a = _currentAssetPrice.mul(2);
+        uint256 b = _previousEMAValue.mul(_timePeriod.sub(1));
+        uint256 c = _timePeriod.add(1);
 
-        uint256 currentWeightedValue = _currentAssetPrice.getPartialAmount(
-            weightedMultiplierNumerator,
-            weightedMultiplierDenominator
-        );
-
-        uint256 previousWeightedValue = _previousEMAValue.getPartialAmount(
-            weightedMultiplierNumerator,
-            weightedMultiplierDenominator
-        );
-
-        return currentWeightedValue.add(_previousEMAValue).sub(previousWeightedValue);
+        return a.add(b).div(c);
     }
 }
