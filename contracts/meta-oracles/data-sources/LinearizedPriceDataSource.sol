@@ -139,7 +139,7 @@ contract LinearizedPriceDataSource is
     )
         external
         onlyOwner
-        timeLockUpgrade
+        timeLockUpgrade // Must be placed after onlyOwner
     {
         // Check to make sure new oracle address is passed
         require(

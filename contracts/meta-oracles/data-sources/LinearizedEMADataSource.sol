@@ -110,7 +110,7 @@ contract LinearizedEMADataSource is
         // Validate that nextEarliest update timestamp is less than current block timestamp
         require(
             block.timestamp >= _timeSeriesState.nextEarliestUpdate,
-            "LinearizedPriceDataSource.read: current timestamp must be greater than nextAvailableUpdate."
+            "LinearizedEMADataSource.read: current timestamp must be greater than nextAvailableUpdate."
         );
 
         // Get current oracle value
@@ -154,12 +154,12 @@ contract LinearizedEMADataSource is
     )
         external
         onlyOwner
-        timeLockUpgrade
+        timeLockUpgrade // Must be placed after onlyOwner
     {
         // Check to make sure new oracle address is passed
         require(
             address(_newOracleAddress) != address(oracleInstance),
-            "LinearizedPriceDataSource.changeOracle: Must give new oracle address."
+            "LinearizedEMADataSource.changeOracle: Must give new oracle address."
         );
 
         oracleInstance = _newOracleAddress;

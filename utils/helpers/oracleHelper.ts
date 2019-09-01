@@ -458,20 +458,29 @@ export class OracleHelper {
     return priceArray;
   }
 
+  /*
+   * The EMA formula is the following:
+   *
+   * Weighted Multiplier = 2 / (timePeriod + 1)
+   *
+   * EMA = Price(Today) x Weighted Multiplier +
+   *       EMA(Yesterday) -
+   *       EMA(Yesterday) x Weighted Multiplier
+   *
+   * Our implementation is simplified to the following for efficiency:
+   *
+   * EMA = (Price(Today) * 2 + EMA(Yesterday) * (timePeriod - 1)) / (timePeriod + 1)
+   *
+   */
   public calculateEMA(
     previousEMAValue: BigNumber,
     timePeriod: BigNumber,
     currentAssetPrice: BigNumber
   ): BigNumber {
-    const weightedNumerator: BigNumber = new BigNumber(2);
-    const weightedDenominator: BigNumber = timePeriod.plus(1);
+    const a = currentAssetPrice.mul(2);
+    const b = previousEMAValue.mul(timePeriod.minus(1));
+    const c = timePeriod.plus(1);
 
-    const currentWeightedValue = currentAssetPrice
-                                   .mul(weightedNumerator).div(weightedDenominator).round(0, 3);
-
-    const previousWeightedValue = previousEMAValue
-                                   .mul(weightedNumerator).div(weightedDenominator).round(0, 3);
-
-    return currentWeightedValue.add(previousEMAValue).sub(previousWeightedValue);
+    return a.plus(b).div(c).round(0, 3);
   }
 }
