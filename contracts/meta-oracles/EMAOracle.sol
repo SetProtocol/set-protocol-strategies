@@ -15,6 +15,7 @@
 */
 
 pragma solidity 0.5.7;
+pragma experimental "ABIEncoderV2";
 
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { TimeLockUpgrade } from "set-protocol-contracts/contracts/lib/TimeLockUpgrade.sol";
