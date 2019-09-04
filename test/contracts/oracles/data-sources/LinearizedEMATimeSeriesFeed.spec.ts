@@ -79,7 +79,7 @@ contract('LinearizedEMATimeSeriesFeed', accounts => {
     blockchain.revertAsync();
   });
 
-  describe.only('#constructor', async () => {
+  describe('#constructor', async () => {
     let subjectUpdateInterval: BigNumber;
     let subjectMaxDataPoints: BigNumber;
     let subjectNextEarliestUpdate: BigNumber;
@@ -210,7 +210,7 @@ contract('LinearizedEMATimeSeriesFeed', accounts => {
     });
   });
 
-  describe.only('#read', async () => {
+  describe('#read', async () => {
     let ethPrice: BigNumber;
     let emaUpdatedPrices: BigNumber[];
 
@@ -279,7 +279,7 @@ contract('LinearizedEMATimeSeriesFeed', accounts => {
     });
   });
 
-  describe.only('#poke', async () => {
+  describe('#poke', async () => {
     let newEthPrice: BigNumber;
     let interpolationThreshold: BigNumber;
     let emaTimePeriod: BigNumber;
@@ -419,7 +419,7 @@ contract('LinearizedEMATimeSeriesFeed', accounts => {
     });
   });
 
-  describe.only('#changeOracle', async () => {
+  describe('#changeOracle', async () => {
     let ethPrice: BigNumber;
     const emaTimePeriod = new BigNumber(26);
 
