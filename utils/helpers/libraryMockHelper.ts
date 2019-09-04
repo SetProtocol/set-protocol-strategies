@@ -6,6 +6,7 @@ import {
   LinkedListHelperMockContract,
   LinkedListLibraryMockContract,
   LinkedListLibraryMockV2Contract,
+  LinkedListLibraryMockV3Contract,
   ManagerLibraryMockContract,
   PriceFeedMockContract,
 } from '../contracts';
@@ -19,6 +20,7 @@ const FlexibleTimingManagerLibraryMock = artifacts.require('FlexibleTimingManage
 const LinkedListHelperMock = artifacts.require('LinkedListHelperMock');
 const LinkedListLibraryMock = artifacts.require('LinkedListLibraryMock');
 const LinkedListLibraryMockV2 = artifacts.require('LinkedListLibraryMockV2');
+const LinkedListLibraryMockV3 = artifacts.require('LinkedListLibraryMockV3');
 const ManagerLibraryMock = artifacts.require('ManagerLibraryMock');
 const EMALibraryMock = artifacts.require('EMALibraryMock');
 const PriceFeedMock = artifacts.require('PriceFeedMock');
@@ -134,6 +136,19 @@ export class LibraryMockHelper {
     );
 
     return new LinkedListLibraryMockV2Contract(
+      new web3.eth.Contract(linkedList.abi, linkedList.address),
+      { from },
+    );
+  }
+
+  public async deployLinkedListLibraryMockV3Async(
+    from: Address = this._contractOwnerAddress
+  ): Promise<LinkedListLibraryMockV3Contract> {
+    const linkedList = await LinkedListLibraryMockV3.new(
+      { from },
+    );
+
+    return new LinkedListLibraryMockV3Contract(
       new web3.eth.Contract(linkedList.abi, linkedList.address),
       { from },
     );

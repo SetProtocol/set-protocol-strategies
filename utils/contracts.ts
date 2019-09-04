@@ -14,6 +14,7 @@ export { LegacyMakerOracleAdapterContract } from '../types/generated/legacy_make
 export { LinkedListHelperMockContract } from '../types/generated/linked_list_helper_mock';
 export { LinkedListLibraryMockContract } from '../types/generated/linked_list_library_mock';
 export { LinkedListLibraryMockV2Contract } from '../types/generated/linked_list_library_mock_v2';
+export { LinkedListLibraryMockV3Contract } from '../types/generated/linked_list_library_mock_v3';
 export { LinearizedEMATimeSeriesFeedContract } from '../types/generated/linearized_e_m_a_time_series_feed';
 export { LinearizedPriceDataSourceContract } from '../types/generated/linearized_price_data_source';
 export { MACOStrategyManagerContract } from '../types/generated/m_a_c_o_strategy_manager';

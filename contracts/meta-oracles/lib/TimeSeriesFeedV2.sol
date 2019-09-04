@@ -20,23 +20,25 @@ pragma experimental "ABIEncoderV2";
 import { ReentrancyGuard } from "openzeppelin-solidity/contracts/utils/ReentrancyGuard.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
-import { LinkedListLibraryV2 } from "./LinkedListLibraryV2.sol";
+import { LinkedListLibraryV3 } from "./LinkedListLibraryV3.sol";
 
 
 /**
- * @title TimeSeriesFeed
+ * @title TimeSeriesFeedV2
  * @author Set Protocol
  *
  * Contract used to store time-series data from a specified DataSource. Intended time-series data
  * is stored in a circular Linked List data structure with a maximum number of data points. Its
  * enforces a minimum duration between each update. New data is appended by calling the poke function,
  * which reads data from a specified data source.
+ *
+ * CHANGELOG
  */
 contract TimeSeriesFeedV2 is
     ReentrancyGuard
 {
     using SafeMath for uint256;
-    using LinkedListLibraryV2 for LinkedListLibraryV2.LinkedList;
+    using LinkedListLibraryV3 for LinkedListLibraryV3.LinkedList;
 
     /* ============ State Variables ============ */
     uint256 public updateInterval;
@@ -44,7 +46,7 @@ contract TimeSeriesFeedV2 is
     // Unix Timestamp in seconds of next earliest update time
     uint256 public nextEarliestUpdate;
 
-    LinkedListLibraryV2.LinkedList internal timeSeriesData;
+    LinkedListLibraryV3.LinkedList internal timeSeriesData;
 
     /* ============ Constructor ============ */
 

@@ -23,25 +23,24 @@ import { TimeLockUpgrade } from "set-protocol-contracts/contracts/lib/TimeLockUp
 import { DataSourceLinearInterpolationLibrary } from "../lib/DataSourceLinearInterpolationLibrary.sol";
 import { EMALibrary } from "../lib/EMALibrary.sol";
 import { IOracle } from "../interfaces/IOracle.sol";
-import { LinkedListHelper } from "../lib/LinkedListHelper.sol";
-import { LinkedListLibraryV2 } from "../lib/LinkedListLibraryV2.sol";
+import { LinkedListLibraryV3 } from "../lib/LinkedListLibraryV3.sol";
 import { TimeSeriesFeedV2 } from "../lib/TimeSeriesFeedV2.sol";
 
 
 /**
- * @title LinearizedEMADataSource
+ * @title LinearizedEMATimeSeriesFeed
  * @author Set Protocol
  *
- * This DataSource returns the current value of the oracle. If the interpolationThreshold
- * is reached, then returns a linearly interpolated value.
- * It is intended to be read by a TimeSeriesFeed smart contract.
+ * This TimeSeriesFeed calculates the current EMA price and stores it using the
+ * inherited TimeSeriesFeedV2 contract. On calculation, if the interpolationThreshold
+ * is reached, then it returns a linearly interpolated value.
  */
 contract LinearizedEMATimeSeriesFeed is
     TimeSeriesFeedV2,
     TimeLockUpgrade
 {
     using SafeMath for uint256;
-    using LinkedListHelper for LinkedListLibraryV2.LinkedList;
+    using LinkedListLibraryV3 for LinkedListLibraryV3.LinkedList;
 
     /* ============ State Variables ============ */
     // Number of EMA Days
