@@ -419,8 +419,6 @@ export class OracleHelper {
         priceArray[i],
         ONE_DAY_IN_SECONDS.mul(2 * i + 2).toNumber()
       );
-      const block = await web3.eth.getBlock('latest');
-      console.log(block.gasUsed);
     }
 
     return priceArray;

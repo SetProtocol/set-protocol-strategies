@@ -17,8 +17,7 @@ import {
   LegacyMakerOracleAdapterContract,
   LinearizedEMATimeSeriesFeedContract,
   EMAOracleContract,
-  OracleProxyContract,
-  TimeSeriesFeedContract
+  OracleProxyContract
 } from '@utils/contracts';
 import { NULL_ADDRESS, DEFAULT_GAS } from '@utils/constants';
 import { getWeb3 } from '@utils/web3Helper';
@@ -46,8 +45,7 @@ contract('EMAOracle', accounts => {
   let ethMedianizer: MedianContract;
   let legacyMakerOracleAdapter: LegacyMakerOracleAdapterContract;
   let oracleProxy: OracleProxyContract;
-  let ema26DayDataSource: LinearizedEMATimeSeriesFeedContract;
-  let timeSeriesFeed: TimeSeriesFeedContract;
+  let ema26DayTimeSeriesFeed: LinearizedEMATimeSeriesFeedContract;
   let emaOracle: EMAOracleContract;
 
   let initialEMAValue: BigNumber;
@@ -78,22 +76,17 @@ contract('EMAOracle', accounts => {
       legacyMakerOracleAdapter.address,
     );
 
-    ema26DayDataSource = await oracleHelper.deployLinearizedEMATimeSeriesFeedAsync(
+    initialEMAValue = ether(150);
+    const seededValues = [initialEMAValue];
+    ema26DayTimeSeriesFeed = await oracleHelper.deployLinearizedEMATimeSeriesFeedAsync(
       oracleProxy.address,
       emaTimePeriodOne,
-      [ether(150)],
+      seededValues,
     );
 
     await oracleHelper.addAuthorizedAddressesToOracleProxy(
       oracleProxy,
-      [ema26DayDataSource.address]
-    );
-
-    initialEMAValue = ether(150);
-    const seededValues = [initialEMAValue];
-    timeSeriesFeed = await oracleHelper.deployTimeSeriesFeedAsync(
-      ema26DayDataSource.address,
-      seededValues
+      [ema26DayTimeSeriesFeed.address]
     );
   });
 
@@ -106,30 +99,24 @@ contract('EMAOracle', accounts => {
     let subjectTimeSeriesFeedDays: BigNumber[];
     let subjectDataDescription: string;
 
-    let ema13DayDataSource: LinearizedEMATimeSeriesFeedContract;
-    let timeSeriesFeedTwo: TimeSeriesFeedContract;
+    let ema13DayTimeSeriesFeed: LinearizedEMATimeSeriesFeedContract;
 
     const emaTimePeriodTwo = new BigNumber(13);
 
     beforeEach(async () => {
-      ema13DayDataSource = await oracleHelper.deployLinearizedEMATimeSeriesFeedAsync(
+      const seededValues = [initialEMAValue];
+      ema13DayTimeSeriesFeed = await oracleHelper.deployLinearizedEMATimeSeriesFeedAsync(
         oracleProxy.address,
         emaTimePeriodTwo,
-        [ether(150)],
+        seededValues,
       );
 
       await oracleHelper.addAuthorizedAddressesToOracleProxy(
         oracleProxy,
-        [ema13DayDataSource.address]
+        [ema13DayTimeSeriesFeed.address]
       );
 
-      const seededValues = [initialEMAValue];
-      timeSeriesFeedTwo = await oracleHelper.deployTimeSeriesFeedAsync(
-        ema13DayDataSource.address,
-        seededValues
-      );
-
-      subjectTimeSeriesFeedAddresses = [timeSeriesFeed.address, timeSeriesFeedTwo.address];
+      subjectTimeSeriesFeedAddresses = [ema26DayTimeSeriesFeed.address, ema13DayTimeSeriesFeed.address];
       subjectTimeSeriesFeedDays = [emaTimePeriodOne, emaTimePeriodTwo];
       subjectDataDescription = 'ETHEMAOracle';
     });
@@ -146,10 +133,10 @@ contract('EMAOracle', accounts => {
       emaOracle = await subject();
 
       const actualPriceFeedAddressOne = await emaOracle.emaTimeSeriesFeeds.callAsync(emaTimePeriodOne);
-      expect(actualPriceFeedAddressOne).to.equal(timeSeriesFeed.address);
+      expect(actualPriceFeedAddressOne).to.equal(ema26DayTimeSeriesFeed.address);
 
       const actualPriceFeedAddressTwo = await emaOracle.emaTimeSeriesFeeds.callAsync(emaTimePeriodTwo);
-      expect(actualPriceFeedAddressTwo).to.equal(timeSeriesFeedTwo.address);
+      expect(actualPriceFeedAddressTwo).to.equal(ema13DayTimeSeriesFeed.address);
     });
 
     it('sets the correct data description', async () => {
@@ -183,7 +170,7 @@ contract('EMAOracle', accounts => {
 
       const dataDescription = 'EMA Oracle';
       emaOracle = await oracleHelper.deployEMAOracleAsync(
-        [timeSeriesFeed.address],
+        [ema26DayTimeSeriesFeed.address],
         [emaTimePeriodOne],
         dataDescription
       );
@@ -191,7 +178,7 @@ contract('EMAOracle', accounts => {
       previousEMAValue = await emaOracle.read.callAsync(subjectDataPoints);
 
       await oracleHelper.batchUpdateTimeSeriesFeedAsync(
-        timeSeriesFeed,
+        ema26DayTimeSeriesFeed,
         ethMedianizer,
         1,
         [newestEthPrice]
@@ -238,7 +225,7 @@ contract('EMAOracle', accounts => {
     beforeEach(async () => {
       const dataDescription = 'EMA Oracle';
       emaOracle = await oracleHelper.deployEMAOracleAsync(
-        [timeSeriesFeed.address],
+        [ema26DayTimeSeriesFeed.address],
         [emaTimePeriodOne],
         dataDescription
       );
@@ -302,7 +289,7 @@ contract('EMAOracle', accounts => {
 
       const dataDescription = 'EMA Oracle';
       emaOracle = await oracleHelper.deployEMAOracleAsync(
-        [timeSeriesFeed.address],
+        [ema26DayTimeSeriesFeed.address],
         [emaTimePeriodOne],
         dataDescription
       );
