@@ -20,9 +20,7 @@ pragma experimental "ABIEncoderV2";
 import { ReentrancyGuard } from "openzeppelin-solidity/contracts/utils/ReentrancyGuard.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
-import { IDataSource } from "../interfaces/IDataSource.sol";
 import { LinkedListLibraryV2 } from "./LinkedListLibraryV2.sol";
-import { TimeSeriesStateLibrary } from "./TimeSeriesStateLibrary.sol";
 
 
 /**
@@ -34,7 +32,7 @@ import { TimeSeriesStateLibrary } from "./TimeSeriesStateLibrary.sol";
  * enforces a minimum duration between each update. New data is appended by calling the poke function,
  * which reads data from a specified data source.
  */
-contract TimeSeriesFeed is
+contract TimeSeriesFeedV2 is
     ReentrancyGuard
 {
     using SafeMath for uint256;
@@ -45,10 +43,8 @@ contract TimeSeriesFeed is
     uint256 public maxDataPoints;
     // Unix Timestamp in seconds of next earliest update time
     uint256 public nextEarliestUpdate;
-    string public dataDescription;
-    IDataSource public dataSourceInstance;
 
-    LinkedListLibraryV2.LinkedList private timeSeriesData;
+    LinkedListLibraryV2.LinkedList internal timeSeriesData;
 
     /* ============ Constructor ============ */
 
@@ -58,28 +54,23 @@ contract TimeSeriesFeed is
      *
      * @param  _updateInterval            Cadence at which data is optimally logged. Optimal schedule is based
                                           off deployment timestamp. A certain data point can't be logged before
-                                          it's expected timestamp but can be logged after. 
-     * @param  _maxDataPoints             The maximum amount of data points the linkedList will hold
-     * @param  _dataSourceAddress         The address to read current data from
-     * @param  _dataDescription           Description of time-series data for Etherscan / other applications
-     * @param  _seededValues              Array of previous timeseries values to seed
-     *                                    initial values in list. The last value should contain 
-     *                                    the most current piece of data
+                                          it's expected timestamp but can be logged after 
+     * @param  _nextEarliestUpdate        Time the first on-chain price update becomes available 
+     * @param  _maxDataPoints             The maximum amount of data points the linkedList will hold 
+     * @param  _seededValues              Array of previous timeseries values to seed initial values in list.
+     *                                    The last value should contain the most current piece of data 
      */
     constructor(
         uint256 _updateInterval,
+        uint256 _nextEarliestUpdate,  // Require that it is more than the current timestamp
         uint256 _maxDataPoints,
-        IDataSource _dataSourceAddress,
-        string memory _dataDescription,
         uint256[] memory _seededValues
     )
         public
     {
-        // Set updateInterval, maxDataPoints, data description, dataSourceInstance
+        // Set updateInterval and maxDataPoints
         updateInterval = _updateInterval;
         maxDataPoints = _maxDataPoints;
-        dataDescription = _dataDescription;
-        dataSourceInstance = _dataSourceAddress;
 
         require(
             _seededValues.length > 0,
@@ -95,8 +86,14 @@ contract TimeSeriesFeed is
             timeSeriesData.editList(_seededValues[i]);
         }
 
+        // Check that nextEarliestUpdate is greater than current block timestamp
+        require(
+            _nextEarliestUpdate > block.timestamp,
+            "TimeSeriesFeed.constructor: nextEarliestUpdate must be greater than current timestamp."
+        );  
+
         // Set nextEarliestUpdate
-        nextEarliestUpdate = block.timestamp.add(updateInterval);
+        nextEarliestUpdate = _nextEarliestUpdate;      
     }
 
     /* ============ External ============ */
@@ -114,10 +111,8 @@ contract TimeSeriesFeed is
             "TimeSeriesFeed.poke: Not enough time elapsed since last update"
         );
 
-        TimeSeriesStateLibrary.State memory timeSeriesState = getTimeSeriesFeedState();
-
         // Get the most current data point
-        uint256 newValue = dataSourceInstance.read(timeSeriesState);
+        uint256 newValue = calculateNextValue();
 
         // Update the nextEarliestUpdate to previous nextEarliestUpdate plus updateInterval
         nextEarliestUpdate = nextEarliestUpdate.add(updateInterval);
@@ -144,23 +139,12 @@ contract TimeSeriesFeed is
         return timeSeriesData.readList(_numDataPoints);
     }
 
-    /* ============ Public ============ */
 
-    /*
-     * Generate struct that holds TimeSeriesFeed's current nextAvailableUpdate, updateInterval,
-     * and the LinkedList struct
-     *
-     * @returns                Struct containing the above params                  
-     */
-    function getTimeSeriesFeedState()
-        public
+    /* ============ Internal ============ */
+
+    function calculateNextValue()
+        internal
         view
-        returns (TimeSeriesStateLibrary.State memory)
-    {
-        return TimeSeriesStateLibrary.State({
-            nextEarliestUpdate: nextEarliestUpdate,
-            updateInterval: updateInterval,
-            timeSeriesData: timeSeriesData
-        });
-    }
+        returns (uint256);
+
 }

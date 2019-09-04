@@ -14,7 +14,7 @@ export { LegacyMakerOracleAdapterContract } from '../types/generated/legacy_make
 export { LinkedListHelperMockContract } from '../types/generated/linked_list_helper_mock';
 export { LinkedListLibraryMockContract } from '../types/generated/linked_list_library_mock';
 export { LinkedListLibraryMockV2Contract } from '../types/generated/linked_list_library_mock_v2';
-export { LinearizedEMADataSourceContract } from '../types/generated/linearized_e_m_a_data_source';
+export { LinearizedEMATimeSeriesFeedContract } from '../types/generated/linearized_e_m_a_time_series_feed';
 export { LinearizedPriceDataSourceContract } from '../types/generated/linearized_price_data_source';
 export { MACOStrategyManagerContract } from '../types/generated/m_a_c_o_strategy_manager';
 export { MACOStrategyManagerV2Contract } from '../types/generated/m_a_c_o_strategy_manager_v2';
@@ -26,4 +26,5 @@ export { OracleProxyContract } from '../types/generated/oracle_proxy';
 export { PriceFeedContract } from '../types/generated/price_feed';
 export { PriceFeedMockContract } from '../types/generated/price_feed_mock';
 export { TimeSeriesFeedContract } from '../types/generated/time_series_feed';
+export { TimeSeriesFeedV2Contract } from '../types/generated/time_series_feed_v2';
 export { USDCMockContract } from '../types/generated/u_s_d_c_mock';

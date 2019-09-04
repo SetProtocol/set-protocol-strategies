@@ -15,12 +15,12 @@ import { ether } from '@utils/units';
 import { MedianContract } from 'set-protocol-contracts';
 import {
   LegacyMakerOracleAdapterContract,
-  LinearizedEMADataSourceContract,
+  LinearizedEMATimeSeriesFeedContract,
   EMAOracleContract,
   OracleProxyContract,
   TimeSeriesFeedContract
 } from '@utils/contracts';
-import { ONE_DAY_IN_SECONDS, NULL_ADDRESS, DEFAULT_GAS } from '@utils/constants';
+import { NULL_ADDRESS, DEFAULT_GAS } from '@utils/constants';
 import { getWeb3 } from '@utils/web3Helper';
 import { expectRevertError } from '@utils/tokenAssertions';
 
@@ -46,7 +46,7 @@ contract('EMAOracle', accounts => {
   let ethMedianizer: MedianContract;
   let legacyMakerOracleAdapter: LegacyMakerOracleAdapterContract;
   let oracleProxy: OracleProxyContract;
-  let ema26DayDataSource: LinearizedEMADataSourceContract;
+  let ema26DayDataSource: LinearizedEMATimeSeriesFeedContract;
   let timeSeriesFeed: TimeSeriesFeedContract;
   let emaOracle: EMAOracleContract;
 
@@ -78,11 +78,10 @@ contract('EMAOracle', accounts => {
       legacyMakerOracleAdapter.address,
     );
 
-    const interpolationThreshold = ONE_DAY_IN_SECONDS.mul(3);
-    ema26DayDataSource = await oracleHelper.deployLinearizedEMADataSourceAsync(
+    ema26DayDataSource = await oracleHelper.deployLinearizedEMATimeSeriesFeedAsync(
       oracleProxy.address,
       emaTimePeriodOne,
-      interpolationThreshold,
+      [ether(150)],
     );
 
     await oracleHelper.addAuthorizedAddressesToOracleProxy(
@@ -107,17 +106,16 @@ contract('EMAOracle', accounts => {
     let subjectTimeSeriesFeedDays: BigNumber[];
     let subjectDataDescription: string;
 
-    let ema13DayDataSource: LinearizedEMADataSourceContract;
+    let ema13DayDataSource: LinearizedEMATimeSeriesFeedContract;
     let timeSeriesFeedTwo: TimeSeriesFeedContract;
 
     const emaTimePeriodTwo = new BigNumber(13);
 
     beforeEach(async () => {
-      const interpolationThreshold = ONE_DAY_IN_SECONDS;
-      ema13DayDataSource = await oracleHelper.deployLinearizedEMADataSourceAsync(
+      ema13DayDataSource = await oracleHelper.deployLinearizedEMATimeSeriesFeedAsync(
         oracleProxy.address,
         emaTimePeriodTwo,
-        interpolationThreshold,
+        [ether(150)],
       );
 
       await oracleHelper.addAuthorizedAddressesToOracleProxy(

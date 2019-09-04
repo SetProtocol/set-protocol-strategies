@@ -21,12 +21,11 @@ import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { TimeLockUpgrade } from "set-protocol-contracts/contracts/lib/TimeLockUpgrade.sol";
 
 import { DataSourceLinearInterpolationLibrary } from "../lib/DataSourceLinearInterpolationLibrary.sol";
-import { IOracle } from "../interfaces/IOracle.sol";
-import { IDataSource } from "../interfaces/IDataSource.sol";
-import { TimeSeriesStateLibrary } from "../lib/TimeSeriesStateLibrary.sol";
 import { EMALibrary } from "../lib/EMALibrary.sol";
+import { IOracle } from "../interfaces/IOracle.sol";
 import { LinkedListHelper } from "../lib/LinkedListHelper.sol";
 import { LinkedListLibraryV2 } from "../lib/LinkedListLibraryV2.sol";
+import { TimeSeriesFeedV2 } from "../lib/TimeSeriesFeedV2.sol";
 
 
 /**
@@ -37,9 +36,9 @@ import { LinkedListLibraryV2 } from "../lib/LinkedListLibraryV2.sol";
  * is reached, then returns a linearly interpolated value.
  * It is intended to be read by a TimeSeriesFeed smart contract.
  */
-contract LinearizedEMADataSource is
-    TimeLockUpgrade,
-    IDataSource
+contract LinearizedEMATimeSeriesFeed is
+    TimeSeriesFeedV2,
+    TimeLockUpgrade
 {
     using SafeMath for uint256;
     using LinkedListHelper for LinkedListLibraryV2.LinkedList;
@@ -64,18 +63,35 @@ contract LinearizedEMADataSource is
     /*
      * Set interpolationThreshold, data description, emaTimePeriod, and instantiate oracle
      *
+     * @param  _updateInterval            Cadence at which data is optimally logged. Optimal schedule is based
+                                          off deployment timestamp. A certain data point can't be logged before
+                                          it's expected timestamp but can be logged after (for TimeSeriesFeed)
+     * @param  _nextEarliestUpdate        Time the first on-chain price update becomes available (for TimeSeriesFeed)
+     * @param  _maxDataPoints             The maximum amount of data points the linkedList will hold (for TimeSeriesFeed)
+     * @param  _seededValues              Array of previous timeseries values to seed initial values in list.
+     *                                    The last value should contain the most current piece of data (for TimeSeriesFeed)
      * @param  _emaTimePeriod             The time period the exponential moving average is based off of
      * @param  _interpolationThreshold    The minimum time in seconds where interpolation is enabled
      * @param  _oracleAddress             The address to read current data from
      * @param  _dataDescription           Description of contract for Etherscan / other applications
      */
     constructor(
+        uint256 _updateInterval,
+        uint256 _nextEarliestUpdate,
+        uint256 _maxDataPoints,
+        uint256[] memory _seededValues,
         uint256 _emaTimePeriod,
         uint256 _interpolationThreshold,
         IOracle _oracleAddress,
         string memory _dataDescription
     )
         public
+        TimeSeriesFeedV2(
+            _updateInterval,
+            _nextEarliestUpdate,
+            _maxDataPoints,
+            _seededValues
+        )
     {
         interpolationThreshold = _interpolationThreshold;
         emaTimePeriod = _emaTimePeriod;
@@ -84,64 +100,6 @@ contract LinearizedEMADataSource is
     }
 
     /* ============ External ============ */
-
-    /*
-     * Returns the data from the oracle contract. If the current timestamp has surpassed
-     * the interpolationThreshold, then the current price is retrieved and interpolated based on
-     * the previous value and the time that has elapsed since the intended update value.
-     *
-     * Returns with newest data point by querying oracle. Is eligible to be
-     * called after nextAvailableUpdate timestamp has passed. Because the nextAvailableUpdate occurs
-     * on a predetermined cadence based on the time of deployment, delays in calling poke do not propogate
-     * throughout the whole dataset and the drift caused by previous poke transactions not being mined
-     * exactly on nextAvailableUpdate do not compound as they would if it was required that poke is called
-     * an updateInterval amount of time after the last poke.
-     *
-     * @param  _timeSeriesState         Struct of TimeSeriesFeed state
-     * @returns                         Returns the datapoint from the oracle contract
-     */
-    function read(
-        TimeSeriesStateLibrary.State memory _timeSeriesState
-    )
-        public
-        view
-        returns (uint256)
-    {
-        // Validate that nextEarliest update timestamp is less than current block timestamp
-        require(
-            block.timestamp >= _timeSeriesState.nextEarliestUpdate,
-            "LinearizedEMADataSource.read: current timestamp must be greater than nextAvailableUpdate."
-        );
-
-        // Get current oracle value
-        uint256 oracleValue = oracleInstance.read();
-
-        // Get the previous EMA Value
-        uint256 previousEMAValue = _timeSeriesState.timeSeriesData.getLatestValue();
-
-        // Calculate the current EMA
-        uint256 currentEMAValue = EMALibrary.calculate(
-            previousEMAValue,
-            emaTimePeriod,
-            oracleValue
-        );
-
-        // Calculate how much time has passed from last expected update
-        uint256 timeFromExpectedUpdate = block.timestamp.sub(_timeSeriesState.nextEarliestUpdate);
-
-        // If block timeFromExpectedUpdate is greater than interpolationThreshold we linearize
-        // the current price to try to reduce error
-        if (timeFromExpectedUpdate < interpolationThreshold) {
-            return currentEMAValue;
-        } else {
-            return DataSourceLinearInterpolationLibrary.interpolateDelayedPriceUpdate(
-                currentEMAValue,
-                _timeSeriesState.updateInterval,
-                timeFromExpectedUpdate,
-                previousEMAValue
-            );
-        }
-    }
 
     /*
      * Change oracle in case current one fails or is deprecated. Only contract
@@ -165,5 +123,57 @@ contract LinearizedEMADataSource is
         oracleInstance = _newOracleAddress;
 
         emit LogOracleUpdated(address(_newOracleAddress));
+    }
+
+    /* ============ Internal ============ */
+
+    /*
+     * Returns the data from the oracle contract. If the current timestamp has surpassed
+     * the interpolationThreshold, then the current price is retrieved and interpolated based on
+     * the previous value and the time that has elapsed since the intended update value.
+     *
+     * Returns with newest data point by querying oracle. Is eligible to be
+     * called after nextAvailableUpdate timestamp has passed. Because the nextAvailableUpdate occurs
+     * on a predetermined cadence based on the time of deployment, delays in calling poke do not propogate
+     * throughout the whole dataset and the drift caused by previous poke transactions not being mined
+     * exactly on nextAvailableUpdate do not compound as they would if it was required that poke is called
+     * an updateInterval amount of time after the last poke.
+     *
+     * @param  _timeSeriesState         Struct of TimeSeriesFeed state
+     * @returns                         Returns the datapoint from the oracle contract
+     */
+    function calculateNextValue()
+        internal
+        view
+        returns (uint256)
+    {
+        // Get current oracle value
+        uint256 oracleValue = oracleInstance.read();
+
+        // Get the previous EMA Value
+        uint256 previousEMAValue = timeSeriesData.getLatestValue();
+
+        // Calculate the current EMA
+        uint256 currentEMAValue = EMALibrary.calculate(
+            previousEMAValue,
+            emaTimePeriod,
+            oracleValue
+        );
+
+        // Calculate how much time has passed from last expected update
+        uint256 timeFromExpectedUpdate = block.timestamp.sub(nextEarliestUpdate);
+
+        // If block timeFromExpectedUpdate is greater than interpolationThreshold we linearize
+        // the current price to try to reduce error
+        if (timeFromExpectedUpdate < interpolationThreshold) {
+            return currentEMAValue;
+        } else {
+            return DataSourceLinearInterpolationLibrary.interpolateDelayedPriceUpdate(
+                currentEMAValue,
+                updateInterval,
+                timeFromExpectedUpdate,
+                previousEMAValue
+            );
+        }
     }
 }
