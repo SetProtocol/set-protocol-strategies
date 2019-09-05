@@ -61,12 +61,12 @@ jobs:
       - run:
           name: Fetch solc version
           command: docker pull ethereum/solc:0.5.4
-          no_output_timeout: 15m
       - restore_cache:
           key: compiled-env-{{ .Environment.CIRCLE_SHA1 }}
       - run:
           name: Coverage
           command: yarn clean-chain && yarn coverage-continuous && cat coverage/lcov.info | ./node_modules/.bin/coveralls
+          no_output_timeout: 15m
 
 workflows:
   version: 2
