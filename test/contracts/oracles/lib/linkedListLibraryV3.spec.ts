@@ -423,8 +423,6 @@ contract('LinkedListLibraryV2', accounts => {
           { gas: DEFAULT_GAS}
         );
       }
-
-      subjectDataPoints = new BigNumber(4);
     });
 
     async function subject(): Promise<BigNumber> {

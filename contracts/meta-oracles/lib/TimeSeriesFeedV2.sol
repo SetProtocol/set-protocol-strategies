@@ -27,12 +27,14 @@ import { LinkedListLibraryV3 } from "./LinkedListLibraryV3.sol";
  * @title TimeSeriesFeedV2
  * @author Set Protocol
  *
- * Contract used to store time-series data from a specified DataSource. Intended time-series data
- * is stored in a circular Linked List data structure with a maximum number of data points. Its
- * enforces a minimum duration between each update. New data is appended by calling the poke function,
- * which reads data from a specified data source.
+ * Contract used to track time-series data. This is meant to be inherited, as the calculateNextValue
+ * function is unimplemented. New data is appended by calling the poke function, which retrieves the
+ * latest value using the calculateNextValue function.
  *
  * CHANGELOG
+ * - Built to be inherited by contract that implements new calculateNextValue function
+ * - Uses LinkedListLibraryV3
+ * - nextEarliestUpdate is passed into constructor
  */
 contract TimeSeriesFeedV2 is
     ReentrancyGuard
@@ -64,7 +66,7 @@ contract TimeSeriesFeedV2 is
      */
     constructor(
         uint256 _updateInterval,
-        uint256 _nextEarliestUpdate,  // Require that it is more than the current timestamp
+        uint256 _nextEarliestUpdate,
         uint256 _maxDataPoints,
         uint256[] memory _seededValues
     )
@@ -101,7 +103,7 @@ contract TimeSeriesFeedV2 is
     /* ============ External ============ */
 
     /*
-     * Updates linked list with newest data point by querying the dataSource.
+     * Updates linked list with newest data point by calling the implemented calculateNextValue function
      */
     function poke()
         external

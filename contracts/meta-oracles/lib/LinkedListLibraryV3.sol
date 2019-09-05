@@ -151,6 +151,7 @@ library LinkedListLibraryV3 {
      *
      * @param  _self                        LinkedList to operate on 
      * @param  _dataPoints                  Number of data points to return
+     * @return                              Array of length dataPoints containing most recent values
      */
     function readList(
         LinkedList storage _self,
@@ -186,6 +187,7 @@ library LinkedListLibraryV3 {
      * Get latest value from LinkedList.
      *
      * @param  _self                        LinkedList to operate on 
+     * @return                              Latest logged value in LinkedList
      */
     function getLatestValue(
         LinkedList storage _self
