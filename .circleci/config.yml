@@ -61,6 +61,7 @@ jobs:
       - run:
           name: Fetch solc version
           command: docker pull ethereum/solc:0.5.4
+          no_output_timeout: 15m
       - restore_cache:
           key: compiled-env-{{ .Environment.CIRCLE_SHA1 }}
       - run:
