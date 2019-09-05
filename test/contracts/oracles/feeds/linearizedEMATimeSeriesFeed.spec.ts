@@ -208,6 +208,16 @@ contract('LinearizedEMATimeSeriesFeed', accounts => {
         await expectRevertError(subject());
       });
     });
+
+    describe('when nextEarliest update is less than current block timestamp', async () => {
+      beforeEach(async () => {
+        subjectNextEarliestUpdate = new BigNumber(10);
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
   });
 
   describe('#read', async () => {
