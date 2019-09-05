@@ -12,7 +12,7 @@ import {
   FeedFactoryContract,
   HistoricalPriceFeedContract,
   LegacyMakerOracleAdapterContract,
-  LinearizedEMADataSourceContract,
+  LinearizedEMATimeSeriesFeedContract,
   LinearizedPriceDataSourceContract,
   MovingAverageOracleContract,
   MovingAverageOracleV2Contract,
@@ -20,10 +20,12 @@ import {
   OracleProxyContract,
   PriceFeedContract,
   TimeSeriesFeedContract,
+  TimeSeriesFeedV2Contract,
 } from '../contracts';
 import {
   DEFAULT_GAS,
   ONE_DAY_IN_SECONDS,
+  ONE_HOUR_IN_SECONDS,
 } from '@utils/constants';
 import { getWeb3 } from '../web3Helper';
 import { FeedCreatedArgs } from '../contract_logs/oracle';
@@ -34,7 +36,7 @@ const EMAOracle = artifacts.require('EMAOracle');
 const FeedFactory = artifacts.require('FeedFactory');
 const HistoricalPriceFeed = artifacts.require('HistoricalPriceFeed');
 const LegacyMakerOracleAdapter = artifacts.require('LegacyMakerOracleAdapter');
-const LinearizedEMADataSource = artifacts.require('LinearizedEMADataSource');
+const LinearizedEMATimeSeriesFeed = artifacts.require('LinearizedEMATimeSeriesFeed');
 const LinearizedPriceDataSource = artifacts.require('LinearizedPriceDataSource');
 const Median = artifacts.require('Median');
 const MovingAverageOracle = artifacts.require('MovingAverageOracle');
@@ -147,23 +149,31 @@ export class OracleHelper {
     );
   }
 
-  public async deployLinearizedEMADataSourceAsync(
+  public async deployLinearizedEMATimeSeriesFeedAsync(
     medianizerInstance: Address,
-    emaDays: BigNumber,
-    updateTolerance: BigNumber = ONE_DAY_IN_SECONDS,
+    emaTimePeriod: BigNumber,
+    seededValues: BigNumber[],
+    interpolationThreshold: BigNumber = ONE_HOUR_IN_SECONDS.mul(3),
+    updateInterval: BigNumber = ONE_DAY_IN_SECONDS,
+    maxDataPoints: BigNumber = new BigNumber(200),
     dataDescription: string = '200DailyETHPrice',
+    nextEarliestUpdate: BigNumber = SetTestUtils.generateTimestamp(updateInterval.toNumber() / 60),
     from: Address = this._contractOwnerAddress
-  ): Promise<LinearizedEMADataSourceContract> {
-    const linearizedEMADataSource = await LinearizedEMADataSource.new(
-      emaDays,
-      updateTolerance,
+  ): Promise<LinearizedEMATimeSeriesFeedContract> {
+    const linearizedEMATimeSeriesFeed = await LinearizedEMATimeSeriesFeed.new(
+      updateInterval,
+      nextEarliestUpdate,
+      maxDataPoints,
+      seededValues,
+      emaTimePeriod,
+      interpolationThreshold,
       medianizerInstance,
       dataDescription,
       { from },
     );
 
-    return new LinearizedEMADataSourceContract(
-      new web3.eth.Contract(linearizedEMADataSource.abi, linearizedEMADataSource.address),
+    return new LinearizedEMATimeSeriesFeedContract(
+      new web3.eth.Contract(linearizedEMATimeSeriesFeed.abi, linearizedEMATimeSeriesFeed.address),
       { from },
     );
   }
@@ -371,7 +381,7 @@ export class OracleHelper {
   }
 
   public async updateTimeSeriesFeedAsync(
-    timeSeriesFeed: TimeSeriesFeedContract,
+    timeSeriesFeed: TimeSeriesFeedContract | TimeSeriesFeedV2Contract,
     medianizer: MedianContract,
     price: BigNumber,
     timestamp: number = ONE_DAY_IN_SECONDS.mul(2).toNumber(),
@@ -390,7 +400,7 @@ export class OracleHelper {
   }
 
   public async batchUpdateTimeSeriesFeedAsync(
-    timeSeriesFeed: TimeSeriesFeedContract,
+    timeSeriesFeed: TimeSeriesFeedContract | TimeSeriesFeedV2Contract,
     medianizer: MedianContract,
     daysOfData: number,
     priceArray: BigNumber[] = undefined,
@@ -456,6 +466,28 @@ export class OracleHelper {
     }
 
     return priceArray;
+  }
+
+  public batchCalculateEMA(
+    startEMAValue: BigNumber,
+    timePeriod: BigNumber,
+    assetPriceArray: BigNumber[]
+  ): BigNumber[] {
+    const emaValues: BigNumber[] = [];
+    let lastEMAValue: BigNumber = startEMAValue;
+
+    for (let i = 0; i < assetPriceArray.length; i++) {
+      emaValues.push(
+        this.calculateEMA(
+          lastEMAValue,
+          timePeriod,
+          assetPriceArray[i]
+        )
+      );
+      lastEMAValue = emaValues[i];
+    }
+
+    return emaValues;
   }
 
   /*
