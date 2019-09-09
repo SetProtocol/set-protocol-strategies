@@ -23,7 +23,7 @@ import { LinkedListLibraryV3 } from "../../meta-oracles/lib/LinkedListLibraryV3.
  * @title LinkedListLibraryMockV3
  * @author Set Protocol
  *
- * Mock contract for interacting with LinkedListLibrary
+ * Mock contract for interacting with LinkedListLibraryV3
  */
 contract LinkedListLibraryMockV3
 {

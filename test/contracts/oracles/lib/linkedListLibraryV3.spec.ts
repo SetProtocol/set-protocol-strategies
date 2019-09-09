@@ -98,6 +98,16 @@ contract('LinkedListLibraryV2', accounts => {
         await expectRevertError(subject());
       });
     });
+
+    describe('when attempting to initialize with 0 dataSizeLimit', async () => {
+      beforeEach(async () => {
+        subjectDataSizeLimit = ZERO;
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
   });
 
   describe('#addNode', async () => {

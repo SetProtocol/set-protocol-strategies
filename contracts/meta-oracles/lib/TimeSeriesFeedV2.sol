@@ -72,14 +72,34 @@ contract TimeSeriesFeedV2 is
     )
         public
     {
-        // Set updateInterval and maxDataPoints
-        updateInterval = _updateInterval;
-        maxDataPoints = _maxDataPoints;
 
+        // Check that nextEarliestUpdate is greater than current block timestamp
+        require(
+            _nextEarliestUpdate > block.timestamp,
+            "TimeSeriesFeed.constructor: nextEarliestUpdate must be greater than current timestamp."
+        );
+
+        // Check that at least one seeded value is passed in
         require(
             _seededValues.length > 0,
             "TimeSeriesFeed.constructor: Must include at least one seeded value."
         );
+
+        // Check that maxDataPoints greater than 0
+        require(
+            _maxDataPoints > 0,
+            "TimeSeriesFeed.constructor: Max data points must be greater than 0."
+        );
+
+        // Check that updateInterval greater than 0
+        require(
+            _updateInterval > 0,
+            "TimeSeriesFeed.constructor: Update interval must be greater than 0."
+        );
+
+        // Set updateInterval and maxDataPoints
+        updateInterval = _updateInterval;
+        maxDataPoints = _maxDataPoints;
 
         // Define upper data size limit for linked list and input initial value
         timeSeriesData.initialize(_maxDataPoints, _seededValues[0]);
@@ -88,13 +108,7 @@ contract TimeSeriesFeedV2 is
         // and add to timeSeriesData
         for (uint256 i = 1; i < _seededValues.length; i++) {
             timeSeriesData.editList(_seededValues[i]);
-        }
-
-        // Check that nextEarliestUpdate is greater than current block timestamp
-        require(
-            _nextEarliestUpdate > block.timestamp,
-            "TimeSeriesFeed.constructor: nextEarliestUpdate must be greater than current timestamp."
-        );  
+        } 
 
         // Set nextEarliestUpdate
         nextEarliestUpdate = _nextEarliestUpdate;      
@@ -148,7 +162,6 @@ contract TimeSeriesFeedV2 is
 
     function calculateNextValue()
         internal
-        view
         returns (uint256);
 
 }

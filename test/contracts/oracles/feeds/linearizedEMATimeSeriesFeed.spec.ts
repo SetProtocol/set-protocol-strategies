@@ -218,6 +218,36 @@ contract('LinearizedEMATimeSeriesFeed', accounts => {
         await expectRevertError(subject());
       });
     });
+
+    describe('when emaTimePeriod is 0', async () => {
+      beforeEach(async () => {
+        subjectEmaTimePeriod = ZERO;
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('when max data points is 0', async () => {
+      beforeEach(async () => {
+        subjectMaxDataPoints = ZERO;
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('when update interval is 0', async () => {
+      beforeEach(async () => {
+        subjectUpdateInterval = ZERO;
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
   });
 
   describe('#read', async () => {

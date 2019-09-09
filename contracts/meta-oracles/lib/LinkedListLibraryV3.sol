@@ -45,7 +45,7 @@ library LinkedListLibraryV3 {
     }
 
     /*
-     * Initialize LinkedList by setting limit on amount of nodes and inital value of node 0
+     * Initialize LinkedList by setting limit on amount of nodes and initial value of node 0
      *
      * @param  _self                        LinkedList to operate on 
      * @param  _dataSizeLimit               Max amount of nodes allowed in LinkedList
@@ -58,9 +58,16 @@ library LinkedListLibraryV3 {
     )
         internal
     {
+        // Check dataArray is empty
         require(
             _self.dataArray.length == 0,
-            "LinkedListLibrary: Initialized LinkedList must be empty"
+            "LinkedListLibrary.initialize: Initialized LinkedList must be empty"
+        );
+
+        // Check that LinkedList is intialized to be greater than 0 size
+        require(
+            _dataSizeLimit > 0,
+            "LinkedListLibrary.initialize: dataSizeLimit must be greater than 0."
         );
 
         // Initialize Linked list by defining upper limit of data points in the list and setting
@@ -196,7 +203,6 @@ library LinkedListLibraryV3 {
         view
         returns (uint256)
     {
-        uint256[] memory currentTimeSeriesValues = readList(_self, 1);
-        return currentTimeSeriesValues[0];
+        return _self.dataArray[_self.lastUpdatedIndex];
     }
 }

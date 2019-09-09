@@ -21,6 +21,7 @@ import {
   PriceFeedContract,
   TimeSeriesFeedContract,
   TimeSeriesFeedV2Contract,
+  TimeSeriesFeedV2MockContract
 } from '../contracts';
 import {
   DEFAULT_GAS,
@@ -44,6 +45,7 @@ const MovingAverageOracleV2 = artifacts.require('MovingAverageOracleV2');
 const OracleProxy = artifacts.require('OracleProxy');
 const OracleProxyCaller = artifacts.require('OracleProxyCaller');
 const TimeSeriesFeed = artifacts.require('TimeSeriesFeed');
+const TimeSeriesFeedV2Mock = artifacts.require('TimeSeriesFeedV2Mock');
 
 
 const { SetProtocolTestUtils: SetTestUtils, SetProtocolUtils: SetUtils } = setProtocolUtils;
@@ -125,6 +127,27 @@ export class OracleHelper {
     );
 
     return new TimeSeriesFeedContract(
+      new web3.eth.Contract(historicalPriceFeed.abi, historicalPriceFeed.address),
+      { from },
+    );
+  }
+
+  public async deployTimeSeriesFeedV2MockAsync(
+    seededValues: BigNumber[],
+    updateInterval: BigNumber = ONE_DAY_IN_SECONDS,
+    nextEarliestUpdate: BigNumber = SetTestUtils.generateTimestamp(updateInterval.toNumber() / 60),
+    maxDataPoints: BigNumber = new BigNumber(200),
+    from: Address = this._contractOwnerAddress
+  ): Promise<TimeSeriesFeedV2MockContract> {
+    const historicalPriceFeed = await TimeSeriesFeedV2Mock.new(
+      updateInterval,
+      nextEarliestUpdate,
+      maxDataPoints,
+      seededValues,
+      { from },
+    );
+
+    return new TimeSeriesFeedV2MockContract(
       new web3.eth.Contract(historicalPriceFeed.abi, historicalPriceFeed.address),
       { from },
     );
