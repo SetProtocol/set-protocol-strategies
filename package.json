@@ -1,6 +1,6 @@
 {
   "name": "set-protocol-strategies",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "main": "dist/artifacts/index.js",
   "typings": "dist/typings/artifacts/index.d.ts",
   "files": [
@@ -43,7 +43,8 @@
     "transpile": "tsc",
     "truffle-test-scenarios": "truffle test `find transpiled/test/scenarios -name '*.spec.js'`",
     "truffle-test-contracts": "truffle test `find transpiled/test/contracts -name '*.spec.js'`",
-    "prepublishOnly": "yarn dist"
+    "prepublishOnly": "yarn dist",
+    "flatten": "truffle-flattener contracts/[xxx]/[xxx].sol"
   },
   "repository": "git@github.com:SetProtocol/set-protocol-strategies.git",
   "author": "Justin Chen <justin@setprotocol.com>",
@@ -100,7 +101,7 @@
     "set-protocol-contracts": "^1.2.3",
     "set-protocol-utils": "^1.0.0-beta.39",
     "tiny-promisify": "^1.0.0",
-    "truffle-flattener": "^1.4.0",
+    "truffle-flattener": "^1.4.2",
     "ts-mocha": "^6.0.0",
     "ts-node": "^8.0.2",
     "tslint-eslint-rules": "^5.3.1",
