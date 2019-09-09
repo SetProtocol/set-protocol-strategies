@@ -92,6 +92,11 @@ contract LinearizedEMATimeSeriesFeed is
             _seededValues
         )
     {
+        require(
+            _emaTimePeriod > 0,
+            "LinearizedEMADataSource.constructor: Time Period must be greater than 0."
+        );
+
         interpolationThreshold = _interpolationThreshold;
         emaTimePeriod = _emaTimePeriod;
         oracleInstance = _oracleAddress;
@@ -143,7 +148,6 @@ contract LinearizedEMATimeSeriesFeed is
      */
     function calculateNextValue()
         internal
-        view
         returns (uint256)
     {
         // Get current oracle value
