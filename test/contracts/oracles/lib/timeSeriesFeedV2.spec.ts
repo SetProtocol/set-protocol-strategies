@@ -30,7 +30,7 @@ const { expect } = chai;
 const blockchain = new Blockchain(web3);
 const { SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
 
-contract('LinearizedEMATimeSeriesFeed', accounts => {
+contract('TimeSeriesFeedV2', accounts => {
   const [
     deployerAccount,
   ] = accounts;

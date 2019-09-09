@@ -28,8 +28,8 @@ import { TimeSeriesFeedV2 } from "../../meta-oracles/lib/TimeSeriesFeedV2.sol";
 contract TimeSeriesFeedV2Mock is
     TimeSeriesFeedV2
 {
-    using LinkedListLibraryV3 for LinkedListLibraryV3.LinkedList;
-    
+    string public dummyState;
+
     constructor(
         uint256 _updateInterval,
         uint256 _nextEarliestUpdate,
