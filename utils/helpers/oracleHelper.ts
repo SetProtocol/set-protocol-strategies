@@ -8,6 +8,7 @@ import { Blockchain } from '@utils/blockchain';
 import { ether } from '@utils/units';
 
 import {
+  ConstantPriceOracleContract,
   EMAOracleContract,
   FeedFactoryContract,
   HistoricalPriceFeedContract,
@@ -33,6 +34,7 @@ import { FeedCreatedArgs } from '../contract_logs/oracle';
 
 const web3 = getWeb3();
 
+const ConstantPriceOracle = artifacts.require('ConstantPriceOracle');
 const EMAOracle = artifacts.require('EMAOracle');
 const FeedFactory = artifacts.require('FeedFactory');
 const HistoricalPriceFeed = artifacts.require('HistoricalPriceFeed');
@@ -301,6 +303,21 @@ export class OracleHelper {
 
     return new OracleProxyContract(
       new web3.eth.Contract(oracleProxy.abi, oracleProxy.address),
+      { from },
+    );
+  }
+
+  public async deployConstantPriceOracleAsync(
+    constantPrice: BigNumber,
+    from: Address = this._contractOwnerAddress
+  ): Promise<ConstantPriceOracleContract> {
+    const oracle = await ConstantPriceOracle.new(
+      constantPrice,
+      { from },
+    );
+
+    return new ConstantPriceOracleContract(
+      new web3.eth.Contract(oracle.abi, oracle.address),
       { from },
     );
   }

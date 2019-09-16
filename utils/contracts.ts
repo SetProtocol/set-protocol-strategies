@@ -1,9 +1,11 @@
 export { BaseContract } from '../types/base_contract';
+export { BinaryAllocationPricerContract } from '../types/generated/binary_allocation_pricer';
 export { BTCDaiRebalancingManagerContract } from '../types/generated/b_t_c_dai_rebalancing_manager';
 export { BTCETHRebalancingManagerContract } from '../types/generated/b_t_c_e_t_h_rebalancing_manager';
 export {
   DataSourceLinearInterpolationLibraryMockContract
 } from '../types/generated/data_source_linear_interpolation_library_mock';
+export { ConstantPriceOracleContract } from '../types/generated/constant_price_oracle';
 export { EMALibraryMockContract } from '../types/generated/e_m_a_library_mock';
 export { EMAOracleContract } from '../types/generated/e_m_a_oracle';
 export { ETHDaiRebalancingManagerContract } from '../types/generated/e_t_h_dai_rebalancing_manager';
@@ -22,6 +24,9 @@ export { MACOStrategyManagerV2Contract } from '../types/generated/m_a_c_o_strate
 export { ManagerLibraryMockContract } from '../types/generated/manager_library_mock';
 export { MovingAverageOracleContract } from '../types/generated/moving_average_oracle';
 export { MovingAverageOracleV2Contract } from '../types/generated/moving_average_oracle_v2';
+export {
+  MovingAverageToAssetPriceCrossoverTriggerContract
+} from '../types/generated/moving_average_to_asset_price_crossover_trigger';
 export { OracleProxyCallerContract } from '../types/generated/oracle_proxy_caller';
 export { OracleProxyContract } from '../types/generated/oracle_proxy';
 export { PriceFeedContract } from '../types/generated/price_feed';
