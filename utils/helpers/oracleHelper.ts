@@ -19,6 +19,7 @@ import {
   OracleProxyCallerContract,
   OracleProxyContract,
   PriceFeedContract,
+  RSIOracleContract,
   TimeSeriesFeedContract,
   TimeSeriesFeedV2Contract,
   TimeSeriesFeedV2MockContract
@@ -44,6 +45,7 @@ const MovingAverageOracle = artifacts.require('MovingAverageOracle');
 const MovingAverageOracleV2 = artifacts.require('MovingAverageOracleV2');
 const OracleProxy = artifacts.require('OracleProxy');
 const OracleProxyCaller = artifacts.require('OracleProxyCaller');
+const RSIOracle = artifacts.require('RSIOracle');
 const TimeSeriesFeed = artifacts.require('TimeSeriesFeed');
 const TimeSeriesFeedV2Mock = artifacts.require('TimeSeriesFeedV2Mock');
 
@@ -320,6 +322,23 @@ export class OracleHelper {
     );
   }
 
+  public async deployRSIOracleAsync(
+    timeSeriesFeedAddress: Address,
+    dataDescription: string,
+    from: Address = this._contractOwnerAddress
+  ): Promise<RSIOracleContract> {
+    const rsiOracle = await RSIOracle.new(
+      timeSeriesFeedAddress,
+      dataDescription,
+      { from },
+    );
+
+    return new RSIOracleContract(
+      new web3.eth.Contract(rsiOracle.abi, rsiOracle.address),
+      { from },
+    );
+  }
+
   /* ============ Transactions ============ */
 
   public async addPriceFeedOwnerToMedianizer(
@@ -537,5 +556,47 @@ export class OracleHelper {
     const c = timePeriod.plus(1);
 
     return a.plus(b).div(c).round(0, 3);
+  }
+
+  /*
+   *
+   * RSI = 100 − 100 /
+   *       (1 + (Daily Average Gain / Daily Average Loss)
+   *
+   * Daily Price Difference = Price(N) - Price(N-1) where n is number of days
+   * Daily Average Gain = Sum(Positive Daily Price Difference) / n
+   * Daily Average Loss = -1 * Sum(Positive Daily Price Difference) / n
+   *
+   * Our implementation is simplified to the following for efficiency
+   * RSI = 100 - (100 * SUM(Loss) / ((SUM(Loss) + SUM(Gain)))
+   *
+   */
+
+  public calculateRSI(
+    rsiDataArray: BigNumber[],
+  ): BigNumber {
+    let positiveDataSum = new BigNumber(0);
+    let negativeDataSum = new BigNumber(0);
+
+    for (let i = 1; i < rsiDataArray.length; i++) {
+      if (rsiDataArray[i - 1].gte(rsiDataArray[i])) {
+        positiveDataSum = positiveDataSum.add(rsiDataArray[i - 1]).sub(rsiDataArray[i]);
+      }
+      else {
+        negativeDataSum = negativeDataSum.add(rsiDataArray[i]).sub(rsiDataArray[i - 1]);
+      }
+    }
+
+    if (negativeDataSum.eq(0) && positiveDataSum.eq(0)) {
+      negativeDataSum = new BigNumber(1);
+    }
+
+    const bigHundred = new BigNumber(100);
+
+    const a = bigHundred.mul(negativeDataSum);
+    const b = positiveDataSum.add(negativeDataSum);
+    const c = a.div(b).round(0, BigNumber.ROUND_DOWN);
+
+    return bigHundred.sub(c);
   }
 }

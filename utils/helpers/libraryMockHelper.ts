@@ -2,6 +2,7 @@ import { Address } from 'set-protocol-utils';
 import {
   DataSourceLinearInterpolationLibraryMockContract,
   EMALibraryMockContract,
+  RSILibraryMockContract,
   FlexibleTimingManagerLibraryMockContract,
   LinkedListHelperMockContract,
   LinkedListLibraryMockContract,
@@ -24,7 +25,7 @@ const LinkedListLibraryMockV3 = artifacts.require('LinkedListLibraryMockV3');
 const ManagerLibraryMock = artifacts.require('ManagerLibraryMock');
 const EMALibraryMock = artifacts.require('EMALibraryMock');
 const PriceFeedMock = artifacts.require('PriceFeedMock');
-
+const RSILibraryMock = artifacts.require('RSILibraryMock');
 
 export class LibraryMockHelper {
   private _contractOwnerAddress: Address;
@@ -150,6 +151,19 @@ export class LibraryMockHelper {
 
     return new LinkedListLibraryMockV3Contract(
       new web3.eth.Contract(linkedList.abi, linkedList.address),
+      { from },
+    );
+  }
+
+  public async deployRSILibraryMockAsync(
+    from: Address = this._contractOwnerAddress
+  ): Promise<RSILibraryMockContract> {
+    const rsiLibraryMockContract = await RSILibraryMock.new(
+      { from },
+    );
+
+    return new RSILibraryMockContract(
+      new web3.eth.Contract(rsiLibraryMockContract.abi, rsiLibraryMockContract.address),
       { from },
     );
   }
