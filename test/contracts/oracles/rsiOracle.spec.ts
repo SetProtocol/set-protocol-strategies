@@ -117,13 +117,14 @@ contract('rsiOracle', accounts => {
   });
 
   describe('#read', async () => {
-    let updatedDataPoints: number;
+    let rsiTimePeriod: number;
     let updatedValues: BigNumber[];
 
-    let subjectDataPoints: BigNumber;
+    let subjectRSITimePeriod: BigNumber;
 
     beforeEach(async () => {
-      updatedDataPoints = 14;
+      rsiTimePeriod = 14;
+      const updatedDataPoints = rsiTimePeriod + 1; // n + 1 data points needed for n period RSI
       const updatedValuesReversed = await oracleHelper.batchUpdateTimeSeriesFeedAsync(
         timeSeriesFeed,
         ethMedianizer,
@@ -139,12 +140,12 @@ contract('rsiOracle', accounts => {
         dataDescription
       );
 
-      subjectDataPoints = new BigNumber(updatedDataPoints);
+      subjectRSITimePeriod = new BigNumber(rsiTimePeriod);
     });
 
     async function subject(): Promise<BigNumber> {
       return rsiOracle.read.callAsync(
-        subjectDataPoints
+        subjectRSITimePeriod
       );
     }
 

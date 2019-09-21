@@ -10,6 +10,8 @@ import {
   RSILibraryMockContract,
 } from '@utils/contracts';
 import { Blockchain } from '@utils/blockchain';
+import { ZERO } from '@utils/constants';
+import { expectRevertError } from '@utils/tokenAssertions';
 import { ether } from '@utils/units';
 import { getWeb3 } from '@utils/web3Helper';
 
@@ -79,10 +81,6 @@ contract('RSILibrary', accounts => {
         customSeededValues = [ether(1.5), ether(2), ether(1.5), ether(3)];
       });
 
-      afterEach(async () => {
-        customSeededValues = undefined;
-      });
-
       it('returns the correct RSI value', async () => {
         const output = await subject();
         expect(output).to.be.bignumber.equal(20);
@@ -94,13 +92,9 @@ contract('RSILibrary', accounts => {
         customSeededValues = [ether(1.143), ether(1.243), ether(1.343)];
       });
 
-      afterEach(async () => {
-        customSeededValues = undefined;
-      });
-
       it('returns the correct RSI value of 0', async () => {
         const output = await subject();
-        expect(output).to.be.bignumber.equal(0);
+        expect(output).to.be.bignumber.equal(ZERO);
       });
     });
 
@@ -109,13 +103,19 @@ contract('RSILibrary', accounts => {
         customSeededValues = [ether(1.643), ether(1.642), ether(1.641), ether(1.640), ether(1.639)];
       });
 
-      afterEach(async () => {
-        customSeededValues = undefined;
-      });
-
       it('returns the correct RSI value of 100', async () => {
         const output = await subject();
         expect(output).to.be.bignumber.equal(100);
+      });
+    });
+
+    describe('using custom seeded values where prices are the same', async () => {
+      before(async () => {
+        customSeededValues = [ether(1.643), ether(1.643), ether(1.643), ether(1.643), ether(1.643), ether(1.643)];
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
       });
     });
 
@@ -124,16 +124,8 @@ contract('RSILibrary', accounts => {
         customSeededValues = [ether(1.643)];
       });
 
-      afterEach(async () => {
-        customSeededValues = undefined;
-      });
-
-      it('returns the correct RSI value of 0', async () => {
-        const output = await subject();
-        const expectedOutput = oracleHelper.calculateRSI(
-          subjectSeededValues,
-        );
-        expect(output).to.be.bignumber.equal(expectedOutput);
+      it('should revert', async () => {
+        await expectRevertError(subject());
       });
     });
   });

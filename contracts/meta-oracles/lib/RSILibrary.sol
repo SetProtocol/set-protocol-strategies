@@ -30,6 +30,10 @@ library RSILibrary{
 
     using SafeMath for uint256;
 
+    /* ============ Constants ============ */
+    
+    uint256 constant HUNDRED = 100;
+
     /*
      * Calculates the new relative strength index value using
      * RSI time period, and the time series feed instance.
@@ -59,26 +63,34 @@ library RSILibrary{
         uint256 positiveDataSum = 0;
         uint256 negativeDataSum = 0;
 
+        require(
+            _dataArray.length > 1,
+            "Length of data array must be greater than 1"
+        );
+
         for (uint256 i = 1; i < _dataArray.length; i++) {
-            // If current day price is greater than previous day's
-            if (_dataArray[i - 1] > _dataArray[i]) {
-                positiveDataSum = positiveDataSum.add(_dataArray[i - 1]).sub(_dataArray[i]);
+            uint256 currentPrice = _dataArray[i - 1];
+            uint256 previousPrice = _dataArray[i];
+            if (currentPrice > previousPrice) {
+                positiveDataSum = positiveDataSum.add(currentPrice).sub(previousPrice);
             }
             else {
-                negativeDataSum = negativeDataSum.add(_dataArray[i]).sub(_dataArray[i - 1]);
+                negativeDataSum = negativeDataSum.add(previousPrice).sub(currentPrice);
             }
         }
 
-        // Get rid of divide by 0
-        if (negativeDataSum == 0 && positiveDataSum == 0) {
-            negativeDataSum = 1;
-        }
+        require(
+            negativeDataSum > 0 || positiveDataSum > 0,
+            "Not valid RSI Value"
+        );
         
-        uint256 hundred = 100;
-        uint256 a = hundred.mul(negativeDataSum);
+        // a = 100 * SUM(Loss)
+        uint256 a = HUNDRED.mul(negativeDataSum);
+        // b = SUM(Gain) + SUM(Loss) 
         uint256 b = positiveDataSum.add(negativeDataSum);
+        // c = a / b
         uint256 c = a.div(b);
 
-        return hundred.sub(c);
+        return HUNDRED.sub(c);
     }
 }

@@ -62,18 +62,18 @@ contract RSIOracle {
      * Get RSI over defined amount of data points by querying price feed and
      * calculating using RSILibrary. Returns uint256.
      *
-     * @param  _dataPoints       Number of data points to create average from
-     * @returns                  Moving average for passed number of _dataPoints
+     * @param  _rsiTimePeriod    RSI lookback period
+     * @returns                  Moving average for passed number of _rsiTimePeriod
      */
     function read(
-        uint256 _dataPoints    
+        uint256 _rsiTimePeriod    
     )
         external
         view
         returns (uint256)
     {
-        // Get data from price feed
-        uint256[] memory dataArray = timeSeriesFeedInstance.read(_dataPoints);
+        // Get data from price feed. This will be +1 the lookback period
+        uint256[] memory dataArray = timeSeriesFeedInstance.read(_rsiTimePeriod.add(1));
 
         // Return RSI calculation
         return RSILibrary.calculate(dataArray);
