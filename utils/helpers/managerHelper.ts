@@ -14,6 +14,7 @@ import {
   MovingAverageOracleContract,
   MovingAverageOracleV2Contract,
   MovingAverageToAssetPriceCrossoverTriggerContract,
+  TwoAssetStrategyManagerWithConfirmationContract,
 } from '../contracts';
 import { BigNumber } from 'bignumber.js';
 
@@ -21,6 +22,7 @@ import {
   DEFAULT_GAS,
   DEFAULT_REBALANCING_NATURAL_UNIT,
   ETH_DECIMALS,
+  ONE_HOUR_IN_SECONDS,
   USDC_DECIMALS,
   VALUE_TO_CENTS_CONVERSION,
 } from '../constants';
@@ -36,6 +38,9 @@ const MACOStrategyManager = artifacts.require('MACOStrategyManager');
 const MACOStrategyManagerV2 = artifacts.require('MACOStrategyManagerV2');
 const MovingAverageToAssetPriceCrossoverTrigger = artifacts.require(
   'MovingAverageToAssetPriceCrossoverTrigger'
+);
+const TwoAssetStrategyManagerWithConfirmation = artifacts.require(
+  'TwoAssetStrategyManagerWithConfirmation'
 );
 
 const { SetProtocolUtils: SetUtils } = setProtocolUtils;
@@ -217,6 +222,37 @@ export class ManagerHelper {
     );
 
     return new MACOStrategyManagerV2Contract(
+      new web3.eth.Contract(truffleRebalacingTokenManager.abi, truffleRebalacingTokenManager.address),
+      { from, gas: DEFAULT_GAS },
+    );
+  }
+
+  public async deployTwoAssetStrategyManagerWithConfirmationAsync(
+    coreInstance: Address,
+    priceTriggerInstance: Address,
+    allocationPricerInstance: Address,
+    auctionLibraryInstance: Address,
+    baseAssetAllocation: BigNumber,
+    auctionTimeToPivot: BigNumber = ONE_HOUR_IN_SECONDS.mul(2),
+    auctionSpeed: BigNumber = ONE_HOUR_IN_SECONDS.div(6),
+    signalConfirmationMinTime: BigNumber = ONE_HOUR_IN_SECONDS.mul(6),
+    signalConfirmationMaxTime: BigNumber = ONE_HOUR_IN_SECONDS.mul(12),
+    from: Address = this._tokenOwnerAddress
+  ): Promise<TwoAssetStrategyManagerWithConfirmationContract> {
+    const truffleRebalacingTokenManager = await TwoAssetStrategyManagerWithConfirmation.new(
+      coreInstance,
+      priceTriggerInstance,
+      allocationPricerInstance,
+      auctionLibraryInstance,
+      baseAssetAllocation,
+      auctionTimeToPivot,
+      auctionSpeed,
+      signalConfirmationMinTime,
+      signalConfirmationMaxTime,
+      { from },
+    );
+
+    return new TwoAssetStrategyManagerWithConfirmationContract(
       new web3.eth.Contract(truffleRebalacingTokenManager.abi, truffleRebalacingTokenManager.address),
       { from, gas: DEFAULT_GAS },
     );

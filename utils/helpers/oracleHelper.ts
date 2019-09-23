@@ -261,7 +261,7 @@ export class OracleHelper {
   public async deployEMAOracleAsync(
     timeSeriesFeedAddresses: Address[],
     timeSeriesFeedDays: BigNumber[],
-    dataDescription: string,
+    dataDescription: string = 'ETH Daily EMA',
     from: Address = this._contractOwnerAddress
   ): Promise<EMAOracleContract> {
     const emaOracle = await EMAOracle.new(
