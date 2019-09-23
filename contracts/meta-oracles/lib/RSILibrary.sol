@@ -36,21 +36,21 @@ library RSILibrary{
 
     /*
      * Calculates the new relative strength index value using
-     * RSI time period, and the time series feed instance.
+     * an array of prices.
      *
      * RSI = 100 − 100 / 
-     *       (1 + (Daily Average Gain / Daily Average Loss)
+     *       (1 + (Average Gain / Average Loss)
      *
-     * Daily Price Difference = Price(N) - Price(N-1) where N is number of days
-     * Daily Average Gain = Sum(Positive Daily Price Difference) / N 
-     * Daily Average Loss = -1 * Sum(Positive Daily Price Difference) / N 
+     * Price Difference = Price(N) - Price(N-1) where N is number of days
+     * Average Gain = Sum(Positive Price Difference) / N 
+     * Average Loss = -1 * Sum(Negative Price Difference) / N 
      * 
      *
      * Our implementation is simplified to the following for efficiency
      * RSI = 100 - (100 * SUM(Loss) / ((SUM(Loss) + SUM(Gain)))
      * 
      *
-     * @param  _dataArray               Array of daily prices used to calculate the RSI
+     * @param  _dataArray               Array of prices used to calculate the RSI
      * @returns                         The RSI value
      */
     function calculate(
@@ -63,25 +63,28 @@ library RSILibrary{
         uint256 positiveDataSum = 0;
         uint256 negativeDataSum = 0;
 
+
+        // Check that data points must be greater than 1
         require(
             _dataArray.length > 1,
-            "Length of data array must be greater than 1"
+            "RSILibrary.calculate: Length of data array must be greater than 1"
         );
 
+        // Sum negative and positive price differences
         for (uint256 i = 1; i < _dataArray.length; i++) {
             uint256 currentPrice = _dataArray[i - 1];
             uint256 previousPrice = _dataArray[i];
             if (currentPrice > previousPrice) {
                 positiveDataSum = positiveDataSum.add(currentPrice).sub(previousPrice);
-            }
-            else {
+            } else {
                 negativeDataSum = negativeDataSum.add(previousPrice).sub(currentPrice);
             }
         }
 
+        // Check that there must be a positive or negative price change
         require(
             negativeDataSum > 0 || positiveDataSum > 0,
-            "Not valid RSI Value"
+            "RSILibrary.calculate: Not valid RSI Value"
         );
         
         // a = 100 * SUM(Loss)
