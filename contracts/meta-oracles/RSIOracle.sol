@@ -63,7 +63,7 @@ contract RSIOracle {
      * calculating using RSILibrary. Returns uint256.
      *
      * @param  _rsiTimePeriod    RSI lookback period
-     * @returns                  Moving average for passed number of _rsiTimePeriod
+     * @returns                  RSI value for passed number of _rsiTimePeriod
      */
     function read(
         uint256 _rsiTimePeriod    
