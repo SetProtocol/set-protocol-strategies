@@ -5,6 +5,7 @@ import { Address } from 'set-protocol-utils';
 import { SetTokenContract, MedianContract } from 'set-protocol-contracts';
 
 import {
+  BinaryAllocationPricerContract,
   BTCETHRebalancingManagerContract,
   BTCDaiRebalancingManagerContract,
   ETHDaiRebalancingManagerContract,
@@ -12,12 +13,16 @@ import {
   MACOStrategyManagerV2Contract,
   MovingAverageOracleContract,
   MovingAverageOracleV2Contract,
+  MovingAverageToAssetPriceCrossoverTriggerContract,
+  TwoAssetStrategyManagerWithConfirmationContract,
 } from '../contracts';
 import { BigNumber } from 'bignumber.js';
 
 import {
   DEFAULT_GAS,
+  DEFAULT_REBALANCING_NATURAL_UNIT,
   ETH_DECIMALS,
+  ONE_HOUR_IN_SECONDS,
   USDC_DECIMALS,
   VALUE_TO_CENTS_CONVERSION,
 } from '../constants';
@@ -25,11 +30,18 @@ import {
 import { getWeb3 } from '../web3Helper';
 
 const web3 = getWeb3();
+const BinaryAllocationPricer = artifacts.require('BinaryAllocationPricer');
 const BTCETHRebalancingManager = artifacts.require('BTCETHRebalancingManager');
 const BTCDaiRebalancingManager = artifacts.require('BTCDaiRebalancingManager');
 const ETHDaiRebalancingManager = artifacts.require('ETHDaiRebalancingManager');
 const MACOStrategyManager = artifacts.require('MACOStrategyManager');
 const MACOStrategyManagerV2 = artifacts.require('MACOStrategyManagerV2');
+const MovingAverageToAssetPriceCrossoverTrigger = artifacts.require(
+  'MovingAverageToAssetPriceCrossoverTrigger'
+);
+const TwoAssetStrategyManagerWithConfirmation = artifacts.require(
+  'TwoAssetStrategyManagerWithConfirmation'
+);
 
 const { SetProtocolUtils: SetUtils } = setProtocolUtils;
 const {
@@ -215,6 +227,88 @@ export class ManagerHelper {
     );
   }
 
+  public async deployTwoAssetStrategyManagerWithConfirmationAsync(
+    coreInstance: Address,
+    priceTriggerInstance: Address,
+    allocationPricerInstance: Address,
+    auctionLibraryInstance: Address,
+    baseAssetAllocation: BigNumber,
+    auctionTimeToPivot: BigNumber = ONE_HOUR_IN_SECONDS.mul(2),
+    auctionSpeed: BigNumber = ONE_HOUR_IN_SECONDS.div(6),
+    signalConfirmationMinTime: BigNumber = ONE_HOUR_IN_SECONDS.mul(6),
+    signalConfirmationMaxTime: BigNumber = ONE_HOUR_IN_SECONDS.mul(12),
+    from: Address = this._tokenOwnerAddress
+  ): Promise<TwoAssetStrategyManagerWithConfirmationContract> {
+    const truffleRebalacingTokenManager = await TwoAssetStrategyManagerWithConfirmation.new(
+      coreInstance,
+      priceTriggerInstance,
+      allocationPricerInstance,
+      auctionLibraryInstance,
+      baseAssetAllocation,
+      auctionTimeToPivot,
+      auctionSpeed,
+      signalConfirmationMinTime,
+      signalConfirmationMaxTime,
+      { from },
+    );
+
+    return new TwoAssetStrategyManagerWithConfirmationContract(
+      new web3.eth.Contract(truffleRebalacingTokenManager.abi, truffleRebalacingTokenManager.address),
+      { from, gas: DEFAULT_GAS },
+    );
+  }
+
+  /* ============ Price Triggers ============ */
+  public async deployMovingAverageToAssetPriceCrossoverTrigger(
+    movingAveragePriceFeed: Address,
+    assetPairOracle: Address,
+    movingAverageDays: BigNumber,
+    from: Address = this._tokenOwnerAddress,
+  ): Promise<MovingAverageToAssetPriceCrossoverTriggerContract> {
+    const trufflePriceTrigger = await MovingAverageToAssetPriceCrossoverTrigger.new(
+      movingAveragePriceFeed,
+      assetPairOracle,
+      movingAverageDays,
+      { from }
+    );
+
+    return new MovingAverageToAssetPriceCrossoverTriggerContract(
+      new web3.eth.Contract(trufflePriceTrigger.abi, trufflePriceTrigger.address),
+      { from, gas: DEFAULT_GAS },
+    );
+  }
+
+  /* ============ Allocation Pricers ============ */
+
+  public async deployBinaryAllocationPricerAsync(
+    baseAssetInstance: Address,
+    quoteAssetInstance: Address,
+    baseAssetOracleInstance: Address,
+    quoteAssetOracleInstance: Address,
+    baseAssetCollateralInstance: Address,
+    quoteAssetCollateralInstance: Address,
+    coreInstance: Address,
+    setTokenFactoryAddress: Address,
+    from: Address = this._tokenOwnerAddress,
+  ): Promise<BinaryAllocationPricerContract> {
+    const truffleAllocationPricer = await BinaryAllocationPricer.new(
+      baseAssetInstance,
+      quoteAssetInstance,
+      baseAssetOracleInstance,
+      quoteAssetOracleInstance,
+      baseAssetCollateralInstance,
+      quoteAssetCollateralInstance,
+      coreInstance,
+      setTokenFactoryAddress,
+      { from }
+    );
+
+    return new BinaryAllocationPricerContract(
+      new web3.eth.Contract(truffleAllocationPricer.abi, truffleAllocationPricer.address),
+      { from, gas: DEFAULT_GAS },
+    );
+  }
+
   /* ============ Helper Functions ============ */
 
   public async getMACOInitialAllocationAsync(
@@ -284,6 +378,62 @@ export class ManagerHelper {
       naturalUnit,
     };
   }
+
+public async getExpectedNewBinaryAllocationParamsetersAsync(
+  currentCollateralSet: SetTokenContract,
+  nextCollateralSet: SetTokenContract,
+  newAllocation: BigNumber,
+  currentAssetPrice: BigNumber,
+  nextAssetPrice: BigNumber,
+  currentAssetDecimals: BigNumber,
+  nextAssetDecimals: BigNumber
+): Promise<any> {
+  let naturalUnit: BigNumber;
+  let units: BigNumber[];
+
+  const currentUnits = await currentCollateralSet.getUnits.callAsync();
+  const currentNaturalUnit = await currentCollateralSet.naturalUnit.callAsync();
+
+  const nextUnits = await nextCollateralSet.getUnits.callAsync();
+  const nextNaturalUnit = await nextCollateralSet.naturalUnit.callAsync();
+
+  const currentCollateralUSDValue = this.computeTokenDollarAmount(
+    currentAssetPrice,
+    SET_FULL_TOKEN_UNITS.mul(currentUnits).div(currentNaturalUnit),
+    currentAssetDecimals
+  );
+
+  const nextCollateralUSDValue = this.computeTokenDollarAmount(
+    nextAssetPrice,
+    SET_FULL_TOKEN_UNITS.mul(nextUnits).div(nextNaturalUnit),
+    nextAssetDecimals
+  );
+
+  const targetCollateralValue = nextCollateralUSDValue.greaterThan(currentCollateralUSDValue) ?
+    currentCollateralUSDValue.mul(2) : currentCollateralUSDValue.div(2);
+
+  let newUnits: BigNumber = new BigNumber(1);
+  let naturalUnitMultiplier: BigNumber = new BigNumber(1);
+  const minimumNaturalUnit = BigNumber.max(
+    DEFAULT_REBALANCING_NATURAL_UNIT,
+    new BigNumber(10 ** 18).div(nextAssetDecimals)
+  );
+  while (newUnits.lessThanOrEqualTo(1)) {
+    naturalUnit = minimumNaturalUnit.mul(naturalUnitMultiplier);
+    newUnits = this.calculateNewUnits(
+      targetCollateralValue,
+      nextAssetPrice,
+      nextAssetDecimals,
+      naturalUnit
+    );
+    naturalUnitMultiplier = naturalUnitMultiplier.mul(10);
+  }
+  units = [newUnits];
+  return {
+    units,
+    naturalUnit,
+  };
+}
 
   public async getExpectedMACONewCollateralParametersAsync(
     stableCollateral: SetTokenContract,
@@ -530,6 +680,30 @@ export class ManagerHelper {
       auctionStartPrice,
       auctionPivotPrice,
     };
+  }
+
+  public async calculateSetTokenValue(
+    setToken: SetTokenContract,
+    componentPrices: BigNumber[],
+    componentDecimals: BigNumber[]
+  ): Promise<BigNumber> {
+    const collateralSetUnits = await setToken.getUnits.callAsync();
+    const collateralSetNaturalUnit = await setToken.naturalUnit.callAsync();
+
+    let collateralSetValue = new BigNumber(0);
+    for (let i = 0; i < collateralSetUnits.length; i++) {
+      const componentUnitsInFullToken = SET_FULL_TOKEN_UNITS
+                                        .mul(collateralSetUnits)
+                                        .div(collateralSetNaturalUnit)
+                                        .round(0, 3);
+
+      const componentDollarAmount = componentPrices[i]
+                                    .mul(componentUnitsInFullToken)
+                                    .div(componentDecimals[i]);
+      collateralSetValue = collateralSetValue.add(componentDollarAmount);
+    }
+
+    return collateralSetValue;
   }
 
   private computeTokenValue(

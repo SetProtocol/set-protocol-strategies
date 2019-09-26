@@ -1237,7 +1237,7 @@ contract('MACOStrategyManagerV2', accounts => {
           await SetTestUtils.assertLogEquivalence(formattedLogs, expectedLogs);
         });
 
-        describe('but risk collateral is 4x valuable than stable collateral', async () => {
+        describe('but baseAsset collateral is 4x valuable than quoteAsset collateral', async () => {
           before(async () => {
             triggerPrice = ether(400);
             lastPrice = triggerPrice;
