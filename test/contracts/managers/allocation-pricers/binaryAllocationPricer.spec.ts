@@ -426,10 +426,9 @@ contract('BinaryAllocationPricer', accounts => {
 
         const currentAssetPrice = await usdcOracle.read.callAsync();
         const nextAssetPrice = await legacyMakerOracleAdapter.read.callAsync();
-        const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParamsetersAsync(
+        const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
           quoteAssetCollateral,
           baseAssetCollateral,
-          subjectTargetBaseAssetAllocation,
           currentAssetPrice,
           nextAssetPrice,
           USDC_DECIMALS,
@@ -447,10 +446,9 @@ contract('BinaryAllocationPricer', accounts => {
 
         const currentAssetPrice = await usdcOracle.read.callAsync();
         const nextAssetPrice = await legacyMakerOracleAdapter.read.callAsync();
-        const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParamsetersAsync(
+        const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
           quoteAssetCollateral,
           baseAssetCollateral,
-          subjectTargetBaseAssetAllocation,
           currentAssetPrice,
           nextAssetPrice,
           USDC_DECIMALS,
@@ -495,10 +493,9 @@ contract('BinaryAllocationPricer', accounts => {
 
         const currentAssetPrice = await usdcOracle.read.callAsync();
         const nextAssetPrice = await legacyMakerOracleAdapter.read.callAsync();
-        const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParamsetersAsync(
+        const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
           quoteAssetCollateral,
           baseAssetCollateral,
-          subjectTargetBaseAssetAllocation,
           currentAssetPrice,
           nextAssetPrice,
           USDC_DECIMALS,
@@ -517,10 +514,9 @@ contract('BinaryAllocationPricer', accounts => {
 
         const currentAssetPrice = await usdcOracle.read.callAsync();
         const nextAssetPrice = await legacyMakerOracleAdapter.read.callAsync();
-        const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParamsetersAsync(
+        const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
           quoteAssetCollateral,
           baseAssetCollateral,
-          subjectTargetBaseAssetAllocation,
           currentAssetPrice,
           nextAssetPrice,
           USDC_DECIMALS,
@@ -571,10 +567,9 @@ contract('BinaryAllocationPricer', accounts => {
 
         const currentAssetPrice = await legacyMakerOracleAdapter.read.callAsync();
         const nextAssetPrice = await usdcOracle.read.callAsync();
-        const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParamsetersAsync(
+        const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
           baseAssetCollateral,
           quoteAssetCollateral,
-          subjectTargetBaseAssetAllocation,
           currentAssetPrice,
           nextAssetPrice,
           ETH_DECIMALS,
@@ -593,10 +588,9 @@ contract('BinaryAllocationPricer', accounts => {
 
         const currentAssetPrice = await legacyMakerOracleAdapter.read.callAsync();
         const nextAssetPrice = await usdcOracle.read.callAsync();
-        const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParamsetersAsync(
+        const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
           baseAssetCollateral,
           quoteAssetCollateral,
-          subjectTargetBaseAssetAllocation,
           currentAssetPrice,
           nextAssetPrice,
           ETH_DECIMALS,
@@ -646,10 +640,9 @@ contract('BinaryAllocationPricer', accounts => {
 
         const currentAssetPrice = await legacyMakerOracleAdapter.read.callAsync();
         const nextAssetPrice = await usdcOracle.read.callAsync();
-        const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParamsetersAsync(
+        const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
           baseAssetCollateral,
           quoteAssetCollateral,
-          subjectTargetBaseAssetAllocation,
           currentAssetPrice,
           nextAssetPrice,
           ETH_DECIMALS,
@@ -667,10 +660,9 @@ contract('BinaryAllocationPricer', accounts => {
 
         const currentAssetPrice = await legacyMakerOracleAdapter.read.callAsync();
         const nextAssetPrice = await usdcOracle.read.callAsync();
-        const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParamsetersAsync(
+        const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
           baseAssetCollateral,
           quoteAssetCollateral,
-          subjectTargetBaseAssetAllocation,
           currentAssetPrice,
           nextAssetPrice,
           ETH_DECIMALS,

@@ -25,6 +25,7 @@ import {
   ONE_HOUR_IN_SECONDS,
   USDC_DECIMALS,
   VALUE_TO_CENTS_CONVERSION,
+  ZERO
 } from '../constants';
 
 import { getWeb3 } from '../web3Helper';
@@ -379,10 +380,9 @@ export class ManagerHelper {
     };
   }
 
-public async getExpectedNewBinaryAllocationParamsetersAsync(
+public async getExpectedNewBinaryAllocationParametersAsync(
   currentCollateralSet: SetTokenContract,
   nextCollateralSet: SetTokenContract,
-  newAllocation: BigNumber,
   currentAssetPrice: BigNumber,
   nextAssetPrice: BigNumber,
   currentAssetDecimals: BigNumber,
@@ -412,13 +412,13 @@ public async getExpectedNewBinaryAllocationParamsetersAsync(
   const targetCollateralValue = nextCollateralUSDValue.greaterThan(currentCollateralUSDValue) ?
     currentCollateralUSDValue.mul(2) : currentCollateralUSDValue.div(2);
 
-  let newUnits: BigNumber = new BigNumber(1);
+  let newUnits: BigNumber = ZERO;
   let naturalUnitMultiplier: BigNumber = new BigNumber(1);
   const minimumNaturalUnit = BigNumber.max(
     DEFAULT_REBALANCING_NATURAL_UNIT,
     new BigNumber(10 ** 18).div(nextAssetDecimals)
   );
-  while (newUnits.lessThanOrEqualTo(1)) {
+  while (newUnits.lessThan(1)) {
     naturalUnit = minimumNaturalUnit.mul(naturalUnitMultiplier);
     newUnits = this.calculateNewUnits(
       targetCollateralValue,
