@@ -23,18 +23,20 @@ import { IMetaOracleV2 } from "../../meta-oracles/interfaces/IMetaOracleV2.sol";
 
 
 /**
- * @title RSIMidlineCrossTrigger
+ * @title RSITrendingTrigger
  * @author Set Protocol
  *
  * Implementing the IPriceTrigger interface, this contract is queried by a
  * RebalancingSetToken Manager to determine the amount of base asset to be
  * allocated to by checking if the the RSI is above or below certain values.
  *
- * Below the RSI level of lowerBound means the RebalancingSetToken should be in the
- * quote asset, above the upperBound the RebalancingSetToken should be
- * in the base asset.
+ * This trigger is for trend trading strategies which sets upperBound as resistance
+ * and lowerBound as support. When RSI level crosses above upperBound the 
+ * RebalancingSetToken should be in the base asset. When RSI level crosses below
+ * lowerBound the RebalancingSetToken should be in the quote asset.
+ *
  */
-contract RSIMidlineCrossTrigger is
+contract RSITrendingTrigger is
     IPriceTrigger
 {
     /* ============ Constants ============ */
@@ -48,7 +50,7 @@ contract RSIMidlineCrossTrigger is
     uint256 public rsiTimePeriod;
 
     /*
-     * RSIMidlineCrossTrigger constructor.
+     * RSITrendingTrigger constructor.
      *
      * @param  _rsiOracleInstance        The address of RSI oracle
      * @param  _lowerBound               Lower bound of RSI to trigger a rebalance
@@ -66,7 +68,7 @@ contract RSIMidlineCrossTrigger is
         // Check that upper bound value must be greater than lower bound value
         require(
             _upperBound > _lowerBound,
-            "RSIMidlineCrossTrigger.constructor: Upper bound must be greater than lower bound"
+            "RSITrendingTrigger.constructor: Upper bound must be greater than lower bound"
         );
 
         // Set all state variables
@@ -93,8 +95,8 @@ contract RSIMidlineCrossTrigger is
 
         // Check RSI value is above upper bound or below lower bound to trigger a rebalance
         require(
-            rsiValue >= upperBound || rsiValue <= lowerBound,
-            "RSIMidlineCrossTrigger.checkPriceTrigger: RSI must be below lower bound or above upper bound"
+            rsiValue >= upperBound || rsiValue < lowerBound,
+            "RSITrendingTrigger.checkPriceTrigger: RSI must be below lower bound or above upper bound"
         );
 
         // If RSI greater than upper bound return max allocation of base asset

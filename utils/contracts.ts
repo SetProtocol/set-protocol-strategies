@@ -32,7 +32,7 @@ export { OracleProxyContract } from '../types/generated/oracle_proxy';
 export { PriceFeedContract } from '../types/generated/price_feed';
 export { PriceFeedMockContract } from '../types/generated/price_feed_mock';
 export { RSILibraryMockContract } from '../types/generated/r_s_i_library_mock';
-export { RSIMidlineCrossTriggerContract } from '../types/generated/r_s_i_midline_cross_trigger';
+export { RSITrendingTriggerContract } from '../types/generated/r_s_i_trending_trigger';
 export { RSIOracleContract } from '../types/generated/r_s_i_oracle';
 export { TimeSeriesFeedContract } from '../types/generated/time_series_feed';
 export { TimeSeriesFeedV2Contract } from '../types/generated/time_series_feed_v2';

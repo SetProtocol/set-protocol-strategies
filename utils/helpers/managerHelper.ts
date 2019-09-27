@@ -14,7 +14,7 @@ import {
   MovingAverageOracleContract,
   MovingAverageOracleV2Contract,
   MovingAverageToAssetPriceCrossoverTriggerContract,
-  RSIMidlineCrossTriggerContract,
+  RSITrendingTriggerContract,
   TwoAssetStrategyManagerWithConfirmationContract,
 } from '../contracts';
 import { BigNumber } from 'bignumber.js';
@@ -41,9 +41,7 @@ const MACOStrategyManagerV2 = artifacts.require('MACOStrategyManagerV2');
 const MovingAverageToAssetPriceCrossoverTrigger = artifacts.require(
   'MovingAverageToAssetPriceCrossoverTrigger'
 );
-const RSIMidlineCrossTrigger = artifacts.require(
-  'RSIMidlineCrossTrigger'
-);
+const RSITrendingTrigger = artifacts.require('RSITrendingTrigger');
 const TwoAssetStrategyManagerWithConfirmation = artifacts.require(
   'TwoAssetStrategyManagerWithConfirmation'
 );
@@ -283,14 +281,14 @@ export class ManagerHelper {
     );
   }
 
-  public async deployRSIMidlineCrossTrigger(
+  public async deployRSITrendingTrigger(
     rsiOracleInstance: Address,
     lowerBound: BigNumber,
     upperBound: BigNumber,
     rsiTimePeriod: BigNumber,
     from: Address = this._tokenOwnerAddress,
-  ): Promise<RSIMidlineCrossTriggerContract> {
-    const trufflePriceTrigger = await RSIMidlineCrossTrigger.new(
+  ): Promise<RSITrendingTriggerContract> {
+    const trufflePriceTrigger = await RSITrendingTrigger.new(
       rsiOracleInstance,
       lowerBound,
       upperBound,
@@ -298,7 +296,7 @@ export class ManagerHelper {
       { from }
     );
 
-    return new RSIMidlineCrossTriggerContract(
+    return new RSITrendingTriggerContract(
       new web3.eth.Contract(trufflePriceTrigger.abi, trufflePriceTrigger.address),
       { from, gas: DEFAULT_GAS },
     );
