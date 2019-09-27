@@ -367,44 +367,13 @@ contract('BinaryAllocationPricer', accounts => {
       expect(actualNextSetValue).to.be.bignumber.equal(expectedNextSetValue);
     });
 
-    describe('when next allocation should be the quote asset', async () => {
-      beforeEach(async () => {
-        subjectTargetBaseAssetAllocation = ZERO;
-        subjectCurrentCollateralSet = baseAssetCollateral.address;
-      });
-
-      it('returns the correct nextSet address', async () => {
-        const [actualNextSetAddress, , ] = await subjectCall();
-
-        expect(actualNextSetAddress).to.equal(quoteAssetCollateral.address);
-      });
-
-      it('returns the correct currentSet value', async () => {
-        const [, actualCurrentSetValue, ] = await subjectCall();
-
-        const expectedCurrentSetValue = await managerHelper.calculateSetTokenValue(
-          baseAssetCollateral,
-          [ethPrice],
-          [ETH_DECIMALS]
-        );
-        expect(actualCurrentSetValue).to.be.bignumber.equal(expectedCurrentSetValue);
-      });
-
-      it('returns the correct nextSet value', async () => {
-        const [, , actualNextSetValue] = await subjectCall();
-
-        const expectedNextSetValue = await managerHelper.calculateSetTokenValue(
-          quoteAssetCollateral,
-          [usdcPrice],
-          [USDC_DECIMALS]
-        );
-        expect(actualNextSetValue).to.be.bignumber.equal(expectedNextSetValue);
-      });
-    });
-
     describe('but collateral is 4x different in price', async () => {
       before(async () => {
         ethPrice = ether(25);
+      });
+
+      after(async () => {
+        ethPrice = ether(140);
       });
 
       it('should set new baseAsset collateral address', async () => {
@@ -474,6 +443,10 @@ contract('BinaryAllocationPricer', accounts => {
         ethPrice = ether(4 * 10 ** 8);
       });
 
+      after(async () => {
+        ethPrice = ether(140);
+      });
+
       it('should set new baseAsset collateral address', async () => {
         const txHash = await subjectTxn();
 
@@ -538,9 +511,68 @@ contract('BinaryAllocationPricer', accounts => {
       });
     });
 
+    describe('when the current collateral set component is not the quoteAsset', async () => {
+      beforeEach(async () => {
+        subjectCurrentCollateralSet = baseAssetCollateral.address;
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subjectCall());
+      });
+    });
+
+    describe('when next allocation should be the quote asset', async () => {
+      beforeEach(async () => {
+        subjectTargetBaseAssetAllocation = ZERO;
+        subjectCurrentCollateralSet = baseAssetCollateral.address;
+      });
+
+      it('returns the correct nextSet address', async () => {
+        const [actualNextSetAddress, , ] = await subjectCall();
+
+        expect(actualNextSetAddress).to.equal(quoteAssetCollateral.address);
+      });
+
+      it('returns the correct currentSet value', async () => {
+        const [, actualCurrentSetValue, ] = await subjectCall();
+
+        const expectedCurrentSetValue = await managerHelper.calculateSetTokenValue(
+          baseAssetCollateral,
+          [ethPrice],
+          [ETH_DECIMALS]
+        );
+        expect(actualCurrentSetValue).to.be.bignumber.equal(expectedCurrentSetValue);
+      });
+
+      it('returns the correct nextSet value', async () => {
+        const [, , actualNextSetValue] = await subjectCall();
+
+        const expectedNextSetValue = await managerHelper.calculateSetTokenValue(
+          quoteAssetCollateral,
+          [usdcPrice],
+          [USDC_DECIMALS]
+        );
+        expect(actualNextSetValue).to.be.bignumber.equal(expectedNextSetValue);
+      });
+
+      describe('when the current collateral set component is not the baseAsset', async () => {
+        beforeEach(async () => {
+          subjectCurrentCollateralSet = quoteAssetCollateral.address;
+        });
+
+        it('should revert', async () => {
+          await expectRevertError(subjectCall());
+        });
+      });
+    });
+
     describe('when next allocation should be the quote asset and collateral is 4x different in price', async () => {
       before(async () => {
         ethPrice = ether(400);
+      });
+
+      after(async () => {
+        ethPrice = ether(140);
       });
 
       beforeEach(async () => {
@@ -616,6 +648,10 @@ contract('BinaryAllocationPricer', accounts => {
         ethPrice = ether(.4);
       });
 
+      after(async () => {
+        ethPrice = ether(140);
+      });
+
       beforeEach(async () => {
         subjectTargetBaseAssetAllocation = ZERO;
         subjectCurrentCollateralSet = baseAssetCollateral.address;
@@ -680,6 +716,26 @@ contract('BinaryAllocationPricer', accounts => {
 
         const expectedNextSetComponents = [usdcMock.address];
         expect(JSON.stringify(nextSetComponents)).to.be.eql(JSON.stringify(expectedNextSetComponents));
+      });
+    });
+
+    describe('when the target allocation amount does not equal 0 or 100', async () => {
+      beforeEach(async () => {
+        subjectTargetBaseAssetAllocation = new BigNumber(1);
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subjectCall());
+      });
+    });
+
+    describe('when the current collateral set is not enabled in Core', async () => {
+      beforeEach(async () => {
+        subjectCurrentCollateralSet = randomTokenAddress;
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subjectCall());
       });
     });
   });
