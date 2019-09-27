@@ -355,7 +355,6 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
         auctionSpeed,
         signalConfirmationMinTime,
         signalConfirmationMaxTime,
-        subjectCaller,
       );
 
       proposalPeriod = ONE_DAY_IN_SECONDS;
