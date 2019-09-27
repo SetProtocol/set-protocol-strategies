@@ -20,7 +20,7 @@ import {
   LegacyMakerOracleAdapterContract,
   LinearizedPriceDataSourceContract,
   RSIOracleContract,
-  RSIMidlineCrossTriggerContract,
+  RSITrendingTriggerContract,
   OracleProxyContract,
   TimeSeriesFeedContract,
 } from '@utils/contracts';
@@ -44,7 +44,7 @@ const { expect } = chai;
 const blockchain = new Blockchain(web3);
 const { SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
 
-contract('RSIMidlineCrossTrigger', accounts => {
+contract('RSITrendingTrigger', accounts => {
   const [
     deployerAccount,
   ] = accounts;
@@ -56,7 +56,7 @@ contract('RSIMidlineCrossTrigger', accounts => {
   let timeSeriesFeed: TimeSeriesFeedContract;
   let rsiOracle: RSIOracleContract;
 
-  let priceTrigger: RSIMidlineCrossTriggerContract;
+  let priceTrigger: RSITrendingTriggerContract;
 
   let initialEthPrice: BigNumber;
 
@@ -131,8 +131,8 @@ contract('RSIMidlineCrossTrigger', accounts => {
       subjectRSITimePeriod = new BigNumber(14);
     });
 
-    async function subject(): Promise<RSIMidlineCrossTriggerContract> {
-      return managerHelper.deployRSIMidlineCrossTrigger(
+    async function subject(): Promise<RSITrendingTriggerContract> {
+      return managerHelper.deployRSITrendingTrigger(
         subjectRSIOracleInstance,
         subjectLowerBound,
         subjectUpperBound,
@@ -146,6 +146,22 @@ contract('RSIMidlineCrossTrigger', accounts => {
       const actualRSIOracleAddress = await priceTrigger.rsiOracleInstance.callAsync();
 
       expect(actualRSIOracleAddress).to.equal(subjectRSIOracleInstance);
+    });
+
+    it('sets the correct lower bound', async () => {
+      priceTrigger = await subject();
+
+      const actualRSILowerBound = await priceTrigger.lowerBound.callAsync();
+
+      expect(actualRSILowerBound).to.be.bignumber.equal(subjectLowerBound);
+    });
+
+    it('sets the correct upper bound', async () => {
+      priceTrigger = await subject();
+
+      const actualRSIUpperBound = await priceTrigger.upperBound.callAsync();
+
+      expect(actualRSIUpperBound).to.be.bignumber.equal(subjectUpperBound);
     });
 
     it('sets the correct RSI days', async () => {
@@ -187,7 +203,7 @@ contract('RSIMidlineCrossTrigger', accounts => {
       lowerBound = new BigNumber(40);
       upperBound = new BigNumber(60);
 
-      priceTrigger = await managerHelper.deployRSIMidlineCrossTrigger(
+      priceTrigger = await managerHelper.deployRSITrendingTrigger(
         rsiOracle.address,
         lowerBound,
         upperBound,
