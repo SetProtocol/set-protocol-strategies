@@ -27,10 +27,27 @@ import { ISetToken } from "set-protocol-contracts/contracts/core/interfaces/ISet
  */
 interface IAllocationPricer {
 
+    /*
+     * Determine the next allocation to rebalance into.
+     *
+     * @param  _targetBaseAssetAllocation       Target allocation of the base asset
+     * @param  _currentCollateralSet            Instance of current set collateralizing RebalancingSetToken
+     * @return address                          The address of the proposed nextSet
+     * @return uint256                          The USD value of current Set
+     * @return uint256                          The USD value of next Set
+     */
     function determineNewAllocation(
         uint256 _targetBaseAssetAllocation,
         ISetToken _currentCollateralSet
     )
         external
         returns (address, uint256, uint256);
+
+    function baseAssetCollateralInstance()
+        external
+        returns (ISetToken);
+
+    function quoteAssetCollateralInstance()
+        external
+        returns (ISetToken);
 }

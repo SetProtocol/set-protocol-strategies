@@ -38,9 +38,7 @@ import { IOracle } from "../../meta-oracles/interfaces/IOracle.sol";
  * addition, if either collateral Set becomes 4x more valuable than the other the contract will
  * create a new collateral Set and use that Set going forward.
  */
-contract BinaryAllocationPricer is
-    IAllocationPricer
-{
+contract BinaryAllocationPricer {
     using SafeMath for uint256;
 
     /* ============ Structs ============ */
@@ -146,9 +144,13 @@ contract BinaryAllocationPricer is
         external
         returns (address, uint256, uint256)
     {
-        bool toBaseAsset = validateAllocationParams(
+        // Determine if rebalance is to the baseAsset
+        bool toBaseAsset = (_targetBaseAssetAllocation == 100);
+
+        validateAllocationParams(
             _targetBaseAssetAllocation,
-            _currentCollateralSet
+            _currentCollateralSet,
+            toBaseAsset
         );
 
         // Create struct that holds relevant information for the currentSet and (potential) nextSet
@@ -162,7 +164,7 @@ contract BinaryAllocationPricer is
 
         // Check to see if new collateral must be created in order to keep collateral price ratio in line.
         // If not just return the dollar value of current collateral sets
-        return checkForNewCollateral(
+        return getNextCollateral(
             currentSetInfo,
             nextSetInfo,
             toBaseAsset
@@ -176,23 +178,20 @@ contract BinaryAllocationPricer is
      *
      * @param  _targetBaseAssetAllocation       Target allocation of the base asset
      * @param  _currentCollateralSet            Instance of current set collateralizing RebalancingSetToken
-     * @return boolean                          The address of the proposed nextSet
+     * @param  _toBaseAsset                     Boolean indicating whether new collateral is made of baseAsset
      */
     function validateAllocationParams(
         uint256 _targetBaseAssetAllocation,
-        ISetToken _currentCollateralSet        
+        ISetToken _currentCollateralSet,
+        bool _toBaseAsset      
     )
         internal
         view
-        returns (bool)
     {
         require(
             _targetBaseAssetAllocation == 100 || _targetBaseAssetAllocation == 0,
             "BinaryAllocationPricer.validateAllocationParams: Passed allocation must be 100 or 0."
         );
-
-        // Determine if rebalance is to the baseAsset
-        bool toBaseAsset = (_targetBaseAssetAllocation == 100);
 
         // Make sure passed currentSet was created by Core
         require(
@@ -200,15 +199,21 @@ contract BinaryAllocationPricer is
             "BinaryAllocationPricer.validateAllocationParams: Passed collateralSet must be tracked by Core."
         );
 
-        // Make sure that currentSet component is opposite of expected component to be rebalanced into
+        // Get current set components
         address[] memory currentSetComponents = _currentCollateralSet.getComponents();
-        address requiredComponent = toBaseAsset ? address(quoteAssetInstance) : address(baseAssetInstance);
+
+        // Make sure current set component array is one item long
+        require(
+            currentSetComponents.length == 1,
+            "BinaryAllocationPricer.validateAllocationParams: Passed collateral set must have one component."
+        );
+
+        // Make sure that currentSet component is opposite of expected component to be rebalanced into
+        address requiredComponent = _toBaseAsset ? address(quoteAssetInstance) : address(baseAssetInstance);
         require(
             currentSetComponents[0] == requiredComponent,
             "BinaryAllocationPricer.validateAllocationParams: New allocation doesn't match currentSet component."
         );
-
-        return toBaseAsset;
     }
 
     /*
@@ -289,7 +294,7 @@ contract BinaryAllocationPricer is
      * @return uint256                  The USD value of currentSet
      * @return uint256                  The USD value of nextSet
      */
-    function checkForNewCollateral(
+    function getNextCollateral(
         CollateralSetInfo memory _currentSetInfo,
         CollateralSetInfo memory _nextSetInfo,
         bool _toBaseAsset

@@ -159,7 +159,7 @@ contract('MovingAverageToAssetPriceCrossoverTrigger', accounts => {
     });
   });
 
-  describe('#checkPriceTrigger', async () => {
+  describe('#getBaseAssetAllocation', async () => {
     let subjectCaller: Address;
 
     let updatedValues: BigNumber[];
@@ -191,7 +191,7 @@ contract('MovingAverageToAssetPriceCrossoverTrigger', accounts => {
     });
 
     async function subject(): Promise<BigNumber> {
-      return priceTrigger.checkPriceTrigger.callAsync(
+      return priceTrigger.getBaseAssetAllocation.callAsync(
         { from: subjectCaller, gas: DEFAULT_GAS}
       );
     }

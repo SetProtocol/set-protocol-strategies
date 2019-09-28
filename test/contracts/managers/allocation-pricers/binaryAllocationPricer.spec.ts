@@ -738,5 +738,23 @@ contract('BinaryAllocationPricer', accounts => {
         await expectRevertError(subjectCall());
       });
     });
+
+    describe('when the current collateral set components has more than one component', async () => {
+      beforeEach(async () => {
+        const twoAssetCollateral = await protocolHelper.createSetTokenAsync(
+          core,
+          factory.address,
+          [usdcMock.address, wrappedETH.address],
+          [new BigNumber(100), new BigNumber(100)],
+          STABLE_COLLATERAL_NATURAL_UNIT,
+        );
+
+        subjectCurrentCollateralSet = twoAssetCollateral.address;
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subjectCall());
+      });
+    });
   });
 });

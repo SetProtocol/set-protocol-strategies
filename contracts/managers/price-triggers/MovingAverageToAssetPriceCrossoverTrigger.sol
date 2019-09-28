@@ -74,7 +74,7 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
      *
      * @return             The percentage of base asset to be allocated to
      */
-    function checkPriceTrigger()
+    function getBaseAssetAllocation()
         external
         view
         returns (uint256)

@@ -335,11 +335,12 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
     });
   });
 
-  describe('#initialize', async () => {
+  describe.only('#initialize', async () => {
     let subjectRebalancingSetToken: Address;
     let subjectCaller: Address;
 
     let proposalPeriod: BigNumber;
+
     beforeEach(async () => {
       const auctionTimeToPivot = ONE_DAY_IN_SECONDS.div(4);
       const auctionSpeed = ONE_HOUR_IN_SECONDS.div(6);
@@ -419,6 +420,32 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
         );
 
         subjectRebalancingSetToken = unTrackedSetToken.address;
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('but the passed collateral set is not one of the allocation pricer collaterals', async () => {
+      beforeEach(async () => {
+        const unTrackedCollateral = await protocolHelper.createSetTokenAsync(
+          core,
+          factory.address,
+          [wrappedETH.address],
+          [new BigNumber(10 ** 6)],
+          RISK_COLLATERAL_NATURAL_UNIT,
+        );
+
+        const badCollateralRBSet = await protocolHelper.createDefaultRebalancingSetTokenAsync(
+          core,
+          rebalancingFactory.address,
+          setManager.address,
+          unTrackedCollateral.address,
+          proposalPeriod,
+        );
+
+        subjectRebalancingSetToken = badCollateralRBSet.address;
       });
 
       it('should revert', async () => {

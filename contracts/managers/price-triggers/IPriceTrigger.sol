@@ -25,7 +25,13 @@ pragma experimental "ABIEncoderV2";
  */
 interface IPriceTrigger {
 
-    function checkPriceTrigger()
+    /*
+     * Returns the percentage of base asset the calling Manager should allocate the RebalancingSetToken
+     * to.
+     *
+     * @return             The percentage of base asset to be allocated to
+     */
+    function getBaseAssetAllocation()
         external
         view
         returns (uint256);

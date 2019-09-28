@@ -33,7 +33,7 @@ import { IPriceTrigger } from "./price-triggers/IPriceTrigger.sol";
  * @author Set Protocol
  *
  * Rebalancing Manager contract for implementing any trading pair strategy based on arbitrarily defined
- * price triggers represented by the maanger's PriceTrigger contract. Additionally, all allocations are
+ * price triggers represented by the manager's PriceTrigger contract. Additionally, all allocations are
  * chosen using the manager's AllocationPricer contract. This manager requires confirmation for all
  * potential rebalances, the confirmation window is defined on deployment of the manager contract.
  */
@@ -49,7 +49,6 @@ contract TwoAssetStrategyManagerWithConfirmation {
     uint256 public baseAssetAllocation;
     uint256 public auctionTimeToPivot;
     uint256 public auctionSpeed;
-    uint256 public lastSignalConfirmationTimestamp;
     uint256 public signalConfirmationMinTime;
     uint256 public signalConfirmationMaxTime;
     uint256 public lastCrossoverConfirmationTimestamp;
@@ -99,7 +98,7 @@ contract TwoAssetStrategyManagerWithConfirmation {
 
     /*
      * This function sets the Rebalancing Set Token address that the manager is associated with.
-     * Since, the rebalancing set token must first specify the address of the manager before deployment,
+     * Since the rebalancing set token must first specify the address of the manager before deployment,
      * we cannot know what the rebalancing set token is in advance. This function is only meant to be called 
      * once during initialization by the contract deployer.
      *
@@ -122,6 +121,16 @@ contract TwoAssetStrategyManagerWithConfirmation {
             "MACOStrategyManager.initialize: Invalid or disabled RebalancingSetToken address"
         );
 
+        address currentCollateralSet = _rebalancingSetTokenInstance.currentSet();
+
+        ISetToken expectedCollateral = baseAssetAllocation == 100 ? allocationPricerInstance.baseAssetCollateralInstance() :
+            allocationPricerInstance.quoteAssetCollateralInstance();
+
+        require(
+            currentCollateralSet == address(expectedCollateral),
+            "MACOStrategyManager.initialize: Rebalancing Set collateral must match collateral on allocation pricer."
+        );
+
         rebalancingSetTokenInstance = _rebalancingSetTokenInstance;
         contractDeployer = address(0);
     }
@@ -138,14 +147,14 @@ contract TwoAssetStrategyManagerWithConfirmation {
         // Make sure propose in manager hasn't already been initiated
         require(
             block.timestamp > lastCrossoverConfirmationTimestamp.add(signalConfirmationMaxTime),
-            "MACOStrategyManager.initialPropose: 12 hours must pass before new proposal initiated"
+            "MACOStrategyManager.initialPropose: Not enough time passed from last proposal."
         );
         
         // Create interface to interact with RebalancingSetToken and check enough time has passed for proposal
         FlexibleTimingManagerLibrary.validateManagerPropose(rebalancingSetTokenInstance);
         
         // Get new baseAsset allocation amount
-        uint256 newBaseAssetAllocation = priceTriggerInstance.checkPriceTrigger();
+        uint256 newBaseAssetAllocation = priceTriggerInstance.getBaseAssetAllocation();
 
         // Check that new baseAsset allocation amount is different from current allocation amount
         require(
@@ -175,7 +184,7 @@ contract TwoAssetStrategyManagerWithConfirmation {
         FlexibleTimingManagerLibrary.validateManagerPropose(rebalancingSetTokenInstance);
         
         // Get new baseAsset allocation amount
-        uint256 newBaseAssetAllocation = priceTriggerInstance.checkPriceTrigger();
+        uint256 newBaseAssetAllocation = priceTriggerInstance.getBaseAssetAllocation();
 
         // Check that new baseAsset allocation amount is different from current allocation amount
         require(
