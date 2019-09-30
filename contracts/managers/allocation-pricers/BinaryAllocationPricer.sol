@@ -38,7 +38,9 @@ import { IOracle } from "../../meta-oracles/interfaces/IOracle.sol";
  * addition, if either collateral Set becomes 4x more valuable than the other the contract will
  * create a new collateral Set and use that Set going forward.
  */
-contract BinaryAllocationPricer {
+contract BinaryAllocationPricer is
+    IAllocationPricer
+{
     using SafeMath for uint256;
 
     /* ============ Structs ============ */
@@ -360,15 +362,13 @@ contract BinaryAllocationPricer {
         );
 
         // Create new collateral set with units and naturalUnit as calculated above
-        address nextSetAddress = coreInstance.createSet(
-            setTokenFactoryAddress,
+        address nextSetAddress = createNewCollateralSet(
             nextSetComponents,
             nextSetUnits,
             nextNaturalUnit,
-            bytes32("STBLCollateral"),
-            bytes32("STBLMACO"),
-            ""
+            _toBaseAsset
         );
+
         // Calculate dollar value of new collateral
         uint256 nextSetDollarValue = FlexibleTimingManagerLibrary.calculateTokenAllocationAmountUSD(
             _nextSetInfo.componentPrice,
@@ -414,7 +414,7 @@ contract BinaryAllocationPricer {
         uint256 naturalUnitMultiplier = 1;
         uint256 nextNaturalUnit;
 
-        // Determine minimum natural unit based on max of pre-defined minimum or 18 - decimals of the 
+        // Determine minimum natural unit based on max of pre-defined minimum or (18 - decimals) of the 
         // component in the new Set.
         uint256 minimumNaturalUnit = Math.max(
             MINIMUM_COLLATERAL_NATURAL_UNIT,
@@ -436,6 +436,43 @@ contract BinaryAllocationPricer {
 
         nextSetUnits[0] = potentialNextUnit;
         return (nextSetUnits, nextNaturalUnit);
+    }
+
+    /*
+     * Determines the correct name and symbol for the new collateral Set, then creates the Set by calling
+     * Core and returns the address.
+     *
+     * @param  _nextSetComponents       Components of the next Set
+     * @param  _nextSetUnits            Units of the next Set
+     * @param  _nextSetNaturalUnit      Natural unit of the next Set
+     * @param  _toBaseAsset             Boolean indicating whether new collateral is made of baseAsset
+     * @return address                  Address of the nextSet
+     */
+    function createNewCollateralSet(
+        address[] memory _nextSetComponents,
+        uint256[] memory _nextSetUnits,
+        uint256 _nextNaturalUnit,
+        bool _toBaseAsset
+    )
+        internal
+        returns (address)
+    {
+        (
+            bytes32 nextCollateralName,
+            bytes32 nextCollateralSymbol
+        ) = _toBaseAsset ? (bytes32("BaseAssetCollateral"), bytes32("BACOL")) :
+            (bytes32("QuoteAssetCollateral"), bytes32("QACOL"));
+
+        // Create new collateral set with passed units and naturalUnit
+        return coreInstance.createSet(
+            setTokenFactoryAddress,
+            _nextSetComponents,
+            _nextSetUnits,
+            _nextNaturalUnit,
+            nextCollateralName,
+            nextCollateralSymbol,
+            ""
+        );       
     }
 
     /*

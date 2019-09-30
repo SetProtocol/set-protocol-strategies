@@ -335,7 +335,7 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
     });
   });
 
-  describe.only('#initialize', async () => {
+  describe('#initialize', async () => {
     let subjectRebalancingSetToken: Address;
     let subjectCaller: Address;
 
