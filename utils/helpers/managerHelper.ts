@@ -14,6 +14,7 @@ import {
   MovingAverageOracleContract,
   MovingAverageOracleV2Contract,
   MovingAverageToAssetPriceCrossoverTriggerContract,
+  RSITrendingTriggerContract,
   TwoAssetStrategyManagerWithConfirmationContract,
 } from '../contracts';
 import { BigNumber } from 'bignumber.js';
@@ -40,6 +41,7 @@ const MACOStrategyManagerV2 = artifacts.require('MACOStrategyManagerV2');
 const MovingAverageToAssetPriceCrossoverTrigger = artifacts.require(
   'MovingAverageToAssetPriceCrossoverTrigger'
 );
+const RSITrendingTrigger = artifacts.require('RSITrendingTrigger');
 const TwoAssetStrategyManagerWithConfirmation = artifacts.require(
   'TwoAssetStrategyManagerWithConfirmation'
 );
@@ -274,6 +276,27 @@ export class ManagerHelper {
     );
 
     return new MovingAverageToAssetPriceCrossoverTriggerContract(
+      new web3.eth.Contract(trufflePriceTrigger.abi, trufflePriceTrigger.address),
+      { from, gas: DEFAULT_GAS },
+    );
+  }
+
+  public async deployRSITrendingTrigger(
+    rsiOracleInstance: Address,
+    lowerBound: BigNumber,
+    upperBound: BigNumber,
+    rsiTimePeriod: BigNumber,
+    from: Address = this._tokenOwnerAddress,
+  ): Promise<RSITrendingTriggerContract> {
+    const trufflePriceTrigger = await RSITrendingTrigger.new(
+      rsiOracleInstance,
+      lowerBound,
+      upperBound,
+      rsiTimePeriod,
+      { from }
+    );
+
+    return new RSITrendingTriggerContract(
       new web3.eth.Contract(trufflePriceTrigger.abi, trufflePriceTrigger.address),
       { from, gas: DEFAULT_GAS },
     );
