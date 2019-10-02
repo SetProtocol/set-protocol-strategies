@@ -70,7 +70,7 @@ contract RSITrendingTrigger is
     {
         // Check that upper bound value must be greater than lower bound value
         require(
-            _upperBound > _lowerBound,
+            _upperBound >= _lowerBound,
             "RSITrendingTrigger.constructor: Upper bound must be greater than lower bound"
         );
 
@@ -103,11 +103,19 @@ contract RSITrendingTrigger is
         // Query RSI oracle
         uint256 rsiValue = rsiOracleInstance.read(rsiTimePeriod);
 
-        // Check RSI value is above upper bound or below lower bound to trigger a change to currentTrendAllocation
-        if (rsiValue >= upperBound || rsiValue < lowerBound) {
+        // Check RSI value is above upper bound or below lower bound
+        bool isOutsideBounds = rsiValue >= upperBound || rsiValue < lowerBound;
+
+        // If outside bounds trigger a change to currentTrendAllocation
+        if (isOutsideBounds) {
             // If RSI greater than upper bound return max allocation of base asset
             // Else RSI less than lower bound return min allocation of base asset
-            currentTrendAllocation = rsiValue >= upperBound ? MAX_BASE_ASSET_ALLOCATION : MIN_BASE_ASSET_ALLOCATION;
+            uint256 trendAllocation = rsiValue >= upperBound ? MAX_BASE_ASSET_ALLOCATION : MIN_BASE_ASSET_ALLOCATION;
+
+            // Set currentTrendAllocation if trend has changed
+            if (trendAllocation != currentTrendAllocation) {
+                currentTrendAllocation = trendAllocation;
+            }
         }
 
         // If rsi is inside bounds then just return currentTrendAllocation
