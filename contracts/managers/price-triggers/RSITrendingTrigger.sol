@@ -91,7 +91,8 @@ contract RSITrendingTrigger is
     /*
      * Returns the percentage of base asset the calling Manager should allocate the RebalancingSetToken
      * to. If RSI is above upper bound then should be 100% allocated to base asset, if
-     * RSI is below lower bound then should be 0% allocated to base asset. Else function reverts.
+     * RSI is below lower bound then should be 0% allocated to base asset. If in between bounds then
+     * returns the allocation of the current trend.
      *
      * @return             The percentage of base asset to be allocated to
      */
