@@ -48,20 +48,23 @@ contract RSITrendingTrigger is
     uint256 public lowerBound;
     uint256 public upperBound;
     uint256 public rsiTimePeriod;
+    uint256 public currentTrendAllocation;
 
     /*
      * RSITrendingTrigger constructor.
      *
-     * @param  _rsiOracleInstance        The address of RSI oracle
-     * @param  _lowerBound               Lower bound of RSI to trigger a rebalance
-     * @param  _upperBound               Upper bound of RSI to trigger a rebalance
-     * @param  _rsiTimePeriod            The amount of days to use in RSI calculation
+     * @param  _rsiOracleInstance           The address of RSI oracle
+     * @param  _lowerBound                  Lower bound of RSI to trigger a rebalance
+     * @param  _upperBound                  Upper bound of RSI to trigger a rebalance
+     * @param  _rsiTimePeriod               The amount of days to use in RSI calculation
+     * @param  _initialTrendAllocation      Starting allocation based on current trend
      */
     constructor(
         IMetaOracleV2 _rsiOracleInstance,
         uint256 _lowerBound,
         uint256 _upperBound,
-        uint256 _rsiTimePeriod
+        uint256 _rsiTimePeriod,
+        uint256 _initialTrendAllocation
     )
         public
     {
@@ -71,11 +74,18 @@ contract RSITrendingTrigger is
             "RSITrendingTrigger.constructor: Upper bound must be greater than lower bound"
         );
 
+        // Check that initial trend allocation matches one of the allocation constants
+        require(
+            _initialTrendAllocation == MAX_BASE_ASSET_ALLOCATION || _initialTrendAllocation == MIN_BASE_ASSET_ALLOCATION,
+            "RSITrendingTrigger.constructor: Initial trend allocation must match either min or max allocation values."
+        );
+
         // Set all state variables
         rsiOracleInstance = _rsiOracleInstance;
         lowerBound = _lowerBound;
         upperBound = _upperBound;
         rsiTimePeriod = _rsiTimePeriod;
+        currentTrendAllocation = _initialTrendAllocation;
     }
 
     /*
@@ -87,20 +97,19 @@ contract RSITrendingTrigger is
      */
     function getBaseAssetAllocation()
         external
-        view
         returns (uint256)
     {
         // Query RSI oracle
         uint256 rsiValue = rsiOracleInstance.read(rsiTimePeriod);
 
-        // Check RSI value is above upper bound or below lower bound to trigger a rebalance
-        require(
-            rsiValue >= upperBound || rsiValue < lowerBound,
-            "RSITrendingTrigger.checkPriceTrigger: RSI must be below lower bound or above upper bound"
-        );
+        // Check RSI value is above upper bound or below lower bound to trigger a change to currentTrendAllocation
+        if (rsiValue >= upperBound || rsiValue < lowerBound) {
+            // If RSI greater than upper bound return max allocation of base asset
+            // Else RSI less than lower bound return min allocation of base asset
+            currentTrendAllocation = rsiValue >= upperBound ? MAX_BASE_ASSET_ALLOCATION : MIN_BASE_ASSET_ALLOCATION;
+        }
 
-        // If RSI greater than upper bound return max allocation of base asset
-        // Else RSI less than lower bound return min allocation of base asset
-        return rsiValue >= upperBound ? MAX_BASE_ASSET_ALLOCATION : MIN_BASE_ASSET_ALLOCATION;
+        // If rsi is inside bounds then just return currentTrendAllocation
+        return currentTrendAllocation;
     }
 }

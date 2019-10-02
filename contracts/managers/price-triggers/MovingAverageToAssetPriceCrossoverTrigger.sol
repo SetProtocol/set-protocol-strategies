@@ -76,7 +76,6 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
      */
     function getBaseAssetAllocation()
         external
-        view
         returns (uint256)
     {
         // Query moving average and asset pair oracle

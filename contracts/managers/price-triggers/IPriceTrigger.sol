@@ -33,6 +33,5 @@ interface IPriceTrigger {
      */
     function getBaseAssetAllocation()
         external
-        view
         returns (uint256);
 }
