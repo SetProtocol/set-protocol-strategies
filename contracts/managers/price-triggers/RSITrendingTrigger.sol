@@ -48,27 +48,36 @@ contract RSITrendingTrigger is
     uint256 public lowerBound;
     uint256 public upperBound;
     uint256 public rsiTimePeriod;
+    uint256 public currentTrendAllocation;
 
     /*
      * RSITrendingTrigger constructor.
      *
-     * @param  _rsiOracleInstance        The address of RSI oracle
-     * @param  _lowerBound               Lower bound of RSI to trigger a rebalance
-     * @param  _upperBound               Upper bound of RSI to trigger a rebalance
-     * @param  _rsiTimePeriod            The amount of days to use in RSI calculation
+     * @param  _rsiOracleInstance           The address of RSI oracle
+     * @param  _lowerBound                  Lower bound of RSI to trigger a rebalance
+     * @param  _upperBound                  Upper bound of RSI to trigger a rebalance
+     * @param  _rsiTimePeriod               The amount of days to use in RSI calculation
+     * @param  _initialTrendAllocation      Starting allocation based on current trend
      */
     constructor(
         IMetaOracleV2 _rsiOracleInstance,
         uint256 _lowerBound,
         uint256 _upperBound,
-        uint256 _rsiTimePeriod
+        uint256 _rsiTimePeriod,
+        uint256 _initialTrendAllocation
     )
         public
     {
         // Check that upper bound value must be greater than lower bound value
         require(
-            _upperBound > _lowerBound,
+            _upperBound >= _lowerBound,
             "RSITrendingTrigger.constructor: Upper bound must be greater than lower bound"
+        );
+
+        // Check that initial trend allocation matches one of the allocation constants
+        require(
+            _initialTrendAllocation == MAX_BASE_ASSET_ALLOCATION || _initialTrendAllocation == MIN_BASE_ASSET_ALLOCATION,
+            "RSITrendingTrigger.constructor: Initial trend allocation must match either min or max allocation values."
         );
 
         // Set all state variables
@@ -76,31 +85,40 @@ contract RSITrendingTrigger is
         lowerBound = _lowerBound;
         upperBound = _upperBound;
         rsiTimePeriod = _rsiTimePeriod;
+        currentTrendAllocation = _initialTrendAllocation;
     }
 
     /*
      * Returns the percentage of base asset the calling Manager should allocate the RebalancingSetToken
      * to. If RSI is above upper bound then should be 100% allocated to base asset, if
-     * RSI is below lower bound then should be 0% allocated to base asset. Else function reverts.
+     * RSI is below lower bound then should be 0% allocated to base asset. If in between bounds then
+     * returns the allocation of the current trend.
      *
      * @return             The percentage of base asset to be allocated to
      */
-    function getBaseAssetAllocation()
+    function retrieveBaseAssetAllocation()
         external
-        view
         returns (uint256)
     {
         // Query RSI oracle
         uint256 rsiValue = rsiOracleInstance.read(rsiTimePeriod);
 
-        // Check RSI value is above upper bound or below lower bound to trigger a rebalance
-        require(
-            rsiValue >= upperBound || rsiValue < lowerBound,
-            "RSITrendingTrigger.checkPriceTrigger: RSI must be below lower bound or above upper bound"
-        );
+        // Check RSI value is above upper bound or below lower bound
+        bool isOutsideBounds = rsiValue >= upperBound || rsiValue < lowerBound;
 
-        // If RSI greater than upper bound return max allocation of base asset
-        // Else RSI less than lower bound return min allocation of base asset
-        return rsiValue >= upperBound ? MAX_BASE_ASSET_ALLOCATION : MIN_BASE_ASSET_ALLOCATION;
+        // If outside bounds trigger a change to currentTrendAllocation
+        if (isOutsideBounds) {
+            // If RSI greater than upper bound return max allocation of base asset
+            // Else RSI less than lower bound return min allocation of base asset
+            uint256 trendAllocation = rsiValue >= upperBound ? MAX_BASE_ASSET_ALLOCATION : MIN_BASE_ASSET_ALLOCATION;
+
+            // Set currentTrendAllocation if trend has changed
+            if (trendAllocation != currentTrendAllocation) {
+                currentTrendAllocation = trendAllocation;
+            }
+        }
+
+        // If rsi is inside bounds then just return currentTrendAllocation
+        return currentTrendAllocation;
     }
 }

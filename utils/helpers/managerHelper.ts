@@ -286,6 +286,7 @@ export class ManagerHelper {
     lowerBound: BigNumber,
     upperBound: BigNumber,
     rsiTimePeriod: BigNumber,
+    initialTrendAllocation: BigNumber,
     from: Address = this._tokenOwnerAddress,
   ): Promise<RSITrendingTriggerContract> {
     const trufflePriceTrigger = await RSITrendingTrigger.new(
@@ -293,6 +294,7 @@ export class ManagerHelper {
       lowerBound,
       upperBound,
       rsiTimePeriod,
+      initialTrendAllocation,
       { from }
     );
 
