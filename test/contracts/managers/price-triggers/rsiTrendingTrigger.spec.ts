@@ -216,7 +216,7 @@ contract('RSITrendingTrigger', accounts => {
     });
   });
 
-  describe('#getBaseAssetAllocation', async () => {
+  describe('#retrieveBaseAssetAllocation', async () => {
     let subjectCaller: Address;
 
     let initialTrendAllocation: BigNumber;
@@ -255,7 +255,7 @@ contract('RSITrendingTrigger', accounts => {
     });
 
     async function subject(): Promise<BigNumber> {
-      return priceTrigger.getBaseAssetAllocation.callAsync(
+      return priceTrigger.retrieveBaseAssetAllocation.callAsync(
         { from: subjectCaller, gas: DEFAULT_GAS}
       );
     }

@@ -96,7 +96,7 @@ contract RSITrendingTrigger is
      *
      * @return             The percentage of base asset to be allocated to
      */
-    function getBaseAssetAllocation()
+    function retrieveBaseAssetAllocation()
         external
         returns (uint256)
     {
