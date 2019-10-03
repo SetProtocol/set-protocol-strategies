@@ -19,6 +19,7 @@ import {
   TimeSeriesFeedContract
 } from '@utils/contracts';
 import { ONE_DAY_IN_SECONDS } from '@utils/constants';
+import { expectRevertError } from '@utils/tokenAssertions';
 import { getWeb3 } from '@utils/web3Helper';
 
 import { OracleHelper } from '@utils/helpers/oracleHelper';
@@ -157,6 +158,16 @@ contract('rsiOracle', accounts => {
       );
 
       expect(actualRSI).to.be.bignumber.equal(expectedRSI);
+    });
+
+    describe('when RSI time period is 0', async () => {
+      beforeEach(async () => {
+        subjectRSITimePeriod = new BigNumber(0);
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
     });
   });
 });
