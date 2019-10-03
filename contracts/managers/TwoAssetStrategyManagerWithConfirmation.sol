@@ -154,7 +154,7 @@ contract TwoAssetStrategyManagerWithConfirmation {
         FlexibleTimingManagerLibrary.validateManagerPropose(rebalancingSetTokenInstance);
         
         // Get new baseAsset allocation amount
-        uint256 newBaseAssetAllocation = priceTriggerInstance.getBaseAssetAllocation();
+        uint256 newBaseAssetAllocation = priceTriggerInstance.retrieveBaseAssetAllocation();
 
         // Check that new baseAsset allocation amount is different from current allocation amount
         require(
@@ -184,7 +184,7 @@ contract TwoAssetStrategyManagerWithConfirmation {
         FlexibleTimingManagerLibrary.validateManagerPropose(rebalancingSetTokenInstance);
         
         // Get new baseAsset allocation amount
-        uint256 newBaseAssetAllocation = priceTriggerInstance.getBaseAssetAllocation();
+        uint256 newBaseAssetAllocation = priceTriggerInstance.retrieveBaseAssetAllocation();
 
         // Check that new baseAsset allocation amount is different from current allocation amount
         require(
