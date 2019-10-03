@@ -205,7 +205,7 @@ contract('RSITrendingTrigger', accounts => {
       });
     });
 
-    describe('when lpassed initial trend allocation is not 0 or 100', async () => {
+    describe('when passed initial trend allocation is not 0 or 100', async () => {
       beforeEach(async () => {
         subjectInitialTrendAllocation = new BigNumber(50);
       });
