@@ -72,7 +72,7 @@ contract RSIOracle {
         view
         returns (uint256)
     {
-        // RSI period must be at 1
+        // RSI period must be at least 1
         require(
             _rsiTimePeriod >= 1,
             "RSIOracle.read: RSI time period must be at least 1"
