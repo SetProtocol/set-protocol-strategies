@@ -90,9 +90,7 @@ library RSILibrary{
         uint256 a = HUNDRED.mul(positiveDataSum);
         // b = SUM(Gain) + SUM(Loss) 
         uint256 b = positiveDataSum.add(negativeDataSum);
-        // c = a / b
-        uint256 c = a.div(b);
 
-        return c;
+        return a.div(b);
     }
 }
