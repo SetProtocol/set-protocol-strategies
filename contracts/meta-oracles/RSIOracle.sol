@@ -41,7 +41,7 @@ contract RSIOracle {
 
     /*
      * RSIOracle constructor.
-     * Contract used calculate RSI of data points provided by other on-chain
+     * Contract used to calculate RSI of data points provided by other on-chain
      * price feed and return to querying contract.
      *
      * @param  _timeSeriesFeed          TimeSeriesFeed to get list of data from
@@ -72,6 +72,12 @@ contract RSIOracle {
         view
         returns (uint256)
     {
+        // RSI period must be at least 1
+        require(
+            _rsiTimePeriod >= 1,
+            "RSIOracle.read: RSI time period must be at least 1"
+        );
+
         // Get data from price feed. This will be +1 the lookback period
         uint256[] memory dataArray = timeSeriesFeedInstance.read(_rsiTimePeriod.add(1));
 

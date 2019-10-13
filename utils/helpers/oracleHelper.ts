@@ -576,17 +576,19 @@ export class OracleHelper {
   }
 
   /*
+   * Calculates the new relative strength index value using
+   * an array of prices.
    *
    * RSI = 100 − 100 /
-   *       (1 + (Daily Average Gain / Daily Average Loss)
+   *       (1 + (Gain / Loss))
    *
-   * Daily Price Difference = Price(N) - Price(N-1) where n is number of days
-   * Daily Average Gain = Sum(Positive Daily Price Difference) / n
-   * Daily Average Loss = -1 * Sum(Positive Daily Price Difference) / n
+   * Price Difference = Price(N) - Price(N-1) where N is number of days
+   * Gain = Sum(Positive Price Difference)
+   * Loss = -1 * Sum(Negative Price Difference)
+   *
    *
    * Our implementation is simplified to the following for efficiency
-   * RSI = 100 - (100 * SUM(Loss) / ((SUM(Loss) + SUM(Gain)))
-   *
+   * RSI = (100 * SUM(Gain)) / (SUM(Loss) + SUM(Gain)
    */
 
   public calculateRSI(
@@ -610,10 +612,10 @@ export class OracleHelper {
 
     const bigHundred = new BigNumber(100);
 
-    const a = bigHundred.mul(negativeDataSum);
+    const a = bigHundred.mul(positiveDataSum);
     const b = positiveDataSum.add(negativeDataSum);
     const c = a.div(b).round(0, BigNumber.ROUND_DOWN);
 
-    return bigHundred.sub(c);
+    return c;
   }
 }

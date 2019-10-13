@@ -32,23 +32,23 @@ library RSILibrary{
 
     /* ============ Constants ============ */
     
-    uint256 constant HUNDRED = 100;
+    uint256 public constant HUNDRED = 100;
 
     /*
      * Calculates the new relative strength index value using
      * an array of prices.
      *
      * RSI = 100 − 100 / 
-     *       (1 + (Average Gain / Average Loss)
+     *       (1 + (Gain / Loss))
      *
      * Price Difference = Price(N) - Price(N-1) where N is number of days
-     * Average Gain = Sum(Positive Price Difference) / N 
-     * Average Loss = -1 * Sum(Negative Price Difference) / N 
-     * 
+     * Gain = Sum(Positive Price Difference)
+     * Loss = -1 * Sum(Negative Price Difference)
+     *
      *
      * Our implementation is simplified to the following for efficiency
-     * RSI = 100 - (100 * SUM(Loss) / ((SUM(Loss) + SUM(Gain)))
-     * 
+     * RSI = (100 * SUM(Gain)) / (SUM(Loss) + SUM(Gain))
+     *
      *
      * @param  _dataArray               Array of prices used to calculate the RSI
      * @returns                         The RSI value
@@ -57,12 +57,11 @@ library RSILibrary{
         uint256[] memory _dataArray
     )
         internal
-        view
+        pure
         returns (uint256)
     {   
         uint256 positiveDataSum = 0;
         uint256 negativeDataSum = 0;
-
 
         // Check that data points must be greater than 1
         require(
@@ -75,9 +74,9 @@ library RSILibrary{
             uint256 currentPrice = _dataArray[i - 1];
             uint256 previousPrice = _dataArray[i];
             if (currentPrice > previousPrice) {
-                positiveDataSum = positiveDataSum.add(currentPrice).sub(previousPrice);
+                positiveDataSum = currentPrice.sub(previousPrice).add(positiveDataSum);
             } else {
-                negativeDataSum = negativeDataSum.add(previousPrice).sub(currentPrice);
+                negativeDataSum = previousPrice.sub(currentPrice).add(negativeDataSum);
             }
         }
 
@@ -87,13 +86,11 @@ library RSILibrary{
             "RSILibrary.calculate: Not valid RSI Value"
         );
         
-        // a = 100 * SUM(Loss)
-        uint256 a = HUNDRED.mul(negativeDataSum);
+        // a = 100 * SUM(Gain)
+        uint256 a = HUNDRED.mul(positiveDataSum);
         // b = SUM(Gain) + SUM(Loss) 
         uint256 b = positiveDataSum.add(negativeDataSum);
-        // c = a / b
-        uint256 c = a.div(b);
 
-        return HUNDRED.sub(c);
+        return a.div(b);
     }
 }
