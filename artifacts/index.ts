@@ -14,6 +14,7 @@ export { MovingAverageOracle } from './ts/MovingAverageOracle';
 export { MovingAverageOracleV2 } from './ts/MovingAverageOracleV2';
 export { OracleProxy } from './ts/OracleProxy';
 export { PriceFeed } from './ts/PriceFeed';
+export { RSIOracle } from './ts/RSIOracle';
 export { TimeSeriesFeed } from './ts/TimeSeriesFeed';
 
 // Export abi-gen contract wrappers
@@ -36,5 +37,6 @@ export {
 	MovingAverageOracleV2Contract,
 	OracleProxyContract,
 	PriceFeedContract,
+	RSIOracleContract,
 	TimeSeriesFeedContract,
 } from "../utils/contracts";
