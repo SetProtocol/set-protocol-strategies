@@ -28,9 +28,11 @@ import {
 import {
   DEFAULT_GAS,
   ONE_DAY_IN_SECONDS,
+  ONE_HOUR_IN_SECONDS,
   ZERO,
 } from '@utils/constants';
 
+import { expectRevertError } from '@utils/tokenAssertions';
 import { getWeb3 } from '@utils/web3Helper';
 
 import { ManagerHelper } from '@utils/helpers/managerHelper';
@@ -97,8 +99,7 @@ contract('MovingAverageToAssetPriceCrossoverTrigger', accounts => {
       [linearizedDataSource.address]
     );
 
-    initialEthPrice = ether(150);
-    const seededValues = [initialEthPrice];
+    const seededValues = _.map(new Array(20), function(el, i) {return ether(150 + i); });
     timeSeriesFeed = await oracleHelper.deployTimeSeriesFeedAsync(
       linearizedDataSource.address,
       seededValues
@@ -119,18 +120,27 @@ contract('MovingAverageToAssetPriceCrossoverTrigger', accounts => {
     let subjectMovingAveragePriceFeedInstance: Address;
     let subjectAssetPairOracleInstance: Address;
     let subjectMovingAverageDays: BigNumber;
+    let subjectInitialAllocation: BigNumber;
+    let subjectSignalConfirmationMinTime: BigNumber;
+    let subjectSignalConfirmationMaxTime: BigNumber;
 
     beforeEach(async () => {
       subjectMovingAveragePriceFeedInstance = movingAverageOracle.address;
       subjectAssetPairOracleInstance = oracleProxy.address;
       subjectMovingAverageDays = new BigNumber(20);
+      subjectInitialAllocation = ZERO;
+      subjectSignalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
+      subjectSignalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
     });
 
     async function subject(): Promise<MovingAverageToAssetPriceCrossoverTriggerContract> {
       return managerHelper.deployMovingAverageToAssetPriceCrossoverTrigger(
         subjectMovingAveragePriceFeedInstance,
         subjectAssetPairOracleInstance,
-        subjectMovingAverageDays
+        subjectMovingAverageDays,
+        subjectInitialAllocation,
+        subjectSignalConfirmationMinTime,
+        subjectSignalConfirmationMaxTime
       );
     }
 
@@ -157,9 +167,44 @@ contract('MovingAverageToAssetPriceCrossoverTrigger', accounts => {
 
       expect(actualMovingAverageDays).to.be.bignumber.equal(subjectMovingAverageDays);
     });
+
+    it('sets the correct signalConfirmationMinTime', async () => {
+      priceTrigger = await subject();
+
+      const actualSignalConfirmationMinTime = await priceTrigger.signalConfirmationMinTime.callAsync();
+
+      expect(actualSignalConfirmationMinTime).to.be.bignumber.equal(subjectSignalConfirmationMinTime);
+    });
+
+    it('sets the correct signalConfirmationMaxTime', async () => {
+      priceTrigger = await subject();
+
+      const actualSignalConfirmationMaxTime = await priceTrigger.signalConfirmationMaxTime.callAsync();
+
+      expect(actualSignalConfirmationMaxTime).to.be.bignumber.equal(subjectSignalConfirmationMaxTime);
+    });
+
+    it('sets the correct lastConfirmedAllocation', async () => {
+      priceTrigger = await subject();
+
+      const actualBaseAssetAllocation = await priceTrigger.retrieveBaseAssetAllocation.callAsync();
+
+      expect(actualBaseAssetAllocation).to.be.bignumber.equal(subjectInitialAllocation);
+    });
+
+    it('sets the correct lastInitialTriggerTimestamp', async () => {
+      priceTrigger = await subject();
+
+      const block = await web3.eth.getBlock('latest');
+      const expectedTimestamp = new BigNumber(block.timestamp).sub(subjectSignalConfirmationMaxTime);
+
+      const actualLastInitialTriggerTimestamp = await priceTrigger.lastInitialTriggerTimestamp.callAsync();
+
+      expect(actualLastInitialTriggerTimestamp).to.be.bignumber.equal(expectedTimestamp);
+    });
   });
 
-  describe('#retrieveBaseAssetAllocation', async () => {
+  describe('#initialTrigger', async () => {
     let subjectCaller: Address;
 
     let updatedValues: BigNumber[];
@@ -170,10 +215,16 @@ contract('MovingAverageToAssetPriceCrossoverTrigger', accounts => {
 
     beforeEach(async () => {
       const movingAverageDays = new BigNumber(20);
+      const initialAllocation = ZERO;
+      const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
+      const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
       priceTrigger = await managerHelper.deployMovingAverageToAssetPriceCrossoverTrigger(
         movingAverageOracle.address,
         oracleProxy.address,
-        movingAverageDays
+        movingAverageDays,
+        initialAllocation,
+        signalConfirmationMinTime,
+        signalConfirmationMaxTime
       );
       await oracleHelper.addAuthorizedAddressesToOracleProxy(
         oracleProxy,
@@ -190,32 +241,171 @@ contract('MovingAverageToAssetPriceCrossoverTrigger', accounts => {
       subjectCaller = deployerAccount;
     });
 
-    async function subject(): Promise<BigNumber> {
-      return priceTrigger.retrieveBaseAssetAllocation.callAsync(
+    async function subject(): Promise<string> {
+      return priceTrigger.initialTrigger.sendTransactionAsync(
         { from: subjectCaller, gas: DEFAULT_GAS}
       );
     }
 
-    it('with price over moving average it returns 100', async () => {
-      const actualReturnedAllocation = await subject();
+    it('sets the proposalTimestamp correctly', async () => {
+      await subject();
 
-      const expectedReturnedAllocation = new BigNumber(100);
+      const block = await web3.eth.getBlock('latest');
+      const expectedTimestamp = new BigNumber(block.timestamp);
 
-      expect(actualReturnedAllocation).to.be.bignumber.equal(expectedReturnedAllocation);
+      const actualTimestamp = await priceTrigger.lastInitialTriggerTimestamp.callAsync();
+      expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
     });
 
-    describe('when price is below moving average', async () => {
+    describe('but not enough time has passed from last initial propose', async () => {
+      beforeEach(async () => {
+        await priceTrigger.initialTrigger.sendTransactionAsync();
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('but price trigger has not flipped', async () => {
       before(async () => {
         updatedValues = _.map(new Array(19), function(el, i) {return ether(170 - i); });
       });
 
-      it('returns 0', async () => {
-        const actualReturnedAllocation = await subject();
-
-        const expectedReturnedAllocation = ZERO;
-
-        expect(actualReturnedAllocation).to.be.bignumber.equal(expectedReturnedAllocation);
+      it('should revert', async () => {
+        await expectRevertError(subject());
       });
+    });
+  });
+
+  describe('#confirmTrigger', async () => {
+    let subjectTimeFastForward: BigNumber;
+    let subjectCaller: Address;
+
+    let updatedValues: BigNumber[];
+    let lastPrice: BigNumber;
+    let signalConfirmationMinTime: BigNumber;
+    let signalConfirmationMaxTime: BigNumber;
+
+    before(async () => {
+      lastPrice = ether(170);
+      updatedValues = _.map(new Array(19), function(el, i) {return ether(150 + i); });
+    });
+
+    beforeEach(async () => {
+      const movingAverageDays = new BigNumber(20);
+      const initialAllocation = ZERO;
+      signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
+      signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
+      priceTrigger = await managerHelper.deployMovingAverageToAssetPriceCrossoverTrigger(
+        movingAverageOracle.address,
+        oracleProxy.address,
+        movingAverageDays,
+        initialAllocation,
+        signalConfirmationMinTime,
+        signalConfirmationMaxTime
+      );
+      await oracleHelper.addAuthorizedAddressesToOracleProxy(
+        oracleProxy,
+        [priceTrigger.address]
+      );
+
+      await oracleHelper.batchUpdateTimeSeriesFeedAsync(
+        timeSeriesFeed,
+        ethMedianizer,
+        updatedValues.length,
+        updatedValues
+      );
+
+      await priceTrigger.initialTrigger.sendTransactionAsync();
+
+      const lastBlockInfo = await web3.eth.getBlock('latest');
+      await oracleHelper.updateMedianizerPriceAsync(
+        ethMedianizer,
+        lastPrice,
+        new BigNumber(lastBlockInfo.timestamp + 1),
+      );
+
+      subjectTimeFastForward = signalConfirmationMinTime.add(1);
+      subjectCaller = deployerAccount;
+    });
+
+    async function subject(): Promise<string> {
+      await blockchain.increaseTimeAsync(subjectTimeFastForward);
+      return priceTrigger.confirmTrigger.sendTransactionAsync(
+        { from: subjectCaller, gas: DEFAULT_GAS}
+      );
+    }
+
+    it('sets the lastConfirmedAllocation correctly', async () => {
+      await subject();
+
+      const actualLastConfirmedAllocation = await priceTrigger.retrieveBaseAssetAllocation.callAsync();
+      expect(actualLastConfirmedAllocation).to.be.bignumber.equal(new BigNumber(100));
+    });
+
+    describe('but not enough time has passed from initial propose', async () => {
+      beforeEach(async () => {
+        subjectTimeFastForward = signalConfirmationMinTime.sub(10);
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('but too much time has passed from initial propose', async () => {
+      beforeEach(async () => {
+        subjectTimeFastForward = signalConfirmationMaxTime.add(1);
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('but price trigger has not flipped', async () => {
+      before(async () => {
+        lastPrice = ether(150);
+      });
+
+      after(async () => {
+        lastPrice = ether(170);
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+  });
+
+  describe('#retrieveBaseAssetAllocation', async () => {
+    let initialAllocation: BigNumber;
+
+    beforeEach(async () => {
+      const movingAverageDays = new BigNumber(20);
+      initialAllocation = ZERO;
+      const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
+      const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
+      priceTrigger = await managerHelper.deployMovingAverageToAssetPriceCrossoverTrigger(
+        movingAverageOracle.address,
+        oracleProxy.address,
+        movingAverageDays,
+        initialAllocation,
+        signalConfirmationMinTime,
+        signalConfirmationMaxTime
+      );
+    });
+
+    async function subject(): Promise<BigNumber> {
+      return priceTrigger.retrieveBaseAssetAllocation.callAsync();
+    }
+
+    it('retrieves the lastConfirmedAllocation', async () => {
+      const actualLastConfirmedAllocation = await subject();
+
+      const expectedLastConfirmedAllocation = initialAllocation;
+      expect(actualLastConfirmedAllocation).to.be.bignumber.equal(expectedLastConfirmedAllocation);
     });
   });
 });

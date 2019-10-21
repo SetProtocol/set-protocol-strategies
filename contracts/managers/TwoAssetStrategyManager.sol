@@ -37,7 +37,7 @@ import { IPriceTrigger } from "./price-triggers/IPriceTrigger.sol";
  * chosen using the manager's AllocationPricer contract. This manager requires confirmation for all
  * potential rebalances, the confirmation window is defined on deployment of the manager contract.
  */
-contract TwoAssetStrategyManagerWithConfirmation {
+contract TwoAssetStrategyManager {
     using SafeMath for uint256;
 
     /* ============ State Variables ============ */
@@ -46,13 +46,10 @@ contract TwoAssetStrategyManagerWithConfirmation {
     IPriceTrigger public priceTriggerInstance;
     IAllocationPricer public allocationPricerInstance;
     IRebalancingSetToken public rebalancingSetTokenInstance;
-    uint256 public baseAssetAllocation;
+    uint256 public baseAssetAllocation;  // Percent of base asset currently allocated in strategy
     uint256 public auctionTimeToPivot;
-    uint256 public auctionSpeed;
-    uint256 public signalConfirmationMinTime;
-    uint256 public signalConfirmationMaxTime;
-    uint256 public lastCrossoverConfirmationTimestamp;
-    address public contractDeployer;
+    uint256 public auctionSpeed;  // The amount of seconds to explore 1% of prices
+    address public initializerAddress;
 
     /*
      * TwoAssetStrategyManagerWithConfirmation constructor.
@@ -64,10 +61,6 @@ contract TwoAssetStrategyManagerWithConfirmation {
      * @param  _baseAssetAllocation             Starting allocation of the Rebalancing Set in baseAsset amount
      * @param  _auctionTimeToPivot              The amount of time until pivot reached in rebalance
      * @param  _auctionSpeed                    Time, in seconds, where 1% of prices are explored during auction
-     * @param  _signalConfirmationMinTime       The minimum time, in seconds, confirm signal an be called after the
-     *                                          last initial crossover confirmation
-     * @param  _signalConfirmationMaxTime       The maximum time, in seconds, confirm signal an be called after the
-     *                                          last initial crossover confirmation
      */
     constructor(
         ICore _coreInstance,
@@ -76,9 +69,7 @@ contract TwoAssetStrategyManagerWithConfirmation {
         IAuctionPriceCurve _auctionLibraryInstance,
         uint256 _baseAssetAllocation,
         uint256 _auctionTimeToPivot,
-        uint256 _auctionSpeed,
-        uint256 _signalConfirmationMinTime,
-        uint256 _signalConfirmationMaxTime
+        uint256 _auctionSpeed
     )
         public
     {
@@ -89,18 +80,14 @@ contract TwoAssetStrategyManagerWithConfirmation {
         baseAssetAllocation = _baseAssetAllocation;
         auctionTimeToPivot = _auctionTimeToPivot;
         auctionSpeed = _auctionSpeed;
-        signalConfirmationMinTime = _signalConfirmationMinTime;
-        signalConfirmationMaxTime = _signalConfirmationMaxTime;
-        contractDeployer = msg.sender;
+        initializerAddress = msg.sender;
     }
 
     /* ============ External ============ */
 
     /*
      * This function sets the Rebalancing Set Token address that the manager is associated with.
-     * Since the rebalancing set token must first specify the address of the manager before deployment,
-     * we cannot know what the rebalancing set token is in advance. This function is only meant to be called 
-     * once during initialization by the contract deployer.
+     * This function is only meant to be called once during initialization by the contract deployer.
      *
      * @param  _rebalancingSetTokenInstance       The address of the rebalancing Set token
      */
@@ -111,7 +98,7 @@ contract TwoAssetStrategyManagerWithConfirmation {
     {
         // Check that contract deployer is calling function
         require(
-            msg.sender == contractDeployer,
+            msg.sender == initializerAddress,
             "MACOStrategyManager.initialize: Only the contract deployer can initialize"
         );
 
@@ -121,65 +108,17 @@ contract TwoAssetStrategyManagerWithConfirmation {
             "MACOStrategyManager.initialize: Invalid or disabled RebalancingSetToken address"
         );
 
-        address currentCollateralSet = _rebalancingSetTokenInstance.currentSet();
-
-        ISetToken expectedCollateral = baseAssetAllocation == 100 ? allocationPricerInstance.baseAssetCollateralInstance() :
-            allocationPricerInstance.quoteAssetCollateralInstance();
-
-        require(
-            currentCollateralSet == address(expectedCollateral),
-            "MACOStrategyManager.initialize: Rebalancing Set collateral must match collateral on allocation pricer."
-        );
-
         rebalancingSetTokenInstance = _rebalancingSetTokenInstance;
-        contractDeployer = address(0);
+        initializerAddress = address(0);
     }
 
-    /*
+     /*
      * When allowed on RebalancingSetToken, anyone can call for a new rebalance proposal. Assuming the criteria
-     * have been met, this begins a six hour period where the signal can be confirmed before moving ahead with
-     * the rebalance.
-     *
+     * have been met, determine parameters for the rebalance
      */
-    function initialPropose()
+    function propose()
         external
     {
-        // Make sure propose in manager hasn't already been initiated
-        require(
-            block.timestamp > lastCrossoverConfirmationTimestamp.add(signalConfirmationMaxTime),
-            "MACOStrategyManager.initialPropose: Not enough time passed from last proposal."
-        );
-        
-        // Create interface to interact with RebalancingSetToken and check enough time has passed for proposal
-        FlexibleTimingManagerLibrary.validateManagerPropose(rebalancingSetTokenInstance);
-        
-        // Get new baseAsset allocation amount
-        uint256 newBaseAssetAllocation = priceTriggerInstance.retrieveBaseAssetAllocation();
-
-        // Check that new baseAsset allocation amount is different from current allocation amount
-        require(
-            newBaseAssetAllocation != baseAssetAllocation,
-            "TwoAssetStrategyManagerWithConfirmation.initialPropose: Price trigger not met."
-        );     
-
-        // Set crossover confirmation timestamp
-        lastCrossoverConfirmationTimestamp = block.timestamp;
-    }
-
-    /*
-     * After initial propose is called, confirm the signal has been met and determine parameters for the rebalance
-     *
-     */
-    function confirmPropose()
-        external
-    {
-        // Make sure enough time has passed to initiate proposal on Rebalancing Set Token
-        require(
-            block.timestamp >= lastCrossoverConfirmationTimestamp.add(signalConfirmationMinTime) &&
-            block.timestamp <= lastCrossoverConfirmationTimestamp.add(signalConfirmationMaxTime),
-            "MACOStrategyManager.confirmPropose: Confirming signal must be within bounds of the initial propose"
-        );
-
         // Create interface to interact with RebalancingSetToken and check enough time has passed for proposal
         FlexibleTimingManagerLibrary.validateManagerPropose(rebalancingSetTokenInstance);
         

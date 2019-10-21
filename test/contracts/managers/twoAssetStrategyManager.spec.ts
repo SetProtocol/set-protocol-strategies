@@ -33,7 +33,7 @@ import {
   LinearizedEMATimeSeriesFeedContract,
   MovingAverageToAssetPriceCrossoverTriggerContract,
   OracleProxyContract,
-  TwoAssetStrategyManagerWithConfirmationContract,
+  TwoAssetStrategyManagerContract,
   USDCMockContract,
 } from '@utils/contracts';
 
@@ -94,7 +94,7 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
   let priceTrigger: MovingAverageToAssetPriceCrossoverTriggerContract;
   let allocationPricer: BinaryAllocationPricerContract;
 
-  let setManager: TwoAssetStrategyManagerWithConfirmationContract;
+  let setManager: TwoAssetStrategyManagerContract;
   let quoteAssetCollateral: SetTokenContract;
   let baseAssetCollateral: SetTokenContract;
 
@@ -187,10 +187,16 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
       RISK_COLLATERAL_NATURAL_UNIT,
     );
 
+    const initialAllocation = new BigNumber(100);
+    const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
+    const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
     priceTrigger = await managerHelper.deployMovingAverageToAssetPriceCrossoverTrigger(
       emaOracle.address,
       oracleProxy.address,
-      timePeriod
+      timePeriod,
+      initialAllocation,
+      signalConfirmationMinTime,
+      signalConfirmationMaxTime
     );
 
     allocationPricer = await managerHelper.deployBinaryAllocationPricerAsync(
@@ -239,7 +245,7 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
       subjectCaller = deployerAccount;
     });
 
-    async function subject(): Promise<TwoAssetStrategyManagerWithConfirmationContract> {
+    async function subject(): Promise<TwoAssetStrategyManagerContract> {
       return managerHelper.deployTwoAssetStrategyManagerWithConfirmationAsync(
         subjectCoreInstance,
         subjectPriceTriggerInstance,
@@ -310,28 +316,12 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
       expect(actualAuctionSpeed).to.be.bignumber.equal(subjectAuctionSpeed);
     });
 
-    it('sets the correct signalConfirmationMinTime', async () => {
+    it('sets the correct initializerAddress', async () => {
       setManager = await subject();
 
-      const actualSignalConfirmationMinTime = await setManager.signalConfirmationMinTime.callAsync();
+      const actualInitializerAddress = await setManager.initializerAddress.callAsync();
 
-      expect(actualSignalConfirmationMinTime).to.be.bignumber.equal(subjectSignalConfirmationMinTime);
-    });
-
-    it('sets the correct signalConfirmationMaxTime', async () => {
-      setManager = await subject();
-
-      const actualSignalConfirmationMaxTime = await setManager.signalConfirmationMaxTime.callAsync();
-
-      expect(actualSignalConfirmationMaxTime).to.be.bignumber.equal(subjectSignalConfirmationMaxTime);
-    });
-
-    it('sets the correct contractDeployer', async () => {
-      setManager = await subject();
-
-      const actualContractDeployer = await setManager.contractDeployer.callAsync();
-
-      expect(actualContractDeployer).to.equal(subjectCaller);
+      expect(actualInitializerAddress).to.equal(subjectCaller);
     });
   });
 
@@ -386,12 +376,12 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
       expect(actualRebalancingSetTokenInstance).to.equal(subjectRebalancingSetToken);
     });
 
-    it('sets the contract deployer address to zero', async () => {
+    it('sets the intializer address to zero', async () => {
       await subject();
 
-      const actualContractDeployer = await setManager.contractDeployer.callAsync();
+      const actualInitializerAddress = await setManager.initializerAddress.callAsync();
 
-      expect(actualContractDeployer).to.equal(NULL_ADDRESS);
+      expect(actualInitializerAddress).to.equal(NULL_ADDRESS);
     });
 
     describe('but caller is not the contract deployer', async () => {
@@ -426,247 +416,9 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
         await expectRevertError(subject());
       });
     });
-
-    describe('but the passed collateral set is not one of the allocation pricer collaterals', async () => {
-      beforeEach(async () => {
-        const unTrackedCollateral = await protocolHelper.createSetTokenAsync(
-          core,
-          factory.address,
-          [wrappedETH.address],
-          [new BigNumber(10 ** 6)],
-          RISK_COLLATERAL_NATURAL_UNIT,
-        );
-
-        const badCollateralRBSet = await protocolHelper.createDefaultRebalancingSetTokenAsync(
-          core,
-          rebalancingFactory.address,
-          setManager.address,
-          unTrackedCollateral.address,
-          proposalPeriod,
-        );
-
-        subjectRebalancingSetToken = badCollateralRBSet.address;
-      });
-
-      it('should revert', async () => {
-        await expectRevertError(subject());
-      });
-    });
   });
 
-  describe('#initialPropose', async () => {
-    let subjectTimeFastForward: BigNumber;
-    let subjectCaller: Address;
-
-    let lastPrice: BigNumber;
-
-    let baseAssetAllocation: BigNumber;
-    let auctionTimeToPivot: BigNumber;
-
-    let collateralSetAddress: Address;
-    let proposalPeriod: BigNumber;
-
-    before(async () => {
-      lastPrice = ether(140);
-      baseAssetAllocation = new BigNumber(100);
-    });
-
-    beforeEach(async () => {
-      await oracleHelper.updateTimeSeriesFeedAsync(
-        timeSeriesFeed,
-        ethMedianizer,
-        lastPrice
-      );
-
-      auctionTimeToPivot = ONE_DAY_IN_SECONDS.div(4);
-      const auctionSpeed = ONE_HOUR_IN_SECONDS.div(6);
-      const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
-      const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
-      setManager = await  managerHelper.deployTwoAssetStrategyManagerWithConfirmationAsync(
-        core.address,
-        priceTrigger.address,
-        allocationPricer.address,
-        linearAuctionPriceCurve.address,
-        baseAssetAllocation,
-        auctionTimeToPivot,
-        auctionSpeed,
-        signalConfirmationMinTime,
-        signalConfirmationMaxTime,
-        subjectCaller,
-      );
-
-      collateralSetAddress = baseAssetAllocation.equals(ZERO) ? quoteAssetCollateral.address
-        : baseAssetCollateral.address;
-
-      proposalPeriod = ONE_DAY_IN_SECONDS;
-      rebalancingSetToken = await protocolHelper.createDefaultRebalancingSetTokenAsync(
-        core,
-        rebalancingFactory.address,
-        setManager.address,
-        collateralSetAddress,
-        proposalPeriod
-      );
-
-      await setManager.initialize.sendTransactionAsync(
-        rebalancingSetToken.address,
-        { from: subjectCaller, gas: DEFAULT_GAS}
-      );
-
-      const blockInfo = await web3.eth.getBlock('latest');
-      await oracleHelper.updateMedianizerPriceAsync(
-        ethMedianizer,
-        lastPrice,
-        new BigNumber(blockInfo.timestamp + 1),
-      );
-
-      subjectTimeFastForward = ONE_DAY_IN_SECONDS.add(1);
-      subjectCaller = deployerAccount;
-    });
-
-    async function subject(): Promise<string> {
-      await blockchain.increaseTimeAsync(subjectTimeFastForward);
-      return setManager.initialPropose.sendTransactionAsync(
-        { from: subjectCaller, gas: DEFAULT_GAS}
-      );
-    }
-
-    describe('when propose is called from the Default state', async () => {
-      describe('and allocating from baseAsset to quoteAsset', async () => {
-        it('sets the proposalTimestamp correctly', async () => {
-          await subject();
-
-          const block = await web3.eth.getBlock('latest');
-          const expectedTimestamp = new BigNumber(block.timestamp);
-
-          const actualTimestamp = await setManager.lastCrossoverConfirmationTimestamp.callAsync();
-          expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
-        });
-
-        describe('but price has not dipped below MA', async () => {
-          before(async () => {
-            lastPrice = ether(170);
-          });
-
-          after(async () => {
-            lastPrice = ether(140);
-          });
-
-          it('should revert', async () => {
-            await expectRevertError(subject());
-          });
-        });
-
-        describe('when 12 hours has not passed from an initial proposal', async () => {
-          beforeEach(async () => {
-            const timeFastForward = ONE_DAY_IN_SECONDS;
-            await blockchain.increaseTimeAsync(timeFastForward);
-            await setManager.initialPropose.sendTransactionAsync();
-            subjectTimeFastForward = ONE_DAY_IN_SECONDS.div(4);
-          });
-
-          it('should revert', async () => {
-            await expectRevertError(subject());
-          });
-        });
-
-        describe('but the rebalance interval has not elapsed', async () => {
-          beforeEach(async () => {
-            subjectTimeFastForward = ONE_DAY_IN_SECONDS.sub(10);
-          });
-
-          it('should revert', async () => {
-            await expectRevertError(subject());
-          });
-        });
-      });
-
-      describe('and allocating from quoteAsset to baseAsset', async () => {
-        before(async () => {
-          lastPrice = ether(170);
-          collateralSetAddress = quoteAssetCollateral.address;
-          baseAssetAllocation = ZERO;
-        });
-
-        it('sets the proposalTimestamp correctly', async () => {
-          await subject();
-
-          const block = await web3.eth.getBlock('latest');
-          const expectedTimestamp = new BigNumber(block.timestamp);
-
-          const actualTimestamp = await setManager.lastCrossoverConfirmationTimestamp.callAsync();
-          expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
-        });
-
-        describe('but price has not dipped below MA', async () => {
-          before(async () => {
-            lastPrice = ether(150);
-          });
-
-          after(async () => {
-            lastPrice = ether(170);
-          });
-
-          it('should revert', async () => {
-            await expectRevertError(subject());
-          });
-        });
-      });
-    });
-
-    describe('when propose is called and rebalancing set token is in Proposal state', async () => {
-      beforeEach(async () => {
-        await blockchain.increaseTimeAsync(subjectTimeFastForward);
-        await setManager.initialPropose.sendTransactionAsync(
-          { from: subjectCaller, gas: DEFAULT_GAS}
-        );
-
-        await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS.div(4));
-        await setManager.confirmPropose.sendTransactionAsync();
-      });
-
-      it('should revert', async () => {
-        await expectRevertError(subject());
-      });
-    });
-
-    describe('when propose is called and rebalancing set token is in Rebalance state', async () => {
-      beforeEach(async () => {
-        // Issue currentSetToken
-        const initialAllocationTokenAddress = await rebalancingSetToken.currentSet.callAsync();
-        const initialAllocationToken = await protocolHelper.getSetTokenAsync(initialAllocationTokenAddress);
-        await core.issue.sendTransactionAsync(
-          initialAllocationToken.address,
-          ether(9),
-          {from: deployerAccount, gas: DEFAULT_GAS},
-        );
-        await erc20Helper.approveTransfersAsync([initialAllocationToken], transferProxy.address);
-
-        // Use issued currentSetToken to issue rebalancingSetToken
-        await core.issue.sendTransactionAsync(
-          rebalancingSetToken.address,
-          ether(7),
-          { from: deployerAccount, gas: DEFAULT_GAS }
-        );
-
-        await blockchain.increaseTimeAsync(subjectTimeFastForward);
-        await setManager.initialPropose.sendTransactionAsync(
-          { from: subjectCaller, gas: DEFAULT_GAS}
-        );
-
-        await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS.div(4));
-        await setManager.confirmPropose.sendTransactionAsync();
-
-        await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS);
-        await rebalancingSetToken.startRebalance.sendTransactionAsync();
-      });
-
-      it('should revert', async () => {
-        await expectRevertError(subject());
-      });
-    });
-  });
-
-  describe('#confirmPropose', async () => {
+  describe('#propose', async () => {
     let subjectTimeFastForward: BigNumber;
     let subjectCaller: Address;
 
@@ -727,7 +479,7 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
       );
 
       await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS.add(1));
-      await setManager.initialPropose.sendTransactionAsync();
+      // await setManager.initialPropose.sendTransactionAsync();
 
       const lastBlockInfo = await web3.eth.getBlock('latest');
       await oracleHelper.updateMedianizerPriceAsync(
@@ -742,9 +494,9 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
 
     async function subject(): Promise<string> {
       await blockchain.increaseTimeAsync(subjectTimeFastForward);
-      return setManager.confirmPropose.sendTransactionAsync(
-        { from: subjectCaller, gas: DEFAULT_GAS}
-      );
+      return; // setManager.confirmPropose.sendTransactionAsync(
+      //   { from: subjectCaller, gas: DEFAULT_GAS}
+      // );
     }
 
     describe('when propose is called from the Default state', async () => {
@@ -836,7 +588,6 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
 
             const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
               baseAssetCollateral,
-              quoteAssetCollateral,
               triggerPrice,
               usdcPrice,
               ETH_DECIMALS,
@@ -854,7 +605,6 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
 
             const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
               baseAssetCollateral,
-              quoteAssetCollateral,
               triggerPrice,
               usdcPrice,
               ETH_DECIMALS,
@@ -946,7 +696,6 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
 
             const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
               baseAssetCollateral,
-              quoteAssetCollateral,
               triggerPrice,
               usdcPrice,
               ETH_DECIMALS,
@@ -964,7 +713,6 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
 
             const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
               baseAssetCollateral,
-              quoteAssetCollateral,
               triggerPrice,
               usdcPrice,
               ETH_DECIMALS,
@@ -1156,7 +904,6 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
 
             const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
               quoteAssetCollateral,
-              baseAssetCollateral,
               usdcPrice,
               triggerPrice,
               USDC_DECIMALS,
@@ -1174,7 +921,6 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
 
             const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
               quoteAssetCollateral,
-              baseAssetCollateral,
               usdcPrice,
               triggerPrice,
               USDC_DECIMALS,
@@ -1266,7 +1012,6 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
 
             const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
               quoteAssetCollateral,
-              baseAssetCollateral,
               usdcPrice,
               triggerPrice,
               USDC_DECIMALS,
@@ -1285,7 +1030,6 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
 
             const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
               quoteAssetCollateral,
-              baseAssetCollateral,
               usdcPrice,
               triggerPrice,
               USDC_DECIMALS,
@@ -1387,6 +1131,58 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
             await expectRevertError(subject());
           });
         });
+      });
+    });
+
+    describe('when propose is called and rebalancing set token is in Proposal state', async () => {
+      beforeEach(async () => {
+        await blockchain.increaseTimeAsync(subjectTimeFastForward);
+        // await setManager.initialPropose.sendTransactionAsync(
+        //   { from: subjectCaller, gas: DEFAULT_GAS}
+        // );
+
+        await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS.div(4));
+        // await setManager.confirmPropose.sendTransactionAsync();
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('when propose is called and rebalancing set token is in Rebalance state', async () => {
+      beforeEach(async () => {
+        // Issue currentSetToken
+        const initialAllocationTokenAddress = await rebalancingSetToken.currentSet.callAsync();
+        const initialAllocationToken = await protocolHelper.getSetTokenAsync(initialAllocationTokenAddress);
+        await core.issue.sendTransactionAsync(
+          initialAllocationToken.address,
+          ether(9),
+          {from: deployerAccount, gas: DEFAULT_GAS},
+        );
+        await erc20Helper.approveTransfersAsync([initialAllocationToken], transferProxy.address);
+
+        // Use issued currentSetToken to issue rebalancingSetToken
+        await core.issue.sendTransactionAsync(
+          rebalancingSetToken.address,
+          ether(7),
+          { from: deployerAccount, gas: DEFAULT_GAS }
+        );
+
+        await blockchain.increaseTimeAsync(subjectTimeFastForward);
+        // await setManager.initialPropose.sendTransactionAsync(
+        //   { from: subjectCaller, gas: DEFAULT_GAS}
+        // );
+
+        await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS.div(4));
+        // await setManager.confirmPropose.sendTransactionAsync();
+
+        await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS);
+        await rebalancingSetToken.startRebalance.sendTransactionAsync();
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
       });
     });
   });

@@ -34,4 +34,16 @@ interface IPriceTrigger {
     function retrieveBaseAssetAllocation()
         external
         returns (uint256);
+
+    /*
+     * For triggers that require confirmation, start the confirmation period.
+     */
+    function initialTrigger()
+        external;
+
+    /*
+     * For triggers that require confirmation, confirm the signal.
+     */
+    function confirmTrigger()
+        external;
 }

@@ -42,12 +42,4 @@ interface IAllocationPricer {
     )
         external
         returns (address, uint256, uint256);
-
-    function baseAssetCollateralInstance()
-        external
-        returns (ISetToken);
-
-    function quoteAssetCollateralInstance()
-        external
-        returns (ISetToken);
 }

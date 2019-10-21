@@ -17,6 +17,8 @@
 pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
+import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+
 import { IPriceTrigger } from "./IPriceTrigger.sol";
 import { IOracle } from "../../meta-oracles/interfaces/IOracle.sol";
 import { IMetaOracleV2 } from "../../meta-oracles/interfaces/IMetaOracleV2.sol";
@@ -38,6 +40,8 @@ import { IMetaOracleV2 } from "../../meta-oracles/interfaces/IMetaOracleV2.sol";
 contract MovingAverageToAssetPriceCrossoverTrigger is
     IPriceTrigger
 {
+    using SafeMath for uint256;
+
     /* ============ Constants ============ */
     uint256 constant MAX_BASE_ASSET_ALLOCATION = 100;
     uint256 constant MIN_BASE_ASSET_ALLOCATION = 0;
@@ -46,6 +50,11 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
     IMetaOracleV2 public movingAveragePriceFeedInstance;
     IOracle public assetPairOracleInstance;
     uint256 public movingAverageDays;
+    uint256 private lastConfirmedAllocation;
+
+    uint256 public signalConfirmationMinTime;
+    uint256 public signalConfirmationMaxTime;
+    uint256 public lastInitialTriggerTimestamp;
 
     /*
      * MovingAverageToAssetPriceCrossoverTrigger constructor.
@@ -57,7 +66,11 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
     constructor(
         IMetaOracleV2 _movingAveragePriceFeedInstance,
         IOracle _assetPairOracleInstance,
-        uint256 _movingAverageDays
+        uint256 _movingAverageDays,
+        uint256 _initialAllocation,
+        uint256 _signalConfirmationMinTime,
+        uint256 _signalConfirmationMaxTime
+
     )
         public
     {
@@ -65,6 +78,52 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
         movingAveragePriceFeedInstance = _movingAveragePriceFeedInstance;
         assetPairOracleInstance = _assetPairOracleInstance;
         movingAverageDays = _movingAverageDays;
+        signalConfirmationMinTime = _signalConfirmationMinTime;
+        signalConfirmationMaxTime = _signalConfirmationMaxTime;
+        lastConfirmedAllocation = _initialAllocation;
+
+        // Set lastInitialTriggerTimestamp such that next crossover has to start with initialTrigger
+        lastInitialTriggerTimestamp = block.timestamp - _signalConfirmationMaxTime;
+    }
+
+    /* ============ External ============ */
+
+    function initialTrigger()
+        external
+    {
+        require(
+            block.timestamp > lastInitialTriggerTimestamp.add(signalConfirmationMaxTime),
+            "MovingAverageToAssetPriceCrossoverTrigger.initialTrigger: Not enough time passed from last initial crossover."
+        );
+
+        // Get current market allocation and check that it's different from last confirmed allocation
+        uint256 currentMarketAllocation = getCurrentMarketAllocation();
+        require(
+            currentMarketAllocation != lastConfirmedAllocation,
+            "MovingAverageToAssetPriceCrossoverTrigger.initialTrigger: Market conditions have not changed since last confirmed allocation."
+        );
+
+        lastInitialTriggerTimestamp = block.timestamp;
+    }
+
+    function confirmTrigger()
+        external
+    {
+        // Make sure enough time has passed to initiate proposal on Rebalancing Set Token
+        require(
+            block.timestamp >= lastInitialTriggerTimestamp.add(signalConfirmationMinTime) &&
+            block.timestamp <= lastInitialTriggerTimestamp.add(signalConfirmationMaxTime),
+            "MACOStrategyManager.confirmPropose: Confirming signal must be within bounds of the initial propose"
+        );
+
+        // Get current market allocation and check that it's different from last confirmed allocation
+        uint256 currentMarketAllocation = getCurrentMarketAllocation();
+        require(
+            currentMarketAllocation != lastConfirmedAllocation,
+            "MovingAverageToAssetPriceCrossoverTrigger.initialTrigger: Market conditions have not changed since last confirmed allocation."
+        );
+
+        lastConfirmedAllocation = currentMarketAllocation;
     }
 
     /*
@@ -78,12 +137,21 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
         external
         returns (uint256)
     {
+        return lastConfirmedAllocation;
+    }
+
+    /* ============ Internal ============ */
+
+    function getCurrentMarketAllocation()
+        internal
+        returns(uint256)
+    {
         // Query moving average and asset pair oracle
         uint256 movingAveragePrice = movingAveragePriceFeedInstance.read(movingAverageDays);
         uint256 assetPairPrice = assetPairOracleInstance.read();
 
         // If asset pair price greater than moving average return max allocation of base asset, else return
         // min allocation
-        return assetPairPrice > movingAveragePrice ? MAX_BASE_ASSET_ALLOCATION : MIN_BASE_ASSET_ALLOCATION;
+        return assetPairPrice > movingAveragePrice ? MAX_BASE_ASSET_ALLOCATION : MIN_BASE_ASSET_ALLOCATION;        
     }
 }

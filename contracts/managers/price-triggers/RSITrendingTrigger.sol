@@ -121,4 +121,18 @@ contract RSITrendingTrigger is
         // If rsi is inside bounds then just return currentTrendAllocation
         return currentTrendAllocation;
     }
+
+    /*
+     * Since RSI does not require a confirmation leave function unimplemented.
+     */
+    function initialTrigger()
+        external
+    {}
+
+    /*
+     * Since RSI does not require a confirmation leave function unimplemented.
+     */
+    function confirmTrigger()
+        external
+    {}
 }
