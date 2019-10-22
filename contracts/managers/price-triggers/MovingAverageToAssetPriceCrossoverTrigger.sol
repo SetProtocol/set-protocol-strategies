@@ -81,9 +81,6 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
         signalConfirmationMinTime = _signalConfirmationMinTime;
         signalConfirmationMaxTime = _signalConfirmationMaxTime;
         lastConfirmedAllocation = _initialAllocation;
-
-        // Set lastInitialTriggerTimestamp such that next crossover has to start with initialTrigger
-        lastInitialTriggerTimestamp = block.timestamp - _signalConfirmationMaxTime;
     }
 
     /* ============ External ============ */
@@ -120,7 +117,7 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
         uint256 currentMarketAllocation = getCurrentMarketAllocation();
         require(
             currentMarketAllocation != lastConfirmedAllocation,
-            "MovingAverageToAssetPriceCrossoverTrigger.initialTrigger: Market conditions have not changed since last confirmed allocation."
+            "MovingAverageToAssetPriceCrossoverTrigger.confirmTrigger: Market conditions have not changed since last confirmed allocation."
         );
 
         lastConfirmedAllocation = currentMarketAllocation;

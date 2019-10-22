@@ -191,17 +191,6 @@ contract('MovingAverageToAssetPriceCrossoverTrigger', accounts => {
 
       expect(actualBaseAssetAllocation).to.be.bignumber.equal(subjectInitialAllocation);
     });
-
-    it('sets the correct lastInitialTriggerTimestamp', async () => {
-      priceTrigger = await subject();
-
-      const block = await web3.eth.getBlock('latest');
-      const expectedTimestamp = new BigNumber(block.timestamp).sub(subjectSignalConfirmationMaxTime);
-
-      const actualLastInitialTriggerTimestamp = await priceTrigger.lastInitialTriggerTimestamp.callAsync();
-
-      expect(actualLastInitialTriggerTimestamp).to.be.bignumber.equal(expectedTimestamp);
-    });
   });
 
   describe('#initialTrigger', async () => {

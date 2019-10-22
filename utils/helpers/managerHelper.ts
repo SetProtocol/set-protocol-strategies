@@ -267,7 +267,7 @@ export class ManagerHelper {
     );
   }
 
-  public async deployTwoAssetStrategyManagerWithConfirmationAsync(
+  public async deployTwoAssetStrategyManagerAsync(
     coreInstance: Address,
     priceTriggerInstance: Address,
     allocationPricerInstance: Address,
@@ -275,8 +275,6 @@ export class ManagerHelper {
     baseAssetAllocation: BigNumber,
     auctionTimeToPivot: BigNumber = ONE_HOUR_IN_SECONDS.mul(2),
     auctionSpeed: BigNumber = ONE_HOUR_IN_SECONDS.div(6),
-    signalConfirmationMinTime: BigNumber = ONE_HOUR_IN_SECONDS.mul(6),
-    signalConfirmationMaxTime: BigNumber = ONE_HOUR_IN_SECONDS.mul(12),
     from: Address = this._tokenOwnerAddress
   ): Promise<TwoAssetStrategyManagerContract> {
     const truffleRebalacingTokenManager = await TwoAssetStrategyManager.new(
@@ -287,8 +285,6 @@ export class ManagerHelper {
       baseAssetAllocation,
       auctionTimeToPivot,
       auctionSpeed,
-      signalConfirmationMinTime,
-      signalConfirmationMaxTime,
       { from },
     );
 

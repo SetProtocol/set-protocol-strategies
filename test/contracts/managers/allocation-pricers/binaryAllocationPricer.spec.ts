@@ -153,7 +153,7 @@ contract('BinaryAllocationPricer', accounts => {
     blockchain.revertAsync();
   });
 
-  describe('#constructor', async () => {
+  describe.only('#constructor', async () => {
     let subjectBaseAssetInstance: Address;
     let subjectQuoteAssetInstance: Address;
     let subjectBaseAssetOracleInstance: Address;
@@ -308,7 +308,7 @@ contract('BinaryAllocationPricer', accounts => {
     });
   });
 
-  describe('#determineNewAllocation', async () => {
+  describe.only('#determineNewAllocation', async () => {
     let subjectTargetBaseAssetAllocation: BigNumber;
     let subjectCurrentCollateralSet: Address;
 

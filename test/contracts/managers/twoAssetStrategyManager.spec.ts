@@ -102,6 +102,10 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
   let usdcPrice: BigNumber;
   let timePeriod: BigNumber;
 
+  let signalConfirmationMinTime: BigNumber;
+  let signalConfirmationMaxTime: BigNumber;
+  let updatedInitialMarket: BigNumber = undefined;
+
   const protocolHelper = new ProtocolHelper(deployerAccount);
   const erc20Helper = new ERC20Helper(deployerAccount);
   const managerHelper = new ManagerHelper(deployerAccount);
@@ -175,7 +179,7 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
       core,
       factory.address,
       [usdcMock.address],
-      [new BigNumber(100)],
+      [new BigNumber(128)],
       STABLE_COLLATERAL_NATURAL_UNIT,
     );
 
@@ -183,13 +187,13 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
       core,
       factory.address,
       [wrappedETH.address],
-      [new BigNumber(10 ** 6)],
+      [new BigNumber(1048576)],
       RISK_COLLATERAL_NATURAL_UNIT,
     );
 
-    const initialAllocation = new BigNumber(100);
-    const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
-    const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
+    const initialAllocation = updatedInitialMarket || new BigNumber(100);
+    signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
+    signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
     priceTrigger = await managerHelper.deployMovingAverageToAssetPriceCrossoverTrigger(
       emaOracle.address,
       oracleProxy.address,
@@ -228,8 +232,6 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
     let subjectBaseAssetAllocation: BigNumber;
     let subjectAuctionTimeToPivot: BigNumber;
     let subjectAuctionSpeed: BigNumber;
-    let subjectSignalConfirmationMinTime: BigNumber;
-    let subjectSignalConfirmationMaxTime: BigNumber;
     let subjectCaller: Address;
 
     beforeEach(async () => {
@@ -240,13 +242,11 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
       subjectBaseAssetAllocation = ZERO;
       subjectAuctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(2);
       subjectAuctionSpeed = ONE_HOUR_IN_SECONDS.div(6);
-      subjectSignalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
-      subjectSignalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
       subjectCaller = deployerAccount;
     });
 
     async function subject(): Promise<TwoAssetStrategyManagerContract> {
-      return managerHelper.deployTwoAssetStrategyManagerWithConfirmationAsync(
+      return managerHelper.deployTwoAssetStrategyManagerAsync(
         subjectCoreInstance,
         subjectPriceTriggerInstance,
         subjectAllocationPricerInstance,
@@ -254,8 +254,6 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
         subjectBaseAssetAllocation,
         subjectAuctionTimeToPivot,
         subjectAuctionSpeed,
-        subjectSignalConfirmationMinTime,
-        subjectSignalConfirmationMaxTime,
         subjectCaller,
       );
     }
@@ -334,9 +332,7 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
     beforeEach(async () => {
       const auctionTimeToPivot = ONE_DAY_IN_SECONDS.div(4);
       const auctionSpeed = ONE_HOUR_IN_SECONDS.div(6);
-      const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
-      const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
-      setManager = await  managerHelper.deployTwoAssetStrategyManagerWithConfirmationAsync(
+      setManager = await  managerHelper.deployTwoAssetStrategyManagerAsync(
         core.address,
         priceTrigger.address,
         allocationPricer.address,
@@ -344,8 +340,6 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
         ZERO,
         auctionTimeToPivot,
         auctionSpeed,
-        signalConfirmationMinTime,
-        signalConfirmationMaxTime,
       );
 
       proposalPeriod = ONE_DAY_IN_SECONDS;
@@ -418,12 +412,12 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
     });
   });
 
-  describe('#propose', async () => {
+  describe.only('#propose', async () => {
     let subjectTimeFastForward: BigNumber;
     let subjectCaller: Address;
 
     let triggerPrice: BigNumber;
-    let lastPrice: BigNumber;
+    let updateMarketState: boolean;
 
     let baseAssetAllocation: BigNumber;
     let auctionTimeToPivot: BigNumber;
@@ -433,22 +427,14 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
 
     before(async () => {
       triggerPrice = ether(140);
-      lastPrice = triggerPrice;
       baseAssetAllocation = new BigNumber(100);
+      updateMarketState = true;
     });
 
     beforeEach(async () => {
-      await oracleHelper.updateTimeSeriesFeedAsync(
-        timeSeriesFeed,
-        ethMedianizer,
-        triggerPrice
-      );
-
       auctionTimeToPivot = ONE_DAY_IN_SECONDS.div(4);
       const auctionSpeed = ONE_HOUR_IN_SECONDS.div(6);
-      const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
-      const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
-      setManager = await  managerHelper.deployTwoAssetStrategyManagerWithConfirmationAsync(
+      setManager = await  managerHelper.deployTwoAssetStrategyManagerAsync(
         core.address,
         priceTrigger.address,
         allocationPricer.address,
@@ -456,8 +442,6 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
         baseAssetAllocation,
         auctionTimeToPivot,
         auctionSpeed,
-        signalConfirmationMinTime,
-        signalConfirmationMaxTime,
         subjectCaller,
       );
 
@@ -478,25 +462,29 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
         { from: subjectCaller, gas: DEFAULT_GAS}
       );
 
-      await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS.add(1));
-      // await setManager.initialPropose.sendTransactionAsync();
+      if (updateMarketState) {
+        const lastBlockInfo = await web3.eth.getBlock('latest');
+        await oracleHelper.updateMedianizerPriceAsync(
+          ethMedianizer,
+          triggerPrice,
+          new BigNumber(lastBlockInfo.timestamp + 1),
+        );
 
-      const lastBlockInfo = await web3.eth.getBlock('latest');
-      await oracleHelper.updateMedianizerPriceAsync(
-        ethMedianizer,
-        lastPrice,
-        new BigNumber(lastBlockInfo.timestamp + 1),
-      );
+        await priceTrigger.initialTrigger.sendTransactionAsync();
 
-      subjectTimeFastForward = ONE_HOUR_IN_SECONDS.mul(6).add(1);
+        await blockchain.increaseTimeAsync(signalConfirmationMinTime.add(1));
+        await priceTrigger.confirmTrigger.sendTransactionAsync();
+      }
+
+      subjectTimeFastForward = ONE_DAY_IN_SECONDS.add(1);
       subjectCaller = deployerAccount;
     });
 
     async function subject(): Promise<string> {
       await blockchain.increaseTimeAsync(subjectTimeFastForward);
-      return; // setManager.confirmPropose.sendTransactionAsync(
-      //   { from: subjectCaller, gas: DEFAULT_GAS}
-      // );
+      return setManager.propose.sendTransactionAsync(
+        { from: subjectCaller, gas: DEFAULT_GAS}
+      );
     }
 
     describe('when propose is called from the Default state', async () => {
@@ -566,17 +554,16 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
         describe('but quote collateral is 4x valuable than base collateral', async () => {
           before(async () => {
             triggerPrice = ether(25);
-            lastPrice = triggerPrice;
           });
 
-          it('should set new stable collateral address', async () => {
+          it('should pass correct next set address', async () => {
             const txHash = await subject();
 
             const logs = await setTestUtils.getLogsFromTxHash(txHash);
-            const expectedSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
+            const expectedNextSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
 
-            const actualStableCollateralAddress = await allocationPricer.quoteAssetCollateralInstance.callAsync();
-            expect(actualStableCollateralAddress).to.equal(expectedSetAddress);
+            const actualNextSetAddress = await rebalancingSetToken.nextSet.callAsync();
+            expect(actualNextSetAddress).to.equal(expectedNextSetAddress);
           });
 
           it('updates new quote collateral to the correct naturalUnit', async () => {
@@ -674,17 +661,16 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
         describe('but new stable collateral requires bump in natural unit', async () => {
           before(async () => {
             triggerPrice = ether(.4);
-            lastPrice = triggerPrice;
           });
 
-          it('should set new stable collateral address', async () => {
+          it('should pass correct next set address', async () => {
             const txHash = await subject();
 
             const logs = await setTestUtils.getLogsFromTxHash(txHash);
-            const expectedSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
+            const expectedNextSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
 
-            const actualStableCollateralAddress = await allocationPricer.quoteAssetCollateralInstance.callAsync();
-            expect(actualStableCollateralAddress).to.equal(expectedSetAddress);
+            const actualNextSetAddress = await rebalancingSetToken.nextSet.callAsync();
+            expect(actualNextSetAddress).to.equal(expectedNextSetAddress);
           });
 
           it('updates new stable collateral to the correct naturalUnit', async () => {
@@ -781,19 +767,11 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
 
         describe('but price has not dipped below MA', async () => {
           before(async () => {
-            triggerPrice = ether(140);
-            lastPrice = ether(170);
+            updateMarketState = false;
           });
 
-
-          it('should revert', async () => {
-            await expectRevertError(subject());
-          });
-        });
-
-        describe('but not enough time has passed from initial propose', async () => {
-          beforeEach(async () => {
-            subjectTimeFastForward = new BigNumber(ONE_DAY_IN_SECONDS.div(4).sub(2));
+          after(async () => {
+            updateMarketState = true;
           });
 
           it('should revert', async () => {
@@ -801,9 +779,9 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
           });
         });
 
-        describe('but too much time has passed from initial propose', async () => {
+        describe('but not enough time has passed from last rebalance', async () => {
           beforeEach(async () => {
-            subjectTimeFastForward = new BigNumber(ONE_DAY_IN_SECONDS.div(2).add(2));
+            subjectTimeFastForward = ZERO;
           });
 
           it('should revert', async () => {
@@ -814,9 +792,9 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
 
       describe('and allocating from quote asset to base asset', async () => {
         before(async () => {
+          updatedInitialMarket = ZERO;
           baseAssetAllocation = ZERO;
           triggerPrice = ether(170);
-          lastPrice = triggerPrice;
         });
 
         it('updates to the next set correctly', async () => {
@@ -882,17 +860,16 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
         describe('but baseAsset collateral is 4x valuable than quoteAsset collateral', async () => {
           before(async () => {
             triggerPrice = ether(400);
-            lastPrice = triggerPrice;
           });
 
-          it('should set new risk collateral address', async () => {
+          it('should pass correct next set address', async () => {
             const txHash = await subject();
 
             const logs = await setTestUtils.getLogsFromTxHash(txHash);
-            const expectedSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
+            const expectedNextSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
 
-            const actualRiskCollateralAddress = await allocationPricer.baseAssetCollateralInstance.callAsync();
-            expect(actualRiskCollateralAddress).to.equal(expectedSetAddress);
+            const actualNextSetAddress = await rebalancingSetToken.nextSet.callAsync();
+            expect(actualNextSetAddress).to.equal(expectedNextSetAddress);
           });
 
           it('updates new risk collateral to the correct naturalUnit', async () => {
@@ -952,7 +929,7 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
               quoteAssetCollateral,
               newSet,
               false,
-              lastPrice,
+              triggerPrice,
               timeIncrement,
               auctionTimeToPivot
             );
@@ -975,7 +952,7 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
               quoteAssetCollateral,
               newSet,
               false,
-              lastPrice,
+              triggerPrice,
               timeIncrement,
               auctionTimeToPivot
             );
@@ -990,17 +967,16 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
         describe('but new risk collateral requires bump in natural unit', async () => {
           before(async () => {
             triggerPrice = ether(3 * 10 ** 8);
-            lastPrice = triggerPrice;
           });
 
-          it('should set new risk collateral address', async () => {
+          it('should pass correct next set address', async () => {
             const txHash = await subject();
 
             const logs = await setTestUtils.getLogsFromTxHash(txHash);
-            const expectedSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
+            const expectedNextSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
 
-            const actualRiskCollateralAddress = await allocationPricer.baseAssetCollateralInstance.callAsync();
-            expect(actualRiskCollateralAddress).to.equal(expectedSetAddress);
+            const actualNextSetAddress = await rebalancingSetToken.nextSet.callAsync();
+            expect(actualNextSetAddress).to.equal(expectedNextSetAddress);
           });
 
           it('updates new risk collateral to the correct naturalUnit', async () => {
@@ -1061,7 +1037,7 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
               quoteAssetCollateral,
               newSet,
               false,
-              lastPrice,
+              triggerPrice,
               timeIncrement,
               auctionTimeToPivot
             );
@@ -1084,7 +1060,7 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
               quoteAssetCollateral,
               newSet,
               false,
-              lastPrice,
+              triggerPrice,
               timeIncrement,
               auctionTimeToPivot
             );
@@ -1098,13 +1074,11 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
 
         describe('but price has not gone above MA', async () => {
           before(async () => {
-            triggerPrice = ether(170);
-            lastPrice = ether(150);
+            updateMarketState = false;
           });
 
           after(async () => {
-            triggerPrice = ether(170);
-            lastPrice = triggerPrice;
+            updateMarketState = true;
           });
 
           it('should revert', async () => {
@@ -1112,19 +1086,9 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
           });
         });
 
-        describe('but not enough time has passed from initial propose', async () => {
+        describe('but not enough time has passed from last rebalance', async () => {
           beforeEach(async () => {
-            subjectTimeFastForward = new BigNumber(ONE_HOUR_IN_SECONDS.mul(6).sub(2));
-          });
-
-          it('should revert', async () => {
-            await expectRevertError(subject());
-          });
-        });
-
-        describe('but too much time has passed from initial propose', async () => {
-          beforeEach(async () => {
-            subjectTimeFastForward = new BigNumber(ONE_HOUR_IN_SECONDS.mul(12).add(2));
+            subjectTimeFastForward = ZERO;
           });
 
           it('should revert', async () => {
@@ -1137,12 +1101,7 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
     describe('when propose is called and rebalancing set token is in Proposal state', async () => {
       beforeEach(async () => {
         await blockchain.increaseTimeAsync(subjectTimeFastForward);
-        // await setManager.initialPropose.sendTransactionAsync(
-        //   { from: subjectCaller, gas: DEFAULT_GAS}
-        // );
-
-        await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS.div(4));
-        // await setManager.confirmPropose.sendTransactionAsync();
+        await setManager.propose.sendTransactionAsync();
       });
 
       it('should revert', async () => {
@@ -1170,12 +1129,7 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
         );
 
         await blockchain.increaseTimeAsync(subjectTimeFastForward);
-        // await setManager.initialPropose.sendTransactionAsync(
-        //   { from: subjectCaller, gas: DEFAULT_GAS}
-        // );
-
-        await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS.div(4));
-        // await setManager.confirmPropose.sendTransactionAsync();
+        await setManager.propose.sendTransactionAsync();
 
         await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS);
         await rebalancingSetToken.startRebalance.sendTransactionAsync();
