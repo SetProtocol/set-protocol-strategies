@@ -20,6 +20,7 @@ pragma experimental "ABIEncoderV2";
 import { ERC20Detailed } from "openzeppelin-solidity/contracts/token/ERC20/ERC20Detailed.sol";
 import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import { CommonMath } from "set-protocol-contracts/contracts/lib/CommonMath.sol";
 import { ICore } from "set-protocol-contracts/contracts/core/interfaces/ICore.sol";
 import { ISetToken } from "set-protocol-contracts/contracts/core/interfaces/ISetToken.sol";
 import { SetTokenLibrary } from "set-protocol-contracts/contracts/core/lib/SetTokenLibrary.sol";
@@ -454,7 +455,7 @@ contract BinaryAllocationPricer is
         // component in the new Set.
         uint256 minimumNaturalUnit = Math.max(
             MINIMUM_COLLATERAL_NATURAL_UNIT,
-            10 ** (uint256(18).sub(_newComponentDecimals))
+            CommonMath.safePower(10, (uint256(18).sub(_newComponentDecimals)))
         );
 
         // Calculate next units. If nextUnit is 0 then bump natural unit (and thus units) by factor of
@@ -540,7 +541,7 @@ contract BinaryAllocationPricer is
         returns (uint256)
     {
         return _targetCollateralUSDValue
-            .mul(10 ** uint256(_newComponentDecimals))
+            .mul(CommonMath.safePower(10, uint256(_newComponentDecimals)))
             .mul(_newCollateralNaturalUnit)
             .div(SET_TOKEN_WHOLE_UNIT.mul(_newComponentPrice));        
     }
