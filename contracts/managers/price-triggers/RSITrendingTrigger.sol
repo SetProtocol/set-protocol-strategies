@@ -45,7 +45,9 @@ contract RSITrendingTrigger is
 
     /* ============ State Variables ============ */
     IMetaOracleV2 public rsiOracleInstance;
+    // RSI Bound under which strategy goes to the quote asset
     uint256 public lowerBound;
+    // RSI Bound over which strategy goes to the base asset
     uint256 public upperBound;
     uint256 public rsiTimePeriod;
     uint256 public currentTrendAllocation;
@@ -103,23 +105,18 @@ contract RSITrendingTrigger is
         // Query RSI oracle
         uint256 rsiValue = rsiOracleInstance.read(rsiTimePeriod);
 
-        // Check RSI value is above upper bound or below lower bound
-        bool isOutsideBounds = rsiValue >= upperBound || rsiValue < lowerBound;
+        // If RSI greater than upper bound return max allocation of base asset
+        // Else if RSI less than lower bound return min allocation of base asset
+        // Else return currentTrendAllocation
+        uint256 trendAllocation = rsiValue >= upperBound ? MAX_BASE_ASSET_ALLOCATION : rsiValue < lowerBound ?
+            MIN_BASE_ASSET_ALLOCATION : currentTrendAllocation;
 
-        // If outside bounds trigger a change to currentTrendAllocation
-        if (isOutsideBounds) {
-            // If RSI greater than upper bound return max allocation of base asset
-            // Else RSI less than lower bound return min allocation of base asset
-            uint256 trendAllocation = rsiValue >= upperBound ? MAX_BASE_ASSET_ALLOCATION : MIN_BASE_ASSET_ALLOCATION;
-
-            // Set currentTrendAllocation if trend has changed
-            if (trendAllocation != currentTrendAllocation) {
-                currentTrendAllocation = trendAllocation;
-            }
+        // Set currentTrendAllocation if trend has changed
+        if (trendAllocation != currentTrendAllocation) {
+            currentTrendAllocation = trendAllocation;
         }
 
-        // If rsi is inside bounds then just return currentTrendAllocation
-        return currentTrendAllocation;
+        return trendAllocation;
     }
 
     /*

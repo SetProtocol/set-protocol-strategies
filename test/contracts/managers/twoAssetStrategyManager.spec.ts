@@ -412,7 +412,7 @@ contract('TwoAssetStrategyManagerWithConfirmation', accounts => {
     });
   });
 
-  describe.only('#propose', async () => {
+  describe('#propose', async () => {
     let subjectTimeFastForward: BigNumber;
     let subjectCaller: Address;
 
