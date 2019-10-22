@@ -12,6 +12,7 @@ export { ETHDaiRebalancingManagerContract } from '../types/generated/e_t_h_dai_r
 export { FeedFactoryContract } from '../types/generated/feed_factory';
 export { FlexibleTimingManagerLibraryMockContract } from '../types/generated/flexible_timing_manager_library_mock';
 export { HistoricalPriceFeedContract } from '../types/generated/historical_price_feed';
+export { InverseMACOStrategyManagerContract } from '../types/generated/inverse_m_a_c_o_strategy_manager';
 export { LegacyMakerOracleAdapterContract } from '../types/generated/legacy_maker_oracle_adapter';
 export { LinkedListHelperMockContract } from '../types/generated/linked_list_helper_mock';
 export { LinkedListLibraryMockContract } from '../types/generated/linked_list_library_mock';
