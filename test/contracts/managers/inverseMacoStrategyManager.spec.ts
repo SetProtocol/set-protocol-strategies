@@ -410,7 +410,7 @@ contract('InverseMACOStrategyManager', accounts => {
       crossoverConfirmationBounds = [ONE_HOUR_IN_SECONDS.mul(6), ONE_HOUR_IN_SECONDS.mul(12)];
 
       auctionTimeToPivot = ONE_DAY_IN_SECONDS.div(4);
-      const initialAllocationAddress = await managerHelper.getMACOInitialAllocationAsync(
+      const initialAllocationAddress = await managerHelper.getInverseMACOInitialAllocationAsync(
         stableCollateral,
         riskCollateral,
         ethMedianizer,
@@ -507,7 +507,7 @@ contract('InverseMACOStrategyManager', accounts => {
     let crossoverConfirmationBounds: BigNumber[];
 
     before(async () => {
-      updatedValues = _.map(new Array(19), function(el, i) {return ether(150 + i); });
+      updatedValues = _.map(new Array(19), function(el, i) {return ether(150 - i); });
       lastPrice = ether(180);
     });
 
@@ -525,7 +525,7 @@ contract('InverseMACOStrategyManager', accounts => {
       );
 
       auctionTimeToPivot = ONE_DAY_IN_SECONDS.div(4);
-      const initialAllocationAddress = await managerHelper.getMACOInitialAllocationAsync(
+      const initialAllocationAddress = await managerHelper.getInverseMACOInitialAllocationAsync(
         stableCollateral,
         riskCollateral,
         ethMedianizer,
@@ -602,7 +602,7 @@ contract('InverseMACOStrategyManager', accounts => {
 
         describe('but price has not spiked above MA', async () => {
           before(async () => {
-            lastPrice = ether(140);
+            lastPrice = ether(100);
           });
 
           after(async () => {
@@ -656,7 +656,7 @@ contract('InverseMACOStrategyManager', accounts => {
 
         describe('but price has not dipped below MA', async () => {
           before(async () => {
-            lastPrice = ether(180);
+            lastPrice = ether(190);
           });
 
           after(async () => {
@@ -735,7 +735,7 @@ contract('InverseMACOStrategyManager', accounts => {
     let crossoverConfirmationBounds: BigNumber[];
 
     before(async () => {
-      updatedValues = _.map(new Array(19), function(el, i) {return ether(150 + i); });
+      updatedValues = _.map(new Array(19), function(el, i) {return ether(150 - i); });
       triggerPrice = ether(180);
       lastPrice = triggerPrice;
     });
@@ -754,7 +754,7 @@ contract('InverseMACOStrategyManager', accounts => {
       );
 
       auctionTimeToPivot = ONE_DAY_IN_SECONDS.div(4);
-      const initialAllocationAddress = await managerHelper.getMACOInitialAllocationAsync(
+      const initialAllocationAddress = await managerHelper.getInverseMACOInitialAllocationAsync(
         stableCollateral,
         riskCollateral,
         ethMedianizer,
@@ -903,7 +903,7 @@ contract('InverseMACOStrategyManager', accounts => {
           await SetTestUtils.assertLogEquivalence(formattedLogs, expectedLogs);
         });
 
-        describe('but stable collateral is 4x valuable than risk collateral', async () => {
+        describe('but risk collateral is 4x more than stable collateral', async () => {
           before(async () => {
             triggerPrice = ether(900);
             lastPrice = triggerPrice;
@@ -1015,8 +1015,13 @@ contract('InverseMACOStrategyManager', accounts => {
 
         describe('but new stable collateral requires bump in natural unit', async () => {
           before(async () => {
-            triggerPrice = ether(10000);
+            updatedValues = _.map(new Array(20), function(el, i) {return ether(.5 - (i / 100)); });
+            triggerPrice = ether(.8);
             lastPrice = triggerPrice;
+          });
+
+          after(async () => {
+            updatedValues = _.map(new Array(19), function(el, i) {return ether(150 - i); });
           });
 
           it('should set new stable collateral address', async () => {
@@ -1030,6 +1035,8 @@ contract('InverseMACOStrategyManager', accounts => {
           });
 
           it('updates new stable collateral to the correct naturalUnit', async () => {
+            const previousNaturalUnit = await stableCollateral.naturalUnit.callAsync();
+
             await subject();
 
             const newSetAddress = await rebalancingSetToken.nextSet.callAsync();
@@ -1044,6 +1051,8 @@ contract('InverseMACOStrategyManager', accounts => {
               ETH_DECIMALS,
               true
             );
+
+            expect(previousNaturalUnit).to.be.bignumber.not.equal(newSetNaturalUnit);
             expect(newSetNaturalUnit).to.be.bignumber.equal(expectedNextSetParams['naturalUnit']);
           });
 
@@ -1123,10 +1132,10 @@ contract('InverseMACOStrategyManager', accounts => {
           });
         });
 
-        describe('but price has not dipped below MA', async () => {
+        describe('but price has not gone above MA', async () => {
           before(async () => {
-            triggerPrice = ether(170);
-            lastPrice = ether(140);
+            triggerPrice = ether(150);
+            lastPrice = ether(130);
           });
 
 
@@ -1156,7 +1165,7 @@ contract('InverseMACOStrategyManager', accounts => {
         });
       });
 
-      describe.only('and allocating from stable asset to risk asset', async () => {
+      describe('and allocating from stable asset to risk asset', async () => {
         before(async () => {
           updatedValues = _.map(new Array(19), function(el, i) {return ether(170 + i); });
           triggerPrice = ether(100);
@@ -1237,9 +1246,9 @@ contract('InverseMACOStrategyManager', accounts => {
           await SetTestUtils.assertLogEquivalence(formattedLogs, expectedLogs);
         });
 
-        describe('but baseAsset collateral is 4x more valuable than quoteAsset collateral', async () => {
+        describe('but quoteAsset collateral is 4x more valuable than baseAsset collateral', async () => {
           before(async () => {
-            triggerPrice = ether(1500);
+            triggerPrice = ether(20);
             lastPrice = triggerPrice;
           });
 
@@ -1349,8 +1358,13 @@ contract('InverseMACOStrategyManager', accounts => {
 
         describe('but new risk collateral requires bump in natural unit', async () => {
           before(async () => {
-            triggerPrice = ether(1);
+            updatedValues = _.map(new Array(20), function(el, i) {return ether((2 * 10 ** 8) + i); });
+            triggerPrice = ether(2 * 10 ** 8);
             lastPrice = triggerPrice;
+          });
+
+          after(async () => {
+            updatedValues = _.map(new Array(19), function(el, i) {return ether(170 + i); });
           });
 
           it('should set new risk collateral address', async () => {
@@ -1364,6 +1378,8 @@ contract('InverseMACOStrategyManager', accounts => {
           });
 
           it('updates new risk collateral to the correct naturalUnit', async () => {
+            const previousNaturalUnit = await riskCollateral.naturalUnit.callAsync();
+
             await subject();
 
             const newSetAddress = await rebalancingSetToken.nextSet.callAsync();
@@ -1379,6 +1395,7 @@ contract('InverseMACOStrategyManager', accounts => {
               false
             );
 
+            expect(previousNaturalUnit).to.be.bignumber.not.equal(newSetNaturalUnit);
             expect(newSetNaturalUnit).to.be.bignumber.equal(expectedNextSetParams['naturalUnit']);
           });
 

@@ -393,6 +393,24 @@ export class ManagerHelper {
     }
   }
 
+  public async getInverseMACOInitialAllocationAsync(
+    stableCollateral: SetTokenContract,
+    riskCollateral: SetTokenContract,
+    spotPriceOracle: MedianContract,
+    movingAverageOracle: MovingAverageOracleContract | MovingAverageOracleV2Contract,
+    dataDays: BigNumber,
+  ): Promise<Address> {
+    const spotPrice = parseInt(await spotPriceOracle.read.callAsync());
+    const rawMAPrice = await movingAverageOracle.read.callAsync(dataDays);
+    const maPriceNum = parseInt(rawMAPrice.toString());
+
+    if (spotPrice > maPriceNum) {
+      return stableCollateral.address;
+    } else {
+      return riskCollateral.address;
+    }
+  }
+
   public getExpectedBtcEthNextSetParameters(
     btcPrice: BigNumber,
     ethPrice: BigNumber,
