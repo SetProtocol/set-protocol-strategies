@@ -19,6 +19,7 @@ pragma experimental "ABIEncoderV2";
 
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { IMetaOracle } from "../interfaces/IMetaOracle.sol";
+import { IMetaOracleV2 } from "../interfaces/IMetaOracleV2.sol";
 
 
 /**
@@ -28,7 +29,9 @@ import { IMetaOracle } from "../interfaces/IMetaOracle.sol";
  * This contract converts result from IMetaOracle contracts read calls into uint256 instead of passing
  * bytes. This is done in order to use the data stored in the HistoricalPriceFeed.
  */
-contract MovingAverageOracleV1Proxy {
+contract MovingAverageOracleV1Proxy is 
+    IMetaOracleV2
+{
 
     /* ============ State Variables ============ */
     IMetaOracle public metaOracleInstance;
