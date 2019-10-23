@@ -4,6 +4,7 @@ export { ETHDaiRebalancingManager } from './ts/ETHDaiRebalancingManager';
 export { EMAOracle } from './ts/EMAOracle';
 export { FeedFactory } from './ts/FeedFactory';
 export { HistoricalPriceFeed } from './ts/HistoricalPriceFeed';
+export { InverseMACOStrategyManager } from './ts/InverseMACOStrategyManager';
 export { LegacyMakerOracleAdapter } from './ts/LegacyMakerOracleAdapter';
 export { LinearizedEMATimeSeriesFeed } from './ts/LinearizedEMATimeSeriesFeed';
 export { LinearizedPriceDataSource } from './ts/LinearizedPriceDataSource';
@@ -26,6 +27,7 @@ export {
 	EMAOracleContract,
 	FeedFactoryContract,
 	HistoricalPriceFeedContract,
+	InverseMACOStrategyManagerContract,
 	LegacyMakerOracleAdapterContract,
 	LinkedListLibraryMockContract,
 	LinearizedEMATimeSeriesFeedContract,
