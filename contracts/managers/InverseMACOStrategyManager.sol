@@ -25,9 +25,11 @@ import { MACOStrategyManagerV2 } from "./MACOStrategyManagerV2.sol";
 /**
  * @title InverseMACOStrategyManager
  * @author Set Protocol
- *
+ * 
+ * Instead of going bullish when the price crosses above the moving average, the Set flips to the
+ * stable asset and vice versa in a bearish market.
  */
- contract InverseMACOStrategyManager is MACOStrategyManagerV2 {
+contract InverseMACOStrategyManager is MACOStrategyManagerV2 {
     /*
      * InverseMACOStrategyManager constructor.
      *
@@ -101,4 +103,4 @@ import { MACOStrategyManagerV2 } from "./MACOStrategyManagerV2.sol";
             );
         }        
     }
- }
+}
