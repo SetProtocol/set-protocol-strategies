@@ -9,6 +9,7 @@ import {
   BTCETHRebalancingManagerContract,
   BTCDaiRebalancingManagerContract,
   ETHDaiRebalancingManagerContract,
+  InverseMACOStrategyManagerContract,
   MACOStrategyManagerContract,
   MACOStrategyManagerV2Contract,
   MovingAverageOracleContract,
@@ -36,6 +37,7 @@ const BinaryAllocationPricer = artifacts.require('BinaryAllocationPricer');
 const BTCETHRebalancingManager = artifacts.require('BTCETHRebalancingManager');
 const BTCDaiRebalancingManager = artifacts.require('BTCDaiRebalancingManager');
 const ETHDaiRebalancingManager = artifacts.require('ETHDaiRebalancingManager');
+const InverseMACOStrategyManager = artifacts.require('InverseMACOStrategyManager');
 const MACOStrategyManager = artifacts.require('MACOStrategyManager');
 const MACOStrategyManagerV2 = artifacts.require('MACOStrategyManagerV2');
 const MovingAverageToAssetPriceCrossoverTrigger = artifacts.require(
@@ -230,6 +232,42 @@ export class ManagerHelper {
     );
   }
 
+  public async deployInverseMACOStrategyManagerAsync(
+    coreAddress: Address,
+    movingAveragePriceFeedAddress: Address,
+    riskAssetOracleAddress: Address,
+    daiAddress: Address,
+    ethAddress: Address,
+    stableCollateralAddress: Address,
+    riskCollateralAddress: Address,
+    setTokenFactoryAddress: Address,
+    auctionLibrary: Address,
+    movingAverageDays: BigNumber,
+    crossoverConfirmationBounds: BigNumber[],
+    auctionTimeToPivot: BigNumber = new BigNumber(100000),
+    from: Address = this._tokenOwnerAddress
+  ): Promise<MACOStrategyManagerV2Contract> {
+    const truffleRebalacingTokenManager = await InverseMACOStrategyManager.new(
+      coreAddress,
+      movingAveragePriceFeedAddress,
+      riskAssetOracleAddress,
+      daiAddress,
+      ethAddress,
+      [stableCollateralAddress, riskCollateralAddress],
+      setTokenFactoryAddress,
+      auctionLibrary,
+      movingAverageDays,
+      auctionTimeToPivot,
+      crossoverConfirmationBounds,
+      { from },
+    );
+
+    return new InverseMACOStrategyManagerContract(
+      new web3.eth.Contract(truffleRebalacingTokenManager.abi, truffleRebalacingTokenManager.address),
+      { from, gas: DEFAULT_GAS },
+    );
+  }
+
   public async deployTwoAssetStrategyManagerWithConfirmationAsync(
     coreInstance: Address,
     priceTriggerInstance: Address,
@@ -352,6 +390,24 @@ export class ManagerHelper {
       return riskCollateral.address;
     } else {
       return stableCollateral.address;
+    }
+  }
+
+  public async getInverseMACOInitialAllocationAsync(
+    stableCollateral: SetTokenContract,
+    riskCollateral: SetTokenContract,
+    spotPriceOracle: MedianContract,
+    movingAverageOracle: MovingAverageOracleContract | MovingAverageOracleV2Contract,
+    dataDays: BigNumber,
+  ): Promise<Address> {
+    const spotPrice = parseInt(await spotPriceOracle.read.callAsync());
+    const rawMAPrice = await movingAverageOracle.read.callAsync(dataDays);
+    const maPriceNum = parseInt(rawMAPrice.toString());
+
+    if (spotPrice > maPriceNum) {
+      return stableCollateral.address;
+    } else {
+      return riskCollateral.address;
     }
   }
 
