@@ -16,6 +16,7 @@ import {
   LinearizedEMATimeSeriesFeedContract,
   LinearizedPriceDataSourceContract,
   MovingAverageOracleContract,
+  MovingAverageOracleV1ProxyContract,
   MovingAverageOracleV2Contract,
   OracleProxyCallerContract,
   OracleProxyContract,
@@ -44,6 +45,7 @@ const LinearizedEMATimeSeriesFeed = artifacts.require('LinearizedEMATimeSeriesFe
 const LinearizedPriceDataSource = artifacts.require('LinearizedPriceDataSource');
 const Median = artifacts.require('Median');
 const MovingAverageOracle = artifacts.require('MovingAverageOracle');
+const MovingAverageOracleV1Proxy = artifacts.require('MovingAverageOracleV1Proxy');
 const MovingAverageOracleV2 = artifacts.require('MovingAverageOracleV2');
 const OracleProxy = artifacts.require('OracleProxy');
 const OracleProxyCaller = artifacts.require('OracleProxyCaller');
@@ -239,6 +241,21 @@ export class OracleHelper {
 
     return new MovingAverageOracleContract(
       new web3.eth.Contract(movingAverageOracle.abi, movingAverageOracle.address),
+      { from },
+    );
+  }
+
+  public async deployMovingAverageOracleV1ProxyAsync(
+    metaOracle: Address,
+    from: Address = this._contractOwnerAddress
+  ): Promise<MovingAverageOracleV1ProxyContract> {
+    const movingAverageOracleProxy = await MovingAverageOracleV1Proxy.new(
+      metaOracle,
+      { from },
+    );
+
+    return new MovingAverageOracleV1ProxyContract(
+      new web3.eth.Contract(movingAverageOracleProxy.abi, movingAverageOracleProxy.address),
       { from },
     );
   }
