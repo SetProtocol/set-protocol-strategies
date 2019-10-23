@@ -308,7 +308,7 @@ contract('BinaryAllocationPricer', accounts => {
     });
   });
 
-  describe('#determineNewAllocation', async () => {
+  describe.only('#determineNewAllocation', async () => {
     let subjectTargetBaseAssetAllocation: BigNumber;
     let subjectCurrentCollateralSet: Address;
 
@@ -483,6 +483,8 @@ contract('BinaryAllocationPricer', accounts => {
       });
 
       it('updates new baseAsset collateral to the correct naturalUnit', async () => {
+        const previousNaturalUnit = await baseAssetCollateral.naturalUnit.callAsync();
+
         const txHash = await subjectTxn();
 
         const logs = await setTestUtils.getLogsFromTxHash(txHash);
@@ -501,6 +503,7 @@ contract('BinaryAllocationPricer', accounts => {
           ETH_DECIMALS
         );
 
+        expect(previousNaturalUnit).to.be.bignumber.not.equal(nextSetNaturalUnit);
         expect(nextSetNaturalUnit).to.be.bignumber.equal(expectedNextSetParams['naturalUnit']);
       });
 
@@ -678,7 +681,7 @@ contract('BinaryAllocationPricer', accounts => {
 
     describe('but new quoteAsset collateral requires bump in natural unit', async () => {
       before(async () => {
-        ethPrice = ether(.4);
+        ethPrice = ether(.1);
       });
 
       after(async () => {
@@ -701,6 +704,8 @@ contract('BinaryAllocationPricer', accounts => {
       });
 
       it('updates new quoteAsset collateral to the correct naturalUnit', async () => {
+        const previousNaturalUnit = await quoteAssetCollateral.naturalUnit.callAsync();
+
         const txHash = await subjectTxn();
 
         const logs = await setTestUtils.getLogsFromTxHash(txHash);
@@ -718,6 +723,8 @@ contract('BinaryAllocationPricer', accounts => {
           ETH_DECIMALS,
           USDC_DECIMALS,
         );
+
+        expect(previousNaturalUnit).to.be.bignumber.not.equal(nextSetNaturalUnit);
         expect(nextSetNaturalUnit).to.be.bignumber.equal(expectedNextSetParams['naturalUnit']);
       });
 

@@ -216,7 +216,7 @@ contract('RSITrendingTrigger', accounts => {
     });
   });
 
-  describe.only('#retrieveBaseAssetAllocation', async () => {
+  describe('#retrieveBaseAssetAllocation', async () => {
     let subjectCaller: Address;
 
     let initialTrendAllocation: BigNumber;

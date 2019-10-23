@@ -53,7 +53,7 @@ contract BinaryAllocationPricer is
 
     /* ============ Constants ============ */
     uint256 constant SET_TOKEN_WHOLE_UNIT = 10 ** 18;
-    uint256 constant MINIMUM_COLLATERAL_NATURAL_UNIT = 10 ** 6;
+    uint256 constant MINIMUM_COLLATERAL_NATURAL_UNIT_DECIMALS = 6;
     uint256 constant ALLOCATION_PRICE_RATIO_LIMIT = 4;
 
     /* ============ State Variables ============ */
@@ -426,8 +426,20 @@ contract BinaryAllocationPricer is
     }
 
     /*
-     * Calculate new collateral units and natural unit. If necessary iterate through until naturalUnit
-     * found that supports non-zero unit amount.
+     * Calculate new collateral units and natural unit. The system of equations to determine unit and
+     * naturalUnit is as follows:
+     *
+     * naturalUnit = 10 ** k
+     * unit = log2(round(10^(d + k - 18) * V / P))
+     * k = max(6, log10(10^(18 - d) * P / V), 18-d)
+     *
+     * Where d is the decimals of the new component, P is the price of the new component, and V is the
+     * target value of the new Set.
+     *
+     * Implementation for k will be split as such,
+     * kOne = max(6, 18-d)
+     * kTwo = log10(10^(18 - d) * P / V)
+     * k = max(kOne, kTwo)
      *
      * @param  _targetCollateralUSDValue      USD Value of current collateral set
      * @param  _newComponentPrice             Price of underlying token to be rebalanced into
@@ -441,41 +453,32 @@ contract BinaryAllocationPricer is
         uint8 _newComponentDecimals
     )
         internal
-        pure
+        // pure
         returns (uint256, uint256)
     {
-        // Calculate nextSetUnits such that the USD value of new Set is equal to the USD value of the Set
-        // being rebalanced out of
-
-        uint256 potentialNextUnit = 0;
-        uint256 naturalUnitMultiplier = 1;
-        uint256 nextNaturalUnit;
-
         // Determine minimum natural unit based on max of pre-defined minimum or (18 - decimals) of the 
         // component in the new Set.
-        uint256 minimumNaturalUnit = Math.max(
-            MINIMUM_COLLATERAL_NATURAL_UNIT,
-            CommonMath.safePower(10, (uint256(18).sub(_newComponentDecimals)))
+        uint256 kOne = Math.max(
+            MINIMUM_COLLATERAL_NATURAL_UNIT_DECIMALS,
+            uint256(18).sub(_newComponentDecimals)
         );
 
-        // Calculate next units. If nextUnit is 0 then bump natural unit (and thus units) by factor of
-        // ten until unit is greater than 0
-        while (potentialNextUnit == 0) {
-            nextNaturalUnit = minimumNaturalUnit.mul(naturalUnitMultiplier);
-            potentialNextUnit = calculateNextSetUnits(
-                _targetCollateralUSDValue,
-                _newComponentPrice,
-                _newComponentDecimals,
-                nextNaturalUnit
-            );
-            naturalUnitMultiplier = naturalUnitMultiplier.mul(10);            
-        }
+        uint256 intermediate = (uint256(10) ** uint256(18 - _newComponentDecimals))
+            .mul(_newComponentPrice)
+            .div(_targetCollateralUSDValue)
+            .add(1);
 
+        uint256 kTwo = ceilLog10(intermediate);
+        uint256 k = Math.max(kOne, kTwo);
+        uint256 unroundedNextUnit = (uint256(10) ** uint256(_newComponentDecimals + k - 18))
+            .mul(_targetCollateralUSDValue)
+            .div(_newComponentPrice);
+        
         uint256 nextSetUnit = roundToNearestPowerOfTwo(
-            potentialNextUnit
+            unroundedNextUnit
         );
-
-        return (nextSetUnit, nextNaturalUnit);
+        
+        return (nextSetUnit, CommonMath.safePower(10, k));
     }
 
     function roundToNearestPowerOfTwo(
@@ -485,7 +488,10 @@ contract BinaryAllocationPricer is
         pure
         returns (uint256)
     {
-        require (_value > 0);
+        require (
+            _value > 0,
+            "BinaryAllocationPricer.roundToNearestPowerOfTwo: Value must be greater than zero."
+        );
 
         // Multiply by 1.5 to roughly approximate sqrt(2). Needed to round to nearest power of two. 
         uint256 scaledValue = _value.mul(3).div(2);
@@ -501,6 +507,55 @@ contract BinaryAllocationPricer is
         if (scaledValue >= 0x2) power += 1; // No need to shift x anymore
 
         return 2 ** power;
+    }
+
+    function ceilLog10(
+        uint256 _x
+    )
+        public
+        pure 
+    returns (uint256) {
+        require (
+            _x > 0,
+            "BinaryAllocationPricer.ceilLog10: Value must be greater than zero."
+        );
+
+        if (_x == 1) return 0;
+
+        uint256 x = _x - 1;
+
+        uint256 result = 0;
+
+        if (x >= 10000000000000000000000000000000000000000000000000000000000000000) {
+            x /= 10000000000000000000000000000000000000000000000000000000000000000;
+            result += 64;
+        }
+        if (x >= 100000000000000000000000000000000) {
+            x /= 100000000000000000000000000000000;
+            result += 32;
+        }
+        if (x >= 10000000000000000) {
+            x /= 10000000000000000;
+            result += 16;
+        }
+        if (x >= 100000000) {
+            x /= 100000000;
+            result += 8;
+        }
+        if (x >= 10000) {
+            x /= 10000;
+            result += 4;
+        }
+        if (x >= 100) {
+            x /= 100;
+            result += 2;
+        }
+        if (x >= 10) {
+            x /= 10;
+            result += 1;
+        }
+
+        return result + 1;
     }
 
     function createCollateralIDHash(
