@@ -12,6 +12,7 @@ export { MACOStrategyManager } from './ts/MACOStrategyManager';
 export { MACOStrategyManagerV2 } from './ts/MACOStrategyManagerV2';
 export { ManagerLibraryMock } from './ts/ManagerLibraryMock';
 export { MovingAverageOracle } from './ts/MovingAverageOracle';
+export { MovingAverageOracleV1Proxy } from './ts/MovingAverageOracleV1Proxy';
 export { MovingAverageOracleV2 } from './ts/MovingAverageOracleV2';
 export { OracleProxy } from './ts/OracleProxy';
 export { PriceFeed } from './ts/PriceFeed';
@@ -36,6 +37,7 @@ export {
 	MACOStrategyManagerV2Contract,
 	ManagerLibraryMockContract,
 	MovingAverageOracleContract,
+	MovingAverageOracleV1ProxyContract,
 	MovingAverageOracleV2Contract,
 	OracleProxyContract,
 	PriceFeedContract,
