@@ -104,12 +104,12 @@ contract BinaryAllocationPricer is
         // Make sure collateral instances are using the correct base and quote asset
         require(
             baseAssetCollateralComponents[0] == address(_baseAssetInstance),
-            "MACOStrategyManager.constructor: Base collateral component must match base asset."
+            "BinaryAllocationPricer.constructor: Base collateral component must match base asset."
         );
 
         require(
             quoteAssetCollateralComponents[0] == address(_quoteAssetInstance),
-            "MACOStrategyManager.constructor: Quote collateral component must match quote asset."
+            "BinaryAllocationPricer.constructor: Quote collateral component must match quote asset."
         );
 
         baseAssetInstance = _baseAssetInstance;

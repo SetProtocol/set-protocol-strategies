@@ -106,7 +106,7 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
         require(
             block.timestamp >= lastInitialTriggerTimestamp.add(signalConfirmationMinTime) &&
             block.timestamp <= lastInitialTriggerTimestamp.add(signalConfirmationMaxTime),
-            "MACOStrategyManager.confirmPropose: Confirming signal must be within bounds of the initial propose"
+            "MovingAverageToAssetPriceCrossoverTrigger.confirmPropose: Confirming signal must be within bounds of the confirm propose."
         );
 
         // Get current market state and check that it's different from last confirmed state
