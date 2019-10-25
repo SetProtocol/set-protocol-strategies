@@ -168,24 +168,37 @@ contract BinaryAllocationPricer is
         // Determine if rebalance is to the baseAsset
         bool toBaseAsset = (_targetBaseAssetAllocation == 100);
 
-        validateAllocationParams(
+        validateCurrentCollateralSet(
             _currentCollateralSet,
             toBaseAsset
         );
 
         // Create struct that holds relevant information for the currentSet
-        uint256 currentSetValue = calculateCurrentCollateralSetValue(
-            toBaseAsset,
-            _currentCollateralSet
+        uint256 currentSetValue = calculateCollateralSetValue(
+            address(_currentCollateralSet),
+            !toBaseAsset
         );
 
         // Check to see if new collateral must be created in order to keep collateral price ratio in line.
         // If not just return the dollar value of current collateral sets
         (
-            address nextSetAddress,
-            uint256 nextSetValue
-        ) = determineNextCollateralParameters(
+            ERC20Detailed nextSetComponent,
+            uint256 nextSetUnit,
+            uint256 nextSetNaturalUnit
+        ) = calculateNextCollateralParameters(
             currentSetValue,
+            toBaseAsset
+        );
+
+        address nextSetAddress = createOrSelectNextSet(
+            nextSetComponent,
+            nextSetUnit,
+            nextSetNaturalUnit
+        );
+
+        // Calculate dollar value of new collateral
+        uint256 nextSetValue = calculateCollateralSetValue(
+            nextSetAddress,
             toBaseAsset
         );
 
@@ -202,7 +215,7 @@ contract BinaryAllocationPricer is
      * @param  _currentCollateralSet            Instance of current set collateralizing RebalancingSetToken
      * @param  _toBaseAsset                     Boolean indicating whether new collateral is made of baseAsset
      */
-    function validateAllocationParams(
+    function validateCurrentCollateralSet(
         ISetToken _currentCollateralSet,
         bool _toBaseAsset    
     )
@@ -239,28 +252,23 @@ contract BinaryAllocationPricer is
      * @param  _toBaseAsset                 Boolean indicating whether new collateral is made of baseAsset
      * @param  _currentCollateralSet        Instance of current set collateralizing RebalancingSetToken
      */
-    function calculateCurrentCollateralSetValue(
-        bool _toBaseAsset,
-        ISetToken _currentCollateralSet
+    function calculateCollateralSetValue(
+        address _collateralSet,
+        bool _usingBaseAsset
     )
         internal
         view
         returns (uint256)
     {
         // Gather price and decimal information for current collateral components
-        uint256 currentComponentPrice;
-        uint256 currentComponentDecimals;
-        if (_toBaseAsset) {
-            currentComponentPrice = quoteAssetOracleInstance.read();
-            currentComponentDecimals = quoteAssetDecimals;
-        } else {
-            currentComponentPrice = baseAssetOracleInstance.read();
-            currentComponentDecimals = baseAssetDecimals;
-        }
+        (
+            uint256 currentComponentPrice,
+            uint256 currentComponentDecimals
+        ) = getComponentPriceAndDecimalData(_usingBaseAsset);
 
         // Get currentSet Details and use to value passed currentSet
         SetTokenLibrary.SetDetails memory currentSetDetails = SetTokenLibrary.getSetDetails(
-            address(_currentCollateralSet)
+            address(_collateralSet)
         );
         return FlexibleTimingManagerLibrary.calculateTokenAllocationAmountUSD(
             currentComponentPrice,
@@ -282,26 +290,21 @@ contract BinaryAllocationPricer is
      * @return uint256                  The USD value of currentSet
      * @return uint256                  The USD value of nextSet
      */
-    function determineNextCollateralParameters(
+    function calculateNextCollateralParameters(
         uint256 _currentSetValue,
         bool _toBaseAsset
     )
         internal
-        returns (address, uint256)
+        view
+        returns (ERC20Detailed, uint256, uint256)
     {
         // Gather price and decimal information for next collateral components
-        address nextSetComponent;
-        uint256 nextSetComponentPrice;
-        uint8 nextSetComponentDecimals;
-        if (_toBaseAsset) {
-            nextSetComponent = address(baseAssetInstance);
-            nextSetComponentPrice = baseAssetOracleInstance.read();
-            nextSetComponentDecimals = baseAssetDecimals;
-        } else {
-            nextSetComponent = address(quoteAssetInstance);
-            nextSetComponentPrice = quoteAssetOracleInstance.read();
-            nextSetComponentDecimals = quoteAssetDecimals;
-        }
+        (
+            uint256 nextSetComponentPrice,
+            uint8 nextSetComponentDecimals
+        ) = getComponentPriceAndDecimalData(_toBaseAsset);
+
+        ERC20Detailed nextSetComponent = _toBaseAsset ? baseAssetInstance : quoteAssetInstance;
 
         // Get collateral Set units and naturalUnit. Units will be rounded to the nearest power
         // of 2 to the units required to set value of nextSet == value of currentSet.     
@@ -314,29 +317,13 @@ contract BinaryAllocationPricer is
             nextSetComponentDecimals
         );
 
-        // Calculate dollar value of new collateral
-        uint256 nextSetValue = FlexibleTimingManagerLibrary.calculateTokenAllocationAmountUSD(
-            nextSetComponentPrice,
-            nextSetNaturalUnit,
-            nextSetUnit,
-            nextSetComponentDecimals
-        );
-
-        address nextSetAddress = createOrSelectNextSet(
-            nextSetComponent,
-            nextSetUnit,
-            nextSetNaturalUnit,
-            _toBaseAsset
-        );
-
-        return (nextSetAddress, nextSetValue);
+        return (nextSetComponent, nextSetUnit, nextSetNaturalUnit);
     }
 
     function createOrSelectNextSet(
-        address _nextSetComponent,
+        ERC20Detailed _nextSetComponent,
         uint256 _nextSetUnit,
-        uint256 _nextSetNaturalUnit,
-        bool _toBaseAsset
+        uint256 _nextSetNaturalUnit
     )
         internal
         returns (address)
@@ -344,23 +331,17 @@ contract BinaryAllocationPricer is
         bytes32 collateralIDHash = createCollateralIDHash(
             _nextSetUnit,
             _nextSetNaturalUnit,
-            _nextSetComponent
+            address(_nextSetComponent)
         );
         
         if (storedCollateral[collateralIDHash] != address(0)) {
             return storedCollateral[collateralIDHash];
         } else {
-            uint256[] memory nextSetUnits = new uint256[](1);
-            address[] memory nextSetComponents = new address[](1);
-            nextSetUnits[0] = _nextSetUnit;
-            nextSetComponents[0] = _nextSetComponent;
-
             // Create new collateral set with units and naturalUnit as calculated above
             address nextSetAddress = createNewCollateralSet(
-                nextSetComponents,
-                nextSetUnits,
-                _nextSetNaturalUnit,
-                _toBaseAsset
+                _nextSetComponent,
+                _nextSetUnit,
+                _nextSetNaturalUnit
             );
 
             storedCollateral[collateralIDHash] = nextSetAddress;
@@ -382,25 +363,34 @@ contract BinaryAllocationPricer is
      * @return address                  Address of the nextSet
      */
     function createNewCollateralSet(
-        address[] memory _nextSetComponents,
-        uint256[] memory _nextSetUnits,
-        uint256 _nextSetNaturalUnit,
-        bool _toBaseAsset
+        ERC20Detailed _nextSetComponent,
+        uint256 _nextSetUnit,
+        uint256 _nextSetNaturalUnit
     )
         internal
         returns (address)
     {
+        // (
+        //     bytes32 nextCollateralName,
+        //     bytes32 nextCollateralSymbol
+        // ) = _toBaseAsset ? (bytes32("BaseAssetCollateral"), bytes32("BACOL")) :
+        //     (bytes32("QuoteAssetCollateral"), bytes32("QACOL"));
+
         (
             bytes32 nextCollateralName,
             bytes32 nextCollateralSymbol
-        ) = _toBaseAsset ? (bytes32("BaseAssetCollateral"), bytes32("BACOL")) :
-            (bytes32("QuoteAssetCollateral"), bytes32("QACOL"));
+        ) = (bytes32(""), bytes32(""));
+
+        uint256[] memory nextSetUnits = new uint256[](1);
+        address[] memory nextSetComponents = new address[](1);
+        nextSetUnits[0] = _nextSetUnit;
+        nextSetComponents[0] = address(_nextSetComponent);
 
         // Create new collateral set with passed units and naturalUnit
         return coreInstance.createSet(
             setTokenFactoryAddress,
-            _nextSetComponents,
-            _nextSetUnits,
+            nextSetComponents,
+            nextSetUnits,
             _nextSetNaturalUnit,
             nextCollateralName,
             nextCollateralSymbol,
@@ -408,10 +398,25 @@ contract BinaryAllocationPricer is
         );       
     }
 
+    function getComponentPriceAndDecimalData(
+        bool _usingBaseAsset
+    )
+        internal
+        view
+        returns (uint256, uint8)
+    {
+        if (_usingBaseAsset) {
+            return (baseAssetOracleInstance.read(), baseAssetDecimals);
+        } else {
+            return (quoteAssetOracleInstance.read(), quoteAssetDecimals);
+        }        
+    }
+
     function createCollateralIDHashFromSet(
         ISetToken _setToken
     )
         internal
+        view
         returns (bytes32)
     {
         SetTokenLibrary.SetDetails memory setDetails = SetTokenLibrary.getSetDetails(
@@ -444,7 +449,7 @@ contract BinaryAllocationPricer is
      * @param  _targetCollateralUSDValue      USD Value of current collateral set
      * @param  _newComponentPrice             Price of underlying token to be rebalanced into
      * @param  _newComponentDecimals          Amount of decimals in replacement token
-     * @return uint256[]                      Units array for new collateral set
+     * @return uint256                        Units for new collateral set
      * @return uint256                        NaturalUnit for new collateral set
      */
     function calculateNextSetParameters(
@@ -453,7 +458,7 @@ contract BinaryAllocationPricer is
         uint8 _newComponentDecimals
     )
         internal
-        // pure
+        pure
         returns (uint256, uint256)
     {
         // Determine minimum natural unit based on max of pre-defined minimum or (18 - decimals) of the 
@@ -514,7 +519,8 @@ contract BinaryAllocationPricer is
     )
         public
         pure 
-    returns (uint256) {
+        returns (uint256)
+    {
         require (
             _x > 0,
             "BinaryAllocationPricer.ceilLog10: Value must be greater than zero."
@@ -564,6 +570,7 @@ contract BinaryAllocationPricer is
         address _component
     )
         internal
+        pure
         returns (bytes32)
     {
         return keccak256(
