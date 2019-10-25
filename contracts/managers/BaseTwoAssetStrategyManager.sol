@@ -29,21 +29,19 @@ import { IPriceTrigger } from "./price-triggers/IPriceTrigger.sol";
 
 
 /**
- * @title TwoAssetStrategyManagerWithConfirmation
+ * @title BaseTwoAssetStrategyManager
  * @author Set Protocol
  *
- * Rebalancing Manager contract for implementing any trading pair strategy based on arbitrarily defined
- * price triggers represented by the manager's PriceTrigger contract. Additionally, all allocations are
- * chosen using the manager's AllocationPricer contract. This manager requires confirmation for all
- * potential rebalances, the confirmation window is defined on deployment of the manager contract.
+ * Base Rebalancing Manager contract for implementing any trading pair strategy. Allocation determinations
+ * are implemented in a contract that inherits the functionality of this contract. Additionally, all allocations are
+ * priced using the base contracts's AllocationPricer contract.
  */
-contract TwoAssetStrategyManager {
+contract BaseTwoAssetStrategyManager {
     using SafeMath for uint256;
 
     /* ============ State Variables ============ */
     ICore public coreInstance;
     IAuctionPriceCurve public auctionLibraryInstance;
-    IPriceTrigger public priceTriggerInstance;
     IAllocationPricer public allocationPricerInstance;
     IRebalancingSetToken public rebalancingSetTokenInstance;
     uint256 public baseAssetAllocation;  // Percent of base asset currently allocated in strategy
@@ -54,8 +52,7 @@ contract TwoAssetStrategyManager {
     /*
      * TwoAssetStrategyManagerWithConfirmation constructor.
      *
-     * @param  _coreInstance                    The address of the Core contract
-     * @param  _priceTriggerInstance            The address of the PriceTrigger to be used in the strategy         
+     * @param  _coreInstance                    The address of the Core contract       
      * @param  _allocationPricerInstance        The address of the AllocationPricer to be used in the strategy        
      * @param  _auctionLibraryInstance          The address of auction price curve to use in rebalance
      * @param  _baseAssetAllocation             Starting allocation of the Rebalancing Set in baseAsset amount
@@ -64,7 +61,6 @@ contract TwoAssetStrategyManager {
      */
     constructor(
         ICore _coreInstance,
-        IPriceTrigger _priceTriggerInstance,
         IAllocationPricer _allocationPricerInstance,
         IAuctionPriceCurve _auctionLibraryInstance,
         uint256 _baseAssetAllocation,
@@ -74,7 +70,6 @@ contract TwoAssetStrategyManager {
         public
     {
         coreInstance = _coreInstance;
-        priceTriggerInstance = _priceTriggerInstance;
         allocationPricerInstance = _allocationPricerInstance;
         auctionLibraryInstance = _auctionLibraryInstance;
         baseAssetAllocation = _baseAssetAllocation;
@@ -99,13 +94,13 @@ contract TwoAssetStrategyManager {
         // Check that contract deployer is calling function
         require(
             msg.sender == initializerAddress,
-            "MACOStrategyManager.initialize: Only the contract deployer can initialize"
+            "BaseTwoAssetStrategyManager.initialize: Only the contract deployer can initialize"
         );
 
         // Make sure the rebalancingSetToken is tracked by Core
         require(
             coreInstance.validSets(address(_rebalancingSetTokenInstance)),
-            "MACOStrategyManager.initialize: Invalid or disabled RebalancingSetToken address"
+            "BaseTwoAssetStrategyManager.initialize: Invalid or disabled RebalancingSetToken address"
         );
 
         rebalancingSetTokenInstance = _rebalancingSetTokenInstance;
@@ -123,12 +118,12 @@ contract TwoAssetStrategyManager {
         FlexibleTimingManagerLibrary.validateManagerPropose(rebalancingSetTokenInstance);
         
         // Get new baseAsset allocation amount
-        uint256 newBaseAssetAllocation = priceTriggerInstance.retrieveBaseAssetAllocation();
+        uint256 newBaseAssetAllocation = calculateBaseAssetAllocation();
 
         // Check that new baseAsset allocation amount is different from current allocation amount
         require(
             newBaseAssetAllocation != baseAssetAllocation,
-            "TwoAssetStrategyManagerWithConfirmation.confirmPropose: Price trigger not met."
+            "BaseTwoAssetStrategyManager.propose: No change in allocation detected."
         );
 
         // Get current collateral Set
@@ -172,4 +167,19 @@ contract TwoAssetStrategyManager {
         // Set baseAssetAllocation to new allocation amount
         baseAssetAllocation = newBaseAssetAllocation;
     }
+
+    function isReadyToRebalance()
+        external
+        view
+        returns (bool)
+    {
+        return calculateBaseAssetAllocation() != baseAssetAllocation;        
+    }    
+
+    /* ============ Internal ============ */
+
+    function calculateBaseAssetAllocation()
+        public
+        view
+        returns (uint256);
 }

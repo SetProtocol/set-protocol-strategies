@@ -42,15 +42,11 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
 {
     using SafeMath for uint256;
 
-    /* ============ Constants ============ */
-    uint256 constant MAX_BASE_ASSET_ALLOCATION = 100;
-    uint256 constant MIN_BASE_ASSET_ALLOCATION = 0;
-
     /* ============ State Variables ============ */
     IMetaOracleV2 public movingAveragePriceFeedInstance;
     IOracle public assetPairOracleInstance;
     uint256 public movingAverageDays;
-    uint256 private lastConfirmedAllocation;
+    bool private lastConfirmedState;
 
     uint256 public signalConfirmationMinTime;
     uint256 public signalConfirmationMaxTime;
@@ -67,7 +63,7 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
         IMetaOracleV2 _movingAveragePriceFeedInstance,
         IOracle _assetPairOracleInstance,
         uint256 _movingAverageDays,
-        uint256 _initialAllocation,
+        bool _initialState,
         uint256 _signalConfirmationMinTime,
         uint256 _signalConfirmationMaxTime
 
@@ -80,7 +76,7 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
         movingAverageDays = _movingAverageDays;
         signalConfirmationMinTime = _signalConfirmationMinTime;
         signalConfirmationMaxTime = _signalConfirmationMaxTime;
-        lastConfirmedAllocation = _initialAllocation;
+        lastConfirmedState = _initialState;
     }
 
     /* ============ External ============ */
@@ -93,11 +89,11 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
             "MovingAverageToAssetPriceCrossoverTrigger.initialTrigger: Not enough time passed from last initial crossover."
         );
 
-        // Get current market allocation and check that it's different from last confirmed allocation
-        uint256 currentMarketAllocation = getCurrentMarketAllocation();
+        // Get current market state and check that it's different from last confirmed state
+        bool currentMarketState = getCurrentMarketState();
         require(
-            currentMarketAllocation != lastConfirmedAllocation,
-            "MovingAverageToAssetPriceCrossoverTrigger.initialTrigger: Market conditions have not changed since last confirmed allocation."
+            currentMarketState != lastConfirmedState,
+            "MovingAverageToAssetPriceCrossoverTrigger.initialTrigger: Market conditions have not changed since last confirmed state."
         );
 
         lastInitialTriggerTimestamp = block.timestamp;
@@ -113,42 +109,41 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
             "MACOStrategyManager.confirmPropose: Confirming signal must be within bounds of the initial propose"
         );
 
-        // Get current market allocation and check that it's different from last confirmed allocation
-        uint256 currentMarketAllocation = getCurrentMarketAllocation();
+        // Get current market state and check that it's different from last confirmed state
+        bool currentMarketState = getCurrentMarketState();
         require(
-            currentMarketAllocation != lastConfirmedAllocation,
-            "MovingAverageToAssetPriceCrossoverTrigger.confirmTrigger: Market conditions have not changed since last confirmed allocation."
+            currentMarketState != lastConfirmedState,
+            "MovingAverageToAssetPriceCrossoverTrigger.confirmTrigger: Market conditions have not changed since last confirmed state."
         );
 
-        lastConfirmedAllocation = currentMarketAllocation;
+        lastConfirmedState = currentMarketState;
     }
 
     /*
-     * Returns the percentage of base asset the calling Manager should allocate the RebalancingSetToken
-     * to. If asset pair price is above moving average then should be 100% allocated to base asset, if
-     * asset pair price is below moving average then should be 0% allocated to base asset.
+     * Returns if market conditions are bullish. If asset pair price is above moving average then should
+     * be true, if asset pair price is below moving average then should be false.
      *
-     * @return             The percentage of base asset to be allocated to
+     * @return             Whether market conditions are bullish
      */
-    function retrieveBaseAssetAllocation()
+    function isBullish()
         external
-        returns (uint256)
+        view
+        returns (bool)
     {
-        return lastConfirmedAllocation;
+        return lastConfirmedState;
     }
 
     /* ============ Internal ============ */
 
-    function getCurrentMarketAllocation()
+    function getCurrentMarketState()
         internal
-        returns(uint256)
+        returns(bool)
     {
         // Query moving average and asset pair oracle
         uint256 movingAveragePrice = movingAveragePriceFeedInstance.read(movingAverageDays);
         uint256 assetPairPrice = assetPairOracleInstance.read();
 
-        // If asset pair price greater than moving average return max allocation of base asset, else return
-        // min allocation
-        return assetPairPrice > movingAveragePrice ? MAX_BASE_ASSET_ALLOCATION : MIN_BASE_ASSET_ALLOCATION;        
+        // If asset pair price greater than moving average return true, else return false
+        return assetPairPrice > movingAveragePrice;        
     }
 }

@@ -39,10 +39,6 @@ import { IMetaOracleV2 } from "../../meta-oracles/interfaces/IMetaOracleV2.sol";
 contract RSITrendingTrigger is
     IPriceTrigger
 {
-    /* ============ Constants ============ */
-    uint256 constant MAX_BASE_ASSET_ALLOCATION = 100;
-    uint256 constant MIN_BASE_ASSET_ALLOCATION = 0;
-
     /* ============ State Variables ============ */
     IMetaOracleV2 public rsiOracleInstance;
     // RSI Bound under which strategy goes to the quote asset
@@ -50,23 +46,23 @@ contract RSITrendingTrigger is
     // RSI Bound over which strategy goes to the base asset
     uint256 public upperBound;
     uint256 public rsiTimePeriod;
-    uint256 public currentTrendAllocation;
+    bool private currentTrendState;
 
     /*
      * RSITrendingTrigger constructor.
      *
-     * @param  _rsiOracleInstance           The address of RSI oracle
-     * @param  _lowerBound                  Lower bound of RSI to trigger a rebalance
-     * @param  _upperBound                  Upper bound of RSI to trigger a rebalance
-     * @param  _rsiTimePeriod               The amount of days to use in RSI calculation
-     * @param  _initialTrendAllocation      Starting allocation based on current trend
+     * @param  _rsiOracleInstance       The address of RSI oracle
+     * @param  _lowerBound              Lower bound of RSI to trigger a rebalance
+     * @param  _upperBound              Upper bound of RSI to trigger a rebalance
+     * @param  _rsiTimePeriod           The amount of days to use in RSI calculation
+     * @param  _initialTrendState       Starting state based on current trend
      */
     constructor(
         IMetaOracleV2 _rsiOracleInstance,
         uint256 _lowerBound,
         uint256 _upperBound,
         uint256 _rsiTimePeriod,
-        uint256 _initialTrendAllocation
+        bool _initialTrendState
     )
         public
     {
@@ -76,60 +72,56 @@ contract RSITrendingTrigger is
             "RSITrendingTrigger.constructor: Upper bound must be greater than lower bound"
         );
 
-        // Check that initial trend allocation matches one of the allocation constants
-        require(
-            _initialTrendAllocation == MAX_BASE_ASSET_ALLOCATION || _initialTrendAllocation == MIN_BASE_ASSET_ALLOCATION,
-            "RSITrendingTrigger.constructor: Initial trend allocation must match either min or max allocation values."
-        );
-
         // Set all state variables
         rsiOracleInstance = _rsiOracleInstance;
         lowerBound = _lowerBound;
         upperBound = _upperBound;
         rsiTimePeriod = _rsiTimePeriod;
-        currentTrendAllocation = _initialTrendAllocation;
+        currentTrendState = _initialTrendState;
     }
 
     /*
-     * Returns the percentage of base asset the calling Manager should allocate the RebalancingSetToken
-     * to. If RSI is above upper bound then should be 100% allocated to base asset, if
-     * RSI is below lower bound then should be 0% allocated to base asset. If in between bounds then
-     * returns the allocation of the current trend.
-     *
-     * @return             The percentage of base asset to be allocated to
-     */
-    function retrieveBaseAssetAllocation()
-        external
-        returns (uint256)
-    {
-        // Query RSI oracle
-        uint256 rsiValue = rsiOracleInstance.read(rsiTimePeriod);
-
-        // If RSI greater than upper bound return max allocation of base asset
-        // Else if RSI less than lower bound return min allocation of base asset
-        // Else return currentTrendAllocation
-        uint256 trendAllocation = rsiValue >= upperBound ? MAX_BASE_ASSET_ALLOCATION : rsiValue < lowerBound ?
-            MIN_BASE_ASSET_ALLOCATION : currentTrendAllocation;
-
-        // Set currentTrendAllocation if trend has changed
-        if (trendAllocation != currentTrendAllocation) {
-            currentTrendAllocation = trendAllocation;
-        }
-
-        return trendAllocation;
-    }
-
-    /*
-     * Since RSI does not require a confirmation leave function unimplemented.
+     * Since RSI does not require a confirmation leave initialTrigger function unimplemented.
      */
     function initialTrigger()
         external
     {}
 
     /*
-     * Since RSI does not require a confirmation leave function unimplemented.
+     * Sets if RSI state is bullish. If RSI is above upper bound then should be true,
+     * if RSI is below lower bound then should be false. If in between bounds then
+     * returns the state of the current trend.
      */
     function confirmTrigger()
         external
-    {}
+    {
+        // Query RSI oracle
+        uint256 rsiValue = rsiOracleInstance.read(rsiTimePeriod);
+
+        // If RSI greater than upper bound return true
+        // Else if RSI less than lower bound return false
+        // Else return currentTrendState
+        bool trendState = rsiValue >= upperBound ? true : rsiValue < lowerBound ?
+            false : currentTrendState;
+
+        // Set currentTrendState if trend has changed
+        if (trendState != currentTrendState) {
+            currentTrendState = trendState;
+        }
+    }
+
+    /*
+     * Returns if RSI state is bullish If RSI is above upper bound then should be true,
+     * if RSI is below lower bound then should be false. If in between bounds then
+     * returns the state of the current trend.
+     *
+     * @return             Whether indicator is bullish or bearish
+     */
+    function isBullish()
+        external
+        view
+        returns (bool)
+    {
+        return currentTrendState;
+    }
 }

@@ -308,7 +308,7 @@ contract('BinaryAllocationPricer', accounts => {
     });
   });
 
-  describe.only('#determineNewAllocation', async () => {
+  describe('#determineNewAllocation', async () => {
     let subjectTargetBaseAssetAllocation: BigNumber;
     let subjectCurrentCollateralSet: Address;
 

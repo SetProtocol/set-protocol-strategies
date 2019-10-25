@@ -1,5 +1,9 @@
 export { BaseContract } from '../types/base_contract';
+export {
+  BaseTwoAssetStrategyManagerMockContract
+} from '../types/generated/base_two_asset_strategy_manager_mock';
 export { BinaryAllocationPricerContract } from '../types/generated/binary_allocation_pricer';
+export { BinaryAllocationPricerMockContract } from '../types/generated/binary_allocation_pricer_mock';
 export { BTCDaiRebalancingManagerContract } from '../types/generated/b_t_c_dai_rebalancing_manager';
 export { BTCETHRebalancingManagerContract } from '../types/generated/b_t_c_e_t_h_rebalancing_manager';
 export {
@@ -33,6 +37,7 @@ export { OracleProxyCallerContract } from '../types/generated/oracle_proxy_calle
 export { OracleProxyContract } from '../types/generated/oracle_proxy';
 export { PriceFeedContract } from '../types/generated/price_feed';
 export { PriceFeedMockContract } from '../types/generated/price_feed_mock';
+export { PriceTriggerMockContract } from '../types/generated/price_trigger_mock';
 export { RSILibraryMockContract } from '../types/generated/r_s_i_library_mock';
 export { RSITrendingTriggerContract } from '../types/generated/r_s_i_trending_trigger';
 export { RSIOracleContract } from '../types/generated/r_s_i_oracle';
@@ -40,6 +45,6 @@ export { TimeSeriesFeedContract } from '../types/generated/time_series_feed';
 export { TimeSeriesFeedV2Contract } from '../types/generated/time_series_feed_v2';
 export { TimeSeriesFeedV2MockContract } from '../types/generated/time_series_feed_v2_mock';
 export {
-  TwoAssetStrategyManagerContract
-} from '../types/generated/two_asset_strategy_manager';
+  TwoAssetWeightedStrategyManagerContract
+} from '../types/generated/two_asset_weighted_strategy_manager';
 export { USDCMockContract } from '../types/generated/u_s_d_c_mock';
