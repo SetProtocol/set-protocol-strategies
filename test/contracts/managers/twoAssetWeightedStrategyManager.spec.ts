@@ -21,7 +21,6 @@ import {
 } from '@utils/contracts';
 
 import {
-  DEFAULT_GAS,
   ONE_HOUR_IN_SECONDS,
   ZERO
 } from '@utils/constants';
@@ -178,9 +177,7 @@ contract('TwoAssetWeightedStrategyManager', accounts => {
     });
 
     async function subject(): Promise<BigNumber> {
-      return setManager.calculateBaseAssetAllocation.callAsync(
-        { from: subjectCaller, gas: DEFAULT_GAS}
-      );
+      return setManager.calculateBaseAssetAllocation.callAsync();
     }
 
     it('calculates the correct allocation amount', async () => {
