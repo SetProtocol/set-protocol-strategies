@@ -88,6 +88,7 @@ contract('TwoAssetWeightedStrategyManager', accounts => {
     let subjectAllocationPricerInstance: Address;
     let subjectAuctionLibraryInstance: Address;
     let subjectBaseAssetAllocation: BigNumber;
+    let subjectAllocationPrecision: BigNumber;
     let subjectAuctionTimeToPivot: BigNumber;
     let subjectAuctionSpeed: BigNumber;
     let subjectPriceTriggers: Address[];
@@ -99,6 +100,7 @@ contract('TwoAssetWeightedStrategyManager', accounts => {
       subjectAllocationPricerInstance = allocationPricer;
       subjectAuctionLibraryInstance = linearAuctionPriceCurve.address;
       subjectBaseAssetAllocation = ZERO;
+      subjectAllocationPrecision = new BigNumber(100);
       subjectAuctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(2);
       subjectAuctionSpeed = ONE_HOUR_IN_SECONDS.div(6);
       subjectPriceTriggers = [priceTriggerOne.address, priceTriggerTwo.address, priceTriggerThree.address];
@@ -112,6 +114,7 @@ contract('TwoAssetWeightedStrategyManager', accounts => {
         subjectAllocationPricerInstance,
         subjectAuctionLibraryInstance,
         subjectBaseAssetAllocation,
+        subjectAllocationPrecision,
         subjectAuctionTimeToPivot,
         subjectAuctionSpeed,
         subjectPriceTriggers,
@@ -160,6 +163,7 @@ contract('TwoAssetWeightedStrategyManager', accounts => {
   describe('#calculateBaseAssetAllocation', async () => {
     beforeEach(async () => {
       const baseAssetAllocation = ZERO;
+      const allocationPrecision = new BigNumber(100);
       const auctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(2);
       const auctionSpeed = ONE_HOUR_IN_SECONDS.div(6);
       const priceTriggers = [priceTriggerOne.address, priceTriggerTwo.address, priceTriggerThree.address];
@@ -169,6 +173,7 @@ contract('TwoAssetWeightedStrategyManager', accounts => {
         allocationPricer,
         linearAuctionPriceCurve.address,
         baseAssetAllocation,
+        allocationPrecision,
         auctionTimeToPivot,
         auctionSpeed,
         priceTriggers,

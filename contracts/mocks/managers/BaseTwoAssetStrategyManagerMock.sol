@@ -58,7 +58,8 @@ contract BaseTwoAssetStrategyManagerMock is
         IAuctionPriceCurve _auctionLibraryInstance,
         uint256 _baseAssetAllocation,
         uint256 _auctionTimeToPivot,
-        uint256 _auctionSpeed
+        uint256 _auctionSpeed,
+        uint256 _allocationPrecision
     )
         public
         BaseTwoAssetStrategyManager(
@@ -67,7 +68,8 @@ contract BaseTwoAssetStrategyManagerMock is
             _auctionLibraryInstance,
             _baseAssetAllocation,
             _auctionTimeToPivot,
-            _auctionSpeed
+            _auctionSpeed,
+            _allocationPrecision
         )
     {
         allocation = _baseAssetAllocation;

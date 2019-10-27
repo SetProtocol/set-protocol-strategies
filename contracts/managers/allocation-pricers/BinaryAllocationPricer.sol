@@ -148,6 +148,7 @@ contract BinaryAllocationPricer is
      * a new quote collateral set is created if 0% in baseAsset then a new base collateral set is created.
      *
      * @param  _targetBaseAssetAllocation       Target allocation of the base asset
+     * @param  _allocationPrecision             Precision of allocation percentage
      * @param  _currentCollateralSet            Instance of current set collateralizing RebalancingSetToken
      * @return address                          The address of the proposed nextSet
      * @return uint256                          The USD value of current Set
@@ -155,18 +156,19 @@ contract BinaryAllocationPricer is
      */
     function determineNewAllocation(
         uint256 _targetBaseAssetAllocation,
+        uint256 _allocationPrecision,
         ISetToken _currentCollateralSet
     )
         external
         returns (address, uint256, uint256)
     {
         require(
-            _targetBaseAssetAllocation == 100 || _targetBaseAssetAllocation == 0,
-            "BinaryAllocationPricer.validateAllocationParams: Passed allocation must be 100 or 0."
+            _targetBaseAssetAllocation == _allocationPrecision || _targetBaseAssetAllocation == 0,
+            "BinaryAllocationPricer.validateAllocationParams: Passed allocation must be equal to allocationPrecision or 0."
         );
 
         // Determine if rebalance is to the baseAsset
-        bool toBaseAsset = (_targetBaseAssetAllocation == 100);
+        bool toBaseAsset = (_targetBaseAssetAllocation == _allocationPrecision);
 
         validateCurrentCollateralSet(
             _currentCollateralSet,

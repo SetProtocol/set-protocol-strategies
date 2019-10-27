@@ -221,7 +221,7 @@ contract('Integration: TwoAssetWeightedStrategyManager', accounts => {
     blockchain.revertAsync();
   });
 
-  describe.only('#propose', async () => {
+  describe('#propose', async () => {
     let subjectTimeFastForward: BigNumber;
     let subjectCaller: Address;
 
@@ -241,6 +241,7 @@ contract('Integration: TwoAssetWeightedStrategyManager', accounts => {
     });
 
     beforeEach(async () => {
+      const allocationPrecision = new BigNumber(100);
       auctionTimeToPivot = ONE_DAY_IN_SECONDS.div(4);
       const auctionSpeed = ONE_HOUR_IN_SECONDS.div(6);
       setManager = await  managerHelper.deployTwoAssetWeightedStrategyManagerAsync(
@@ -248,6 +249,7 @@ contract('Integration: TwoAssetWeightedStrategyManager', accounts => {
         allocationPricer.address,
         linearAuctionPriceCurve.address,
         baseAssetAllocation,
+        allocationPrecision,
         auctionTimeToPivot,
         auctionSpeed,
         [priceTrigger.address],

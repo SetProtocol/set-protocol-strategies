@@ -45,6 +45,7 @@ contract BaseTwoAssetStrategyManager {
     IAllocationPricer public allocationPricerInstance;
     IRebalancingSetToken public rebalancingSetTokenInstance;
     uint256 public baseAssetAllocation;  // Percent of base asset currently allocated in strategy
+    uint256 public allocationPrecision;
     uint256 public auctionTimeToPivot;
     uint256 public auctionSpeed;  // The amount of seconds to explore 1% of prices
     address public initializerAddress;
@@ -56,6 +57,7 @@ contract BaseTwoAssetStrategyManager {
      * @param  _allocationPricerInstance        The address of the AllocationPricer to be used in the strategy        
      * @param  _auctionLibraryInstance          The address of auction price curve to use in rebalance
      * @param  _baseAssetAllocation             Starting allocation of the Rebalancing Set in baseAsset amount
+     * @param  _allocationPrecision             Precision of allocation percentage
      * @param  _auctionTimeToPivot              The amount of time until pivot reached in rebalance
      * @param  _auctionSpeed                    Time, in seconds, where 1% of prices are explored during auction
      */
@@ -64,6 +66,7 @@ contract BaseTwoAssetStrategyManager {
         IAllocationPricer _allocationPricerInstance,
         IAuctionPriceCurve _auctionLibraryInstance,
         uint256 _baseAssetAllocation,
+        uint256 _allocationPrecision,
         uint256 _auctionTimeToPivot,
         uint256 _auctionSpeed
     )
@@ -75,6 +78,7 @@ contract BaseTwoAssetStrategyManager {
         baseAssetAllocation = _baseAssetAllocation;
         auctionTimeToPivot = _auctionTimeToPivot;
         auctionSpeed = _auctionSpeed;
+        allocationPrecision = _allocationPrecision;
         initializerAddress = msg.sender;
     }
 
@@ -138,6 +142,7 @@ contract BaseTwoAssetStrategyManager {
             uint256 nextSetDollarValue
         ) = allocationPricerInstance.determineNewAllocation(
             newBaseAssetAllocation,
+            allocationPrecision,
             ISetToken(currentCollateralSetAddress)
         );
 

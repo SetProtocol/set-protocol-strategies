@@ -146,6 +146,7 @@ contract('BaseTwoAssetStrategyManager', accounts => {
     let subjectAllocationPricerInstance: Address;
     let subjectAuctionLibraryInstance: Address;
     let subjectBaseAssetAllocation: BigNumber;
+    let subjectAllocationPrecision: BigNumber;
     let subjectAuctionTimeToPivot: BigNumber;
     let subjectAuctionSpeed: BigNumber;
     let subjectCaller: Address;
@@ -155,6 +156,7 @@ contract('BaseTwoAssetStrategyManager', accounts => {
       subjectAllocationPricerInstance = allocationPricer.address;
       subjectAuctionLibraryInstance = linearAuctionPriceCurve.address;
       subjectBaseAssetAllocation = ZERO;
+      subjectAllocationPrecision = new BigNumber(100);
       subjectAuctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(2);
       subjectAuctionSpeed = ONE_HOUR_IN_SECONDS.div(6);
       subjectCaller = deployerAccount;
@@ -166,6 +168,7 @@ contract('BaseTwoAssetStrategyManager', accounts => {
         subjectAllocationPricerInstance,
         subjectAuctionLibraryInstance,
         subjectBaseAssetAllocation,
+        subjectAllocationPrecision,
         subjectAuctionTimeToPivot,
         subjectAuctionSpeed,
         subjectCaller,
@@ -202,6 +205,14 @@ contract('BaseTwoAssetStrategyManager', accounts => {
       const actualBaseAssetAllocation = await setManager.baseAssetAllocation.callAsync();
 
       expect(actualBaseAssetAllocation).to.be.bignumber.equal(subjectBaseAssetAllocation);
+    });
+
+    it('sets the correct allocationPrecision', async () => {
+      setManager = await subject();
+
+      const actualAllocationPrecision = await setManager.allocationPrecision.callAsync();
+
+      expect(actualAllocationPrecision).to.be.bignumber.equal(subjectAllocationPrecision);
     });
 
     it('sets the correct auctionTimeToPivot', async () => {

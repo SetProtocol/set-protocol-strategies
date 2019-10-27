@@ -39,6 +39,7 @@ contract TwoAssetWeightedStrategyManager is
     /* ============ State Variables ============ */
     IPriceTrigger[] public priceTriggers;
     uint8[] public triggerWeights;
+    uint256 public allocationPrecision;
 
     /* ============ Constructors ============ */
     /*
@@ -49,6 +50,7 @@ contract TwoAssetWeightedStrategyManager is
      * @param  _allocationPricerInstance        The address of the AllocationPricer to be used in the strategy        
      * @param  _auctionLibraryInstance          The address of auction price curve to use in rebalance
      * @param  _baseAssetAllocation             Starting allocation of the Rebalancing Set in baseAsset amount
+     * @param  _allocationPrecision             Precision of allocation percentage
      * @param  _auctionTimeToPivot              The amount of time until pivot reached in rebalance
      * @param  _auctionSpeed                    Time, in seconds, where 1% of prices are explored during auction
      * @param  _priceTriggers                   Addresses of the various priceTriggers used to determine base asset allocation
@@ -59,6 +61,7 @@ contract TwoAssetWeightedStrategyManager is
         IAllocationPricer _allocationPricerInstance,
         IAuctionPriceCurve _auctionLibraryInstance,
         uint256 _baseAssetAllocation,
+        uint256 _allocationPrecision,
         uint256 _auctionTimeToPivot,
         uint256 _auctionSpeed,
         IPriceTrigger[] memory _priceTriggers,
@@ -70,6 +73,7 @@ contract TwoAssetWeightedStrategyManager is
             _allocationPricerInstance,
             _auctionLibraryInstance,
             _baseAssetAllocation,
+            _allocationPrecision,
             _auctionTimeToPivot,
             _auctionSpeed
         )
@@ -86,9 +90,9 @@ contract TwoAssetWeightedStrategyManager is
             weightSum += _triggerWeights[i];
         }
 
-        // Require that weights equal 100
+        // Require that weights equal allocation precision
         require(
-            weightSum == 100,
+            weightSum == _allocationPrecision,
             "TwoAssetWeightedStrategyManager.constructor: Weights must sum to 100."
         );        
 

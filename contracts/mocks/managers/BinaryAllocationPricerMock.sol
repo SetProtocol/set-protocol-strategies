@@ -52,12 +52,13 @@ contract BinaryAllocationPricerMock is
 
     function determineNewAllocation(
         uint256 _targetBaseAssetAllocation,
+        uint256 _allocationPrecision,
         ISetToken _currentCollateralSet
     )
         external
         returns (address, uint256, uint256)
     {
-        if (_targetBaseAssetAllocation == 100) {
+        if (_targetBaseAssetAllocation == _allocationPrecision) {
             return (address(baseAssetCollateralInstance), quoteAssetCollateralValue, baseAssetCollateralValue);
         } else {
             return (address(quoteAssetCollateralInstance), baseAssetCollateralValue, quoteAssetCollateralValue);

@@ -310,6 +310,7 @@ contract('BinaryAllocationPricer', accounts => {
 
   describe('#determineNewAllocation', async () => {
     let subjectTargetBaseAssetAllocation: BigNumber;
+    let subjectAllocationPrecision: BigNumber;
     let subjectCurrentCollateralSet: Address;
 
     let ethPrice: BigNumber;
@@ -343,12 +344,14 @@ contract('BinaryAllocationPricer', accounts => {
       );
 
       subjectTargetBaseAssetAllocation = new BigNumber(100);
+      subjectAllocationPrecision = new BigNumber(100);
       subjectCurrentCollateralSet = quoteAssetCollateral.address;
     });
 
     async function subjectCall(): Promise<[string, BigNumber, BigNumber]> {
       return allocationPricer.determineNewAllocation.callAsync(
         subjectTargetBaseAssetAllocation,
+        subjectAllocationPrecision,
         subjectCurrentCollateralSet
       );
     }
@@ -356,6 +359,7 @@ contract('BinaryAllocationPricer', accounts => {
     async function subjectTxn(): Promise<string> {
       return allocationPricer.determineNewAllocation.sendTransactionAsync(
         subjectTargetBaseAssetAllocation,
+        subjectAllocationPrecision,
         subjectCurrentCollateralSet
       );
     }
@@ -763,7 +767,7 @@ contract('BinaryAllocationPricer', accounts => {
       });
     });
 
-    describe('when the target allocation amount does not equal 0 or 100', async () => {
+    describe('when the target allocation amount does not equal 0 or allocationPrecision', async () => {
       beforeEach(async () => {
         subjectTargetBaseAssetAllocation = new BigNumber(1);
       });

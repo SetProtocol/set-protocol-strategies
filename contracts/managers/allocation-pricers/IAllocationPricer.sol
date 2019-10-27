@@ -31,6 +31,7 @@ interface IAllocationPricer {
      * Determine the next allocation to rebalance into.
      *
      * @param  _targetBaseAssetAllocation       Target allocation of the base asset
+     * @param  _allocationPrecision             Precision of allocation percentage
      * @param  _currentCollateralSet            Instance of current set collateralizing RebalancingSetToken
      * @return address                          The address of the proposed nextSet
      * @return uint256                          The USD value of current Set
@@ -38,6 +39,7 @@ interface IAllocationPricer {
      */
     function determineNewAllocation(
         uint256 _targetBaseAssetAllocation,
+        uint256 _allocationPrecision,
         ISetToken _currentCollateralSet
     )
         external
