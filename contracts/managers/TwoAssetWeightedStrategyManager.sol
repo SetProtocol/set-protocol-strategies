@@ -27,10 +27,11 @@ import { IPriceTrigger } from "./price-triggers/IPriceTrigger.sol";
 
 
 /**
- * @title BaseTwoAssetStrategyManagerMock
+ * @title TwoAssetWeightedStrategyManager
  * @author Set Protocol
  *
- * Mock for testing BaseTwoAssetStrategyManager.
+ * Inherits from BaseTwoAssetStrategyManager and implements interface to calculate base asset allocation based on
+ * passed in price triggers and the weights assigned to those price triggers.
  */
 contract TwoAssetWeightedStrategyManager is
     BaseTwoAssetStrategyManager
@@ -50,6 +51,8 @@ contract TwoAssetWeightedStrategyManager is
      * @param  _baseAssetAllocation             Starting allocation of the Rebalancing Set in baseAsset amount
      * @param  _auctionTimeToPivot              The amount of time until pivot reached in rebalance
      * @param  _auctionSpeed                    Time, in seconds, where 1% of prices are explored during auction
+     * @param  _priceTriggers                   Addresses of the various priceTriggers used to determine base asset allocation
+     * @param  _triggerWeights                  Weight (out of 100) to assign to price trigger in matching slot of priceTriggers array
      */
     constructor(
         ICore _coreInstance,
@@ -71,16 +74,19 @@ contract TwoAssetWeightedStrategyManager is
             _auctionSpeed
         )
     {
+        // Check that priceTriggers and triggerWeights arrays are of equal length
         require(
             _priceTriggers.length == _triggerWeights.length,
             "TwoAssetWeightedStrategyManager.constructor: Number of triggers must match, number of weights."
         );
 
+        // Sum weights of _triggerWeights array
         uint8 weightSum = 0;
         for (uint8 i = 0; i < _priceTriggers.length; i++) {
             weightSum += _triggerWeights[i];
         }
 
+        // Require that weights equal 100
         require(
             weightSum == 100,
             "TwoAssetWeightedStrategyManager.constructor: Weights must sum to 100."
@@ -91,12 +97,21 @@ contract TwoAssetWeightedStrategyManager is
     }
 
     /* ============ External ============ */
+
+    /*
+     * Cycles through each price trigger and if returns true adds the weight amount to allocation sum.
+     * Returns results after all price triggers have been checked.
+     *
+     * @return             Base asset allocation amount
+     */
     function calculateBaseAssetAllocation()
         public
         view
         returns (uint256)
     {
         uint256 allocationSum = 0;
+
+        // Cycle through price triggers and add their weight if trigger is bullish
         for (uint8 i = 0; i < priceTriggers.length; i++) {
             allocationSum += priceTriggers[i].isBullish() ? triggerWeights[i] : 0;
         }
@@ -105,6 +120,12 @@ contract TwoAssetWeightedStrategyManager is
     }
 
     /* ============ Getters ============ */
+
+    /*
+     * Return array of all price triggers used in base asset allocation calculation
+     *
+     * @return             Array of price triggers
+     */
     function getPriceTriggers()
         external
         view
@@ -113,6 +134,11 @@ contract TwoAssetWeightedStrategyManager is
         return priceTriggers;
     }
 
+    /*
+     * Return array of all price trigger weights used in base asset allocation calculation
+     *
+     * @return             Array of price trigger weights
+     */
     function getTriggerWeights()
         external
         view

@@ -366,9 +366,9 @@ export class ManagerHelper {
       movingAveragePriceFeed,
       assetPairOracle,
       movingAverageDays,
-      initialState,
       signalConfirmationMinTime,
       signalConfirmationMaxTime,
+      initialState,
       { from }
     );
 

@@ -91,7 +91,7 @@ contract BaseTwoAssetStrategyManager {
     )
         external
     {
-        // Check that contract deployer is calling function
+        // Check that the initializer address is calling function
         require(
             msg.sender == initializerAddress,
             "BaseTwoAssetStrategyManager.initialize: Only the contract deployer can initialize"
@@ -104,6 +104,7 @@ contract BaseTwoAssetStrategyManager {
         );
 
         rebalancingSetTokenInstance = _rebalancingSetTokenInstance;
+        // Set initializer address to 0 so that no one can update RebalancingSetTokenInstance state
         initializerAddress = address(0);
     }
 
@@ -114,7 +115,7 @@ contract BaseTwoAssetStrategyManager {
     function propose()
         external
     {
-        // Create interface to interact with RebalancingSetToken and check enough time has passed for proposal
+        // Check that enough time has passed for the proposal and RebalancingSetToken is in Default state
         FlexibleTimingManagerLibrary.validateManagerPropose(rebalancingSetTokenInstance);
         
         // Get new baseAsset allocation amount
@@ -168,6 +169,10 @@ contract BaseTwoAssetStrategyManager {
         baseAssetAllocation = newBaseAssetAllocation;
     }
 
+     /*
+     * Function returning whether the ideal base asset allocation is different from the current
+     * base asset allocation.
+     */
     function isReadyToRebalance()
         external
         view
@@ -178,6 +183,10 @@ contract BaseTwoAssetStrategyManager {
 
     /* ============ Internal ============ */
 
+     /*
+     * Unimplemented in this base contract but is used to translate price triggers outputs (boolean)
+     * into an ideal base asset allocation.
+     */
     function calculateBaseAssetAllocation()
         public
         view

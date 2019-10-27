@@ -27,13 +27,12 @@ import { IMetaOracleV2 } from "../../meta-oracles/interfaces/IMetaOracleV2.sol";
  * @author Set Protocol
  *
  * Implementing the IPriceTrigger interface, this contract is queried by a
- * RebalancingSetToken Manager to determine the amount of base asset to be
- * allocated to by checking if the the RSI is above or below certain values.
+ * RebalancingSetToken Manager to determine the whether the current market state for
+ * the RSI Trending trigger is bullish.
  *
  * This trigger is for trend trading strategies which sets upperBound as resistance
- * and lowerBound as support. When RSI level crosses above upperBound the 
- * RebalancingSetToken should be in the base asset. When RSI level crosses below
- * lowerBound the RebalancingSetToken should be in the quote asset.
+ * and lowerBound as support. When RSI level crosses above upperBound the indicator
+ * is bullish. When RSI level crosses below lowerBound the indicator is bearish.
  *
  */
 contract RSITrendingTrigger is
@@ -41,9 +40,9 @@ contract RSITrendingTrigger is
 {
     /* ============ State Variables ============ */
     IMetaOracleV2 public rsiOracleInstance;
-    // RSI Bound under which strategy goes to the quote asset
+    // RSI Bound under which strategy indicates bearish market
     uint256 public lowerBound;
-    // RSI Bound over which strategy goes to the base asset
+    // RSI Bound over which strategy indicates bullish market
     uint256 public upperBound;
     uint256 public rsiTimePeriod;
     bool private currentTrendState;
@@ -88,9 +87,8 @@ contract RSITrendingTrigger is
     {}
 
     /*
-     * Sets if RSI state is bullish. If RSI is above upper bound then should be true,
-     * if RSI is below lower bound then should be false. If in between bounds then
-     * returns the state of the current trend.
+     * If RSI is above upper bound then should be true, if RSI is below lower bound
+     * then should be false. If in between bounds then returns the state of the current trend.
      */
     function confirmTrigger()
         external
@@ -111,11 +109,9 @@ contract RSITrendingTrigger is
     }
 
     /*
-     * Returns if RSI state is bullish If RSI is above upper bound then should be true,
-     * if RSI is below lower bound then should be false. If in between bounds then
-     * returns the state of the current trend.
+     * Returns if trigger is in bullish state.
      *
-     * @return             Whether indicator is bullish or bearish
+     * @return             Whether market conditions are bullish
      */
     function isBullish()
         external

@@ -29,9 +29,9 @@ import { IMetaOracleV2 } from "../../meta-oracles/interfaces/IMetaOracleV2.sol";
  * @author Set Protocol
  *
  * Implementing the IPriceTrigger interface, this contract is queried by a
- * RebalancingSetToken Manager to determine the amount of base asset to be
- * allocated to by checking if the the trading pair price is above or below
- * a simple or exponential moving average.
+ * RebalancingSetToken Manager to determine if the market is in a bullish 
+ * state by checking if the the trading pair price is above or below a simple
+ * or exponential moving average.
  *
  * Below the moving average means the RebalancingSetToken should be in the
  * quote asset, above the moving average the RebalancingSetToken should be
@@ -48,7 +48,9 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
     uint256 public movingAverageDays;
     bool private lastConfirmedState;
 
+    // Time to start of confirmation period in seconds
     uint256 public signalConfirmationMinTime;
+    // Time to end of confirmation period in seconds
     uint256 public signalConfirmationMaxTime;
     uint256 public lastInitialTriggerTimestamp;
 
@@ -58,14 +60,17 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
      * @param  _movingAveragePriceFeedInstance      The address of MA price feed
      * @param  _assetPairOracleInstance             The address of risk asset oracle
      * @param  _movingAverageDays                   The amount of days to use in moving average calculation
+     * @param  _signalConfirmationMinTime           The amount of time, in seconds, until start of confirmation period
+     * @param  _signalConfirmationMaxTime           The amount of time, in seconds, until end of confirmation period
+     * @param  _initialState                        The trigger market state upond deployment
      */
     constructor(
         IMetaOracleV2 _movingAveragePriceFeedInstance,
         IOracle _assetPairOracleInstance,
         uint256 _movingAverageDays,
-        bool _initialState,
         uint256 _signalConfirmationMinTime,
-        uint256 _signalConfirmationMaxTime
+        uint256 _signalConfirmationMaxTime,
+        bool _initialState
 
     )
         public
@@ -81,6 +86,12 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
 
     /* ============ External ============ */
 
+    /*
+     * If enough time has passed since last initial confirmation the current market state is
+     * calculated then compared to the last confirmed market state. If current state differs
+     * from last confirmed state then timestamp is logged to be used in calculating the start
+     * and end of the confirmation period.
+     */
     function initialTrigger()
         external
     {
@@ -99,6 +110,11 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
         lastInitialTriggerTimestamp = block.timestamp;
     }
 
+    /*
+     * If within the confirmation time period, the current market state is calculated then
+     * compared to the last confirmed market state. If current state differs from last confirmed
+     * state then the last confirmed state is updated to the current market state.
+     */
     function confirmTrigger()
         external
     {
@@ -120,8 +136,7 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
     }
 
     /*
-     * Returns if market conditions are bullish. If asset pair price is above moving average then should
-     * be true, if asset pair price is below moving average then should be false.
+     * Returns if trigger is in bullish state.
      *
      * @return             Whether market conditions are bullish
      */
@@ -135,6 +150,12 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
 
     /* ============ Internal ============ */
 
+    /*
+     * Queries asset and moving average oracle then returns true if asset price exceeds moving
+     * average otherwise returns false.
+     *
+     * @return             Whether market conditions are bullish (asset price is over MA)
+     */
     function getCurrentMarketState()
         internal
         returns(bool)
