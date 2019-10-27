@@ -346,6 +346,7 @@ contract('BaseTwoAssetStrategyManager', accounts => {
     });
 
     beforeEach(async () => {
+      const allocationPrecision = new BigNumber(100);
       auctionTimeToPivot = ONE_DAY_IN_SECONDS.div(4);
       auctionSpeed = ONE_HOUR_IN_SECONDS.div(6);
       setManager = await managerHelper.deployBaseTwoAssetStrategyManagerMockAsync(
@@ -353,6 +354,7 @@ contract('BaseTwoAssetStrategyManager', accounts => {
         allocationPricer.address,
         linearAuctionPriceCurve.address,
         initialBaseAssetAllocation,
+        allocationPrecision,
         auctionTimeToPivot,
         auctionSpeed,
       );
