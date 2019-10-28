@@ -1,3 +1,4 @@
+export { AllocationPricerMathLibraryMockContract } from '../types/generated/allocation_pricer_math_library_mock';
 export { BaseContract } from '../types/base_contract';
 export {
   BaseTwoAssetStrategyManagerMockContract

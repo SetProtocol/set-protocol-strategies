@@ -1,5 +1,6 @@
 import { Address } from 'set-protocol-utils';
 import {
+  AllocationPricerMathLibraryMockContract,
   DataSourceLinearInterpolationLibraryMockContract,
   EMALibraryMockContract,
   RSILibraryMockContract,
@@ -16,6 +17,7 @@ import {
 } from '../web3Helper';
 
 const web3 = getWeb3();
+const AllocationPricerMathLibraryMock = artifacts.require('AllocationPricerMathLibraryMock');
 const DataSourceLinearInterpolationLibraryMock = artifacts.require('DataSourceLinearInterpolationLibraryMock');
 const FlexibleTimingManagerLibraryMock = artifacts.require('FlexibleTimingManagerLibraryMock');
 const LinkedListHelperMock = artifacts.require('LinkedListHelperMock');
@@ -164,6 +166,19 @@ export class LibraryMockHelper {
 
     return new RSILibraryMockContract(
       new web3.eth.Contract(rsiLibraryMockContract.abi, rsiLibraryMockContract.address),
+      { from },
+    );
+  }
+
+  public async deployAllocationPricerMathLibraryAsync(
+    from: Address = this._contractOwnerAddress
+  ): Promise<AllocationPricerMathLibraryMockContract> {
+    const mathHelperMockContract = await AllocationPricerMathLibraryMock.new(
+      { from },
+    );
+
+    return new AllocationPricerMathLibraryMockContract(
+      new web3.eth.Contract(mathHelperMockContract.abi, mathHelperMockContract.address),
       { from },
     );
   }
