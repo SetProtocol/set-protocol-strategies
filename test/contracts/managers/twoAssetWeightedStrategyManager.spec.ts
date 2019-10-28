@@ -89,8 +89,9 @@ contract('TwoAssetWeightedStrategyManager', accounts => {
     let subjectAuctionLibraryInstance: Address;
     let subjectBaseAssetAllocation: BigNumber;
     let subjectAllocationPrecision: BigNumber;
+    let subjectAuctionStartPercentage: BigNumber;
+    let subjectAuctionEndPercentage: BigNumber;
     let subjectAuctionTimeToPivot: BigNumber;
-    let subjectAuctionSpeed: BigNumber;
     let subjectPriceTriggers: Address[];
     let subjectTriggerWeights: BigNumber[];
     let subjectCaller: Address;
@@ -101,8 +102,9 @@ contract('TwoAssetWeightedStrategyManager', accounts => {
       subjectAuctionLibraryInstance = linearAuctionPriceCurve.address;
       subjectBaseAssetAllocation = ZERO;
       subjectAllocationPrecision = new BigNumber(100);
-      subjectAuctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(2);
-      subjectAuctionSpeed = ONE_HOUR_IN_SECONDS.div(6);
+      subjectAuctionStartPercentage = new BigNumber(2);
+      subjectAuctionEndPercentage = new BigNumber(10);
+      subjectAuctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
       subjectPriceTriggers = [priceTriggerOne.address, priceTriggerTwo.address, priceTriggerThree.address];
       subjectTriggerWeights = [new BigNumber(34), new BigNumber(33), new BigNumber(33)];
       subjectCaller = deployerAccount;
@@ -115,8 +117,9 @@ contract('TwoAssetWeightedStrategyManager', accounts => {
         subjectAuctionLibraryInstance,
         subjectBaseAssetAllocation,
         subjectAllocationPrecision,
+        subjectAuctionStartPercentage,
+        subjectAuctionEndPercentage,
         subjectAuctionTimeToPivot,
-        subjectAuctionSpeed,
         subjectPriceTriggers,
         subjectTriggerWeights,
         subjectCaller,
@@ -164,8 +167,9 @@ contract('TwoAssetWeightedStrategyManager', accounts => {
     beforeEach(async () => {
       const baseAssetAllocation = ZERO;
       const allocationPrecision = new BigNumber(100);
-      const auctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(2);
-      const auctionSpeed = ONE_HOUR_IN_SECONDS.div(6);
+      const auctionStartPercentage = new BigNumber(2);
+      const auctionEndPercentage = new BigNumber(10);
+      const auctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
       const priceTriggers = [priceTriggerOne.address, priceTriggerTwo.address, priceTriggerThree.address];
       const triggerWeights = [new BigNumber(34), new BigNumber(33), new BigNumber(33)];
       setManager = await managerHelper.deployTwoAssetWeightedStrategyManagerAsync(
@@ -174,8 +178,9 @@ contract('TwoAssetWeightedStrategyManager', accounts => {
         linearAuctionPriceCurve.address,
         baseAssetAllocation,
         allocationPrecision,
+        auctionStartPercentage,
+        auctionEndPercentage,
         auctionTimeToPivot,
-        auctionSpeed,
         priceTriggers,
         triggerWeights,
       );

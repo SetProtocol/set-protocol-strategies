@@ -147,8 +147,9 @@ contract('BaseTwoAssetStrategyManager', accounts => {
     let subjectAuctionLibraryInstance: Address;
     let subjectBaseAssetAllocation: BigNumber;
     let subjectAllocationPrecision: BigNumber;
+    let subjectAuctionStartPercentage: BigNumber;
+    let subjectAuctionEndPercentage: BigNumber;
     let subjectAuctionTimeToPivot: BigNumber;
-    let subjectAuctionSpeed: BigNumber;
     let subjectCaller: Address;
 
     beforeEach(async () => {
@@ -157,8 +158,9 @@ contract('BaseTwoAssetStrategyManager', accounts => {
       subjectAuctionLibraryInstance = linearAuctionPriceCurve.address;
       subjectBaseAssetAllocation = ZERO;
       subjectAllocationPrecision = new BigNumber(100);
-      subjectAuctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(2);
-      subjectAuctionSpeed = ONE_HOUR_IN_SECONDS.div(6);
+      subjectAuctionStartPercentage = new BigNumber(2);
+      subjectAuctionEndPercentage = new BigNumber(10);
+      subjectAuctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
       subjectCaller = deployerAccount;
     });
 
@@ -169,8 +171,9 @@ contract('BaseTwoAssetStrategyManager', accounts => {
         subjectAuctionLibraryInstance,
         subjectBaseAssetAllocation,
         subjectAllocationPrecision,
+        subjectAuctionStartPercentage,
+        subjectAuctionEndPercentage,
         subjectAuctionTimeToPivot,
-        subjectAuctionSpeed,
         subjectCaller,
       );
     }
@@ -215,20 +218,28 @@ contract('BaseTwoAssetStrategyManager', accounts => {
       expect(actualAllocationPrecision).to.be.bignumber.equal(subjectAllocationPrecision);
     });
 
+    it('sets the correct auctionStartPercentage', async () => {
+      setManager = await subject();
+
+      const actualAuctionStartPercentage = await setManager.auctionStartPercentage.callAsync();
+
+      expect(actualAuctionStartPercentage).to.be.bignumber.equal(subjectAuctionStartPercentage);
+    });
+
+    it('sets the correct auctionEndPercentage', async () => {
+      setManager = await subject();
+
+      const actualAuctionEndPercentage = await setManager.auctionEndPercentage.callAsync();
+
+      expect(actualAuctionEndPercentage).to.be.bignumber.equal(subjectAuctionEndPercentage);
+    });
+
     it('sets the correct auctionTimeToPivot', async () => {
       setManager = await subject();
 
       const actualAuctionTimeToPivot = await setManager.auctionTimeToPivot.callAsync();
 
       expect(actualAuctionTimeToPivot).to.be.bignumber.equal(subjectAuctionTimeToPivot);
-    });
-
-    it('sets the correct auctionSpeed', async () => {
-      setManager = await subject();
-
-      const actualAuctionSpeed = await setManager.auctionSpeed.callAsync();
-
-      expect(actualAuctionSpeed).to.be.bignumber.equal(subjectAuctionSpeed);
     });
 
     it('sets the correct initializerAddress', async () => {
@@ -247,15 +258,19 @@ contract('BaseTwoAssetStrategyManager', accounts => {
     let proposalPeriod: BigNumber;
 
     beforeEach(async () => {
-      const auctionTimeToPivot = ONE_DAY_IN_SECONDS.div(4);
-      const auctionSpeed = ONE_HOUR_IN_SECONDS.div(6);
+      const auctionStartPercentage = new BigNumber(2);
+      const auctionEndPercentage = new BigNumber(10);
+      const auctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
+      const allocationPrecision = new BigNumber(100);
       setManager = await managerHelper.deployBaseTwoAssetStrategyManagerMockAsync(
         core.address,
         allocationPricer.address,
         linearAuctionPriceCurve.address,
         ZERO,
+        allocationPrecision,
+        auctionStartPercentage,
+        auctionEndPercentage,
         auctionTimeToPivot,
-        auctionSpeed,
       );
 
       proposalPeriod = ONE_DAY_IN_SECONDS;
@@ -334,8 +349,9 @@ contract('BaseTwoAssetStrategyManager', accounts => {
 
     let initialBaseAssetAllocation: BigNumber;
     let finalBaseAssetAllocation: BigNumber;
+    let auctionStartPercentage: BigNumber;
+    let auctionEndPercentage: BigNumber;
     let auctionTimeToPivot: BigNumber;
-    let auctionSpeed: BigNumber;
 
     let collateralSetAddress: Address;
     let proposalPeriod: BigNumber;
@@ -347,16 +363,18 @@ contract('BaseTwoAssetStrategyManager', accounts => {
 
     beforeEach(async () => {
       const allocationPrecision = new BigNumber(100);
-      auctionTimeToPivot = ONE_DAY_IN_SECONDS.div(4);
-      auctionSpeed = ONE_HOUR_IN_SECONDS.div(6);
+      auctionStartPercentage = new BigNumber(2);
+      auctionEndPercentage = new BigNumber(10);
+      auctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
       setManager = await managerHelper.deployBaseTwoAssetStrategyManagerMockAsync(
         core.address,
         allocationPricer.address,
         linearAuctionPriceCurve.address,
         initialBaseAssetAllocation,
         allocationPrecision,
+        auctionStartPercentage,
+        auctionEndPercentage,
         auctionTimeToPivot,
-        auctionSpeed,
       );
 
       collateralSetAddress = initialBaseAssetAllocation.equals(ZERO) ? quoteAssetCollateral.address
@@ -409,8 +427,9 @@ contract('BaseTwoAssetStrategyManager', accounts => {
           await subject();
 
           const auctionPriceParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
-          const newAuctionTimeToPivot = auctionPriceParameters[1];
-          expect(newAuctionTimeToPivot).to.be.bignumber.equal(auctionTimeToPivot);
+          const actualAuctionTimeToPivot = auctionPriceParameters[1];
+
+          expect(actualAuctionTimeToPivot).to.be.bignumber.equal(auctionTimeToPivot);
         });
 
         it('updates the auction start price correctly', async () => {
@@ -419,8 +438,8 @@ contract('BaseTwoAssetStrategyManager', accounts => {
           const auctionPriceParameters = await managerHelper.calculateLinearAuctionParameters(
             baseAssetCollateralValue,
             quoteAssetCollateralValue,
-            auctionSpeed,
-            auctionTimeToPivot
+            auctionStartPercentage,
+            auctionEndPercentage
           );
 
           const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
@@ -435,8 +454,8 @@ contract('BaseTwoAssetStrategyManager', accounts => {
           const auctionPriceParameters = await managerHelper.calculateLinearAuctionParameters(
             baseAssetCollateralValue,
             quoteAssetCollateralValue,
-            auctionSpeed,
-            auctionTimeToPivot
+            auctionStartPercentage,
+            auctionEndPercentage
           );
 
           const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
@@ -494,8 +513,9 @@ contract('BaseTwoAssetStrategyManager', accounts => {
           await subject();
 
           const auctionPriceParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
-          const newAuctionTimeToPivot = auctionPriceParameters[1];
-          expect(newAuctionTimeToPivot).to.be.bignumber.equal(auctionTimeToPivot);
+          const actualAuctionTimeToPivot = auctionPriceParameters[1];
+
+          expect(actualAuctionTimeToPivot).to.be.bignumber.equal(auctionTimeToPivot);
         });
 
         it('updates the auction start price correctly', async () => {
@@ -504,8 +524,8 @@ contract('BaseTwoAssetStrategyManager', accounts => {
           const auctionPriceParameters = await managerHelper.calculateLinearAuctionParameters(
             quoteAssetCollateralValue,
             baseAssetCollateralValue,
-            auctionSpeed,
-            auctionTimeToPivot
+            auctionStartPercentage,
+            auctionEndPercentage
           );
 
           const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
@@ -520,8 +540,8 @@ contract('BaseTwoAssetStrategyManager', accounts => {
           const auctionPriceParameters = await managerHelper.calculateLinearAuctionParameters(
             quoteAssetCollateralValue,
             baseAssetCollateralValue,
-            auctionSpeed,
-            auctionTimeToPivot
+            auctionStartPercentage,
+            auctionEndPercentage
           );
 
           const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
@@ -605,8 +625,6 @@ contract('BaseTwoAssetStrategyManager', accounts => {
 
     let initialBaseAssetAllocation: BigNumber;
     let finalBaseAssetAllocation: BigNumber;
-    let auctionTimeToPivot: BigNumber;
-    let auctionSpeed: BigNumber;
 
     let collateralSetAddress: Address;
     let proposalPeriod: BigNumber;
@@ -617,15 +635,19 @@ contract('BaseTwoAssetStrategyManager', accounts => {
     });
 
     beforeEach(async () => {
-      auctionTimeToPivot = ONE_DAY_IN_SECONDS.div(4);
-      auctionSpeed = ONE_HOUR_IN_SECONDS.div(6);
+      const allocationPrecision = new BigNumber(100);
+      const auctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
+      const auctionStartPercentage = new BigNumber(2);
+      const auctionEndPercentage = new BigNumber(10);
       setManager = await managerHelper.deployBaseTwoAssetStrategyManagerMockAsync(
         core.address,
         allocationPricer.address,
         linearAuctionPriceCurve.address,
         initialBaseAssetAllocation,
+        allocationPrecision,
+        auctionStartPercentage,
+        auctionEndPercentage,
         auctionTimeToPivot,
-        auctionSpeed,
       );
 
       collateralSetAddress = initialBaseAssetAllocation.equals(ZERO) ? quoteAssetCollateral.address

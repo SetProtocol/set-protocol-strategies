@@ -46,8 +46,9 @@ contract BaseTwoAssetStrategyManager {
     IRebalancingSetToken public rebalancingSetTokenInstance;
     uint256 public baseAssetAllocation;  // Percent of base asset currently allocated in strategy
     uint256 public allocationPrecision;
+    uint256 public auctionStartPercentage;
+    uint256 public auctionEndPercentage;
     uint256 public auctionTimeToPivot;
-    uint256 public auctionSpeed;  // The amount of seconds to explore 1% of prices
     address public initializerAddress;
 
     /*
@@ -58,8 +59,9 @@ contract BaseTwoAssetStrategyManager {
      * @param  _auctionLibraryInstance          The address of auction price curve to use in rebalance
      * @param  _baseAssetAllocation             Starting allocation of the Rebalancing Set in baseAsset amount
      * @param  _allocationPrecision             Precision of allocation percentage
-     * @param  _auctionTimeToPivot              The amount of time until pivot reached in rebalance
-     * @param  _auctionSpeed                    Time, in seconds, where 1% of prices are explored during auction
+     * @param  _auctionStartPercentage          The amount below fair value, in percent, to start auction
+     * @param  _auctionEndPercentage            The amount above fair value, in percent, to end auction
+     * @param  _auctionTimeToPivot              Time, in seconds, spent between start and pivot price
      */
     constructor(
         ICore _coreInstance,
@@ -67,8 +69,9 @@ contract BaseTwoAssetStrategyManager {
         IAuctionPriceCurve _auctionLibraryInstance,
         uint256 _baseAssetAllocation,
         uint256 _allocationPrecision,
-        uint256 _auctionTimeToPivot,
-        uint256 _auctionSpeed
+        uint256 _auctionStartPercentage,
+        uint256 _auctionEndPercentage,
+        uint256 _auctionTimeToPivot
     )
         public
     {
@@ -76,9 +79,10 @@ contract BaseTwoAssetStrategyManager {
         allocationPricerInstance = _allocationPricerInstance;
         auctionLibraryInstance = _auctionLibraryInstance;
         baseAssetAllocation = _baseAssetAllocation;
-        auctionTimeToPivot = _auctionTimeToPivot;
-        auctionSpeed = _auctionSpeed;
         allocationPrecision = _allocationPrecision;
+        auctionStartPercentage = _auctionStartPercentage;
+        auctionEndPercentage = _auctionEndPercentage;
+        auctionTimeToPivot = _auctionTimeToPivot;
         initializerAddress = msg.sender;
     }
 
@@ -153,12 +157,10 @@ contract BaseTwoAssetStrategyManager {
         (
             uint256 auctionStartPrice,
             uint256 auctionPivotPrice
-        ) = FlexibleTimingManagerLibrary.calculateAuctionPriceParameters(
+        ) = calculateAuctionPriceParameters(
             currentSetDollarValue,
             nextSetDollarValue,
-            auctionSpeed,
-            auctionPriceDivisor,
-            auctionTimeToPivot
+            auctionPriceDivisor
         );
 
         // Propose new allocation to Rebalancing Set Token
@@ -196,4 +198,42 @@ contract BaseTwoAssetStrategyManager {
         public
         view
         returns (uint256);
+
+    /*
+    /*
+     * Calculates the auction price parameters, targetting 1% slippage every 10 minutes. Range is
+     * defined by subtracting auctionStartPercentage * onePercentSlippage from fairValue and adding
+     * auctionEndPercentage * onePercentSlippage to fairValue
+     *
+     * @param  _currentSetDollarAmount      The 18 decimal value of one currenSet
+     * @param  _nextSetDollarAmount         The 18 decimal value of one nextSet
+     * @param  _auctionLibraryPriceDivisor  The auction library price divisor
+     * @return uint256                      The auctionStartPrice for rebalance auction
+     * @return uint256                      The auctionPivotPrice for rebalance auction
+     */
+    function calculateAuctionPriceParameters(
+        uint256 _currentSetDollarAmount,
+        uint256 _nextSetDollarAmount,
+        uint256 _auctionLibraryPriceDivisor
+    )
+        internal
+        view
+        returns (uint256, uint256)
+    {
+        // Determine fair value of nextSet/currentSet and put in terms of auction library price divisor
+        uint256 fairValue = _nextSetDollarAmount.mul(_auctionLibraryPriceDivisor).div(_currentSetDollarAmount);
+        // Calculate how much one percent slippage from fair value is
+        uint256 onePercentSlippage = fairValue.div(100);
+
+        // Auction start price is fair value minus half price range to center the auction at fair value
+        uint256 auctionStartPrice = fairValue.sub(
+            auctionStartPercentage.mul(onePercentSlippage)
+        );
+        // Auction pivot price is fair value plus half price range to center the auction at fair value
+        uint256 auctionPivotPrice = fairValue.add(
+            auctionEndPercentage.mul(onePercentSlippage)
+        );
+
+        return (auctionStartPrice, auctionPivotPrice);
+    }
 }

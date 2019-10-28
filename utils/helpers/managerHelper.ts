@@ -279,8 +279,9 @@ export class ManagerHelper {
     auctionLibraryInstance: Address,
     baseAssetAllocation: BigNumber,
     allocationPrecision: BigNumber = new BigNumber(100),
-    auctionTimeToPivot: BigNumber = ONE_HOUR_IN_SECONDS.mul(2),
-    auctionSpeed: BigNumber = ONE_HOUR_IN_SECONDS.div(6),
+    auctionStartPercentage: BigNumber = new BigNumber(2),
+    auctionEndPercentage: BigNumber = new BigNumber(10),
+    auctionTimeToPivot: BigNumber = ONE_HOUR_IN_SECONDS.mul(4),
     from: Address = this._tokenOwnerAddress
   ): Promise<BaseTwoAssetStrategyManagerMockContract> {
     const truffleRebalacingTokenManager = await BaseTwoAssetStrategyManagerMock.new(
@@ -289,8 +290,9 @@ export class ManagerHelper {
       auctionLibraryInstance,
       baseAssetAllocation,
       allocationPrecision,
+      auctionStartPercentage,
+      auctionEndPercentage,
       auctionTimeToPivot,
-      auctionSpeed,
       { from },
     );
 
@@ -306,8 +308,9 @@ export class ManagerHelper {
     auctionLibraryInstance: Address,
     baseAssetAllocation: BigNumber,
     allocationPrecision: BigNumber = new BigNumber(100),
-    auctionTimeToPivot: BigNumber = ONE_HOUR_IN_SECONDS.mul(2),
-    auctionSpeed: BigNumber = ONE_HOUR_IN_SECONDS.div(6),
+    auctionStartPercentage: BigNumber = new BigNumber(2),
+    auctionEndPercentage: BigNumber = new BigNumber(10),
+    auctionTimeToPivot: BigNumber = ONE_HOUR_IN_SECONDS.mul(4),
     priceTriggers: Address[],
     triggerWeights: BigNumber[],
     from: Address = this._tokenOwnerAddress
@@ -318,8 +321,9 @@ export class ManagerHelper {
       auctionLibraryInstance,
       baseAssetAllocation,
       allocationPrecision,
+      auctionStartPercentage,
+      auctionEndPercentage,
       auctionTimeToPivot,
-      auctionSpeed,
       priceTriggers,
       triggerWeights,
       { from },
@@ -781,25 +785,22 @@ export class ManagerHelper {
     return this.calculateLinearAuctionParameters(
       currentSetDollarAmount,
       nextSetDollarAmount,
-      timeIncrement,
-      auctionTimeToPivot
+      auctionTimeToPivot.div(timeIncrement).div(2),
+      auctionTimeToPivot.div(timeIncrement).div(2),
     );
   }
 
   public calculateLinearAuctionParameters(
     currentSetValue: BigNumber,
     nextSetValue: BigNumber,
-    timeIncrement: BigNumber,
-    auctionTimeToPivot: BigNumber
+    auctionStartPercentage: BigNumber,
+    auctionEndPercentage: BigNumber
   ): any {
     const fairValue = nextSetValue.div(currentSetValue).mul(1000).round(0, 3);
     const onePercentSlippage = fairValue.div(100).round(0, 3);
 
-    const timeIncrements = auctionTimeToPivot.div(timeIncrement).round(0, 3);
-    const halfPriceRange = timeIncrements.mul(onePercentSlippage).div(2).round(0, 3);
-
-    const auctionStartPrice = fairValue.sub(halfPriceRange);
-    const auctionPivotPrice = fairValue.add(halfPriceRange);
+    const auctionStartPrice = fairValue.sub(auctionStartPercentage.mul(onePercentSlippage));
+    const auctionPivotPrice = fairValue.add(auctionEndPercentage.mul(onePercentSlippage));
 
     return {
       auctionStartPrice,

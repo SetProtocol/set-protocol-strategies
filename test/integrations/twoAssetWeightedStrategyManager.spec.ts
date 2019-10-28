@@ -221,7 +221,7 @@ contract('Integration: TwoAssetWeightedStrategyManager', accounts => {
     blockchain.revertAsync();
   });
 
-  describe('#propose', async () => {
+  describe.only('#propose', async () => {
     let subjectTimeFastForward: BigNumber;
     let subjectCaller: Address;
 
@@ -229,6 +229,8 @@ contract('Integration: TwoAssetWeightedStrategyManager', accounts => {
     let updateMarketState: boolean;
 
     let baseAssetAllocation: BigNumber;
+    let auctionStartPercentage: BigNumber;
+    let auctionEndPercentage: BigNumber;
     let auctionTimeToPivot: BigNumber;
 
     let collateralSetAddress: Address;
@@ -242,16 +244,18 @@ contract('Integration: TwoAssetWeightedStrategyManager', accounts => {
 
     beforeEach(async () => {
       const allocationPrecision = new BigNumber(100);
-      auctionTimeToPivot = ONE_DAY_IN_SECONDS.div(4);
-      const auctionSpeed = ONE_HOUR_IN_SECONDS.div(6);
+      auctionStartPercentage = new BigNumber(2);
+      auctionEndPercentage = new BigNumber(10);
+      auctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
       setManager = await  managerHelper.deployTwoAssetWeightedStrategyManagerAsync(
         core.address,
         allocationPricer.address,
         linearAuctionPriceCurve.address,
         baseAssetAllocation,
         allocationPrecision,
+        auctionStartPercentage,
+        auctionEndPercentage,
         auctionTimeToPivot,
-        auctionSpeed,
         [priceTrigger.address],
         [new BigNumber(100)],
         subjectCaller,
@@ -326,14 +330,23 @@ contract('Integration: TwoAssetWeightedStrategyManager', accounts => {
         it('updates the auction start price correctly', async () => {
           await subject();
 
-          const timeIncrement = new BigNumber(600);
-          const auctionPriceParameters = await managerHelper.getExpectedMACOAuctionParametersAsync(
+          const baseCollateralValue = await managerHelper.calculateSetTokenValue(
             baseAssetCollateral,
+            [triggerPrice],
+            [ETH_DECIMALS],
+          );
+
+          const quoteCollateralValue = await managerHelper.calculateSetTokenValue(
             quoteAssetCollateral,
-            true,
-            triggerPrice,
-            timeIncrement,
-            auctionTimeToPivot
+            [ether(1)],
+            [USDC_DECIMALS],
+          );
+
+          const auctionPriceParameters = managerHelper.calculateLinearAuctionParameters(
+            baseCollateralValue,
+            quoteCollateralValue,
+            auctionStartPercentage,
+            auctionEndPercentage
           );
 
           const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
@@ -345,14 +358,23 @@ contract('Integration: TwoAssetWeightedStrategyManager', accounts => {
         it('updates the auction pivot price correctly', async () => {
           await subject();
 
-          const timeIncrement = new BigNumber(600);
-          const auctionPriceParameters = await managerHelper.getExpectedMACOAuctionParametersAsync(
+          const baseCollateralValue = await managerHelper.calculateSetTokenValue(
             baseAssetCollateral,
+            [triggerPrice],
+            [ETH_DECIMALS],
+          );
+
+          const quoteCollateralValue = await managerHelper.calculateSetTokenValue(
             quoteAssetCollateral,
-            true,
-            triggerPrice,
-            timeIncrement,
-            auctionTimeToPivot
+            [ether(1)],
+            [USDC_DECIMALS],
+          );
+
+          const auctionPriceParameters = managerHelper.calculateLinearAuctionParameters(
+            baseCollateralValue,
+            quoteCollateralValue,
+            auctionStartPercentage,
+            auctionEndPercentage
           );
 
           const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
@@ -428,14 +450,23 @@ contract('Integration: TwoAssetWeightedStrategyManager', accounts => {
             const newSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
             const newSet = await protocolHelper.getSetTokenAsync(newSetAddress);
 
-            const timeIncrement = new BigNumber(600);
-            const auctionPriceParameters = await managerHelper.getExpectedMACOAuctionParametersAsync(
+            const baseCollateralValue = await managerHelper.calculateSetTokenValue(
               baseAssetCollateral,
+              [triggerPrice],
+              [ETH_DECIMALS],
+            );
+
+            const quoteCollateralValue = await managerHelper.calculateSetTokenValue(
               newSet,
-              true,
-              triggerPrice,
-              timeIncrement,
-              auctionTimeToPivot
+              [ether(1)],
+              [USDC_DECIMALS],
+            );
+
+            const auctionPriceParameters = managerHelper.calculateLinearAuctionParameters(
+              baseCollateralValue,
+              quoteCollateralValue,
+              auctionStartPercentage,
+              auctionEndPercentage
             );
 
             const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
@@ -451,14 +482,23 @@ contract('Integration: TwoAssetWeightedStrategyManager', accounts => {
             const newSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
             const newSet = await protocolHelper.getSetTokenAsync(newSetAddress);
 
-            const timeIncrement = new BigNumber(600);
-            const auctionPriceParameters = await managerHelper.getExpectedMACOAuctionParametersAsync(
+            const baseCollateralValue = await managerHelper.calculateSetTokenValue(
               baseAssetCollateral,
+              [triggerPrice],
+              [ETH_DECIMALS],
+            );
+
+            const quoteCollateralValue = await managerHelper.calculateSetTokenValue(
               newSet,
-              true,
-              triggerPrice,
-              timeIncrement,
-              auctionTimeToPivot
+              [ether(1)],
+              [USDC_DECIMALS],
+            );
+
+            const auctionPriceParameters = managerHelper.calculateLinearAuctionParameters(
+              baseCollateralValue,
+              quoteCollateralValue,
+              auctionStartPercentage,
+              auctionEndPercentage
             );
 
             const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
@@ -535,14 +575,23 @@ contract('Integration: TwoAssetWeightedStrategyManager', accounts => {
             const newSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
             const newSet = await protocolHelper.getSetTokenAsync(newSetAddress);
 
-            const timeIncrement = new BigNumber(600);
-            const auctionPriceParameters = await managerHelper.getExpectedMACOAuctionParametersAsync(
+            const baseCollateralValue = await managerHelper.calculateSetTokenValue(
               baseAssetCollateral,
+              [triggerPrice],
+              [ETH_DECIMALS],
+            );
+
+            const quoteCollateralValue = await managerHelper.calculateSetTokenValue(
               newSet,
-              true,
-              triggerPrice,
-              timeIncrement,
-              auctionTimeToPivot
+              [ether(1)],
+              [USDC_DECIMALS],
+            );
+
+            const auctionPriceParameters = managerHelper.calculateLinearAuctionParameters(
+              baseCollateralValue,
+              quoteCollateralValue,
+              auctionStartPercentage,
+              auctionEndPercentage
             );
 
             const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
@@ -558,14 +607,23 @@ contract('Integration: TwoAssetWeightedStrategyManager', accounts => {
             const newSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
             const newSet = await protocolHelper.getSetTokenAsync(newSetAddress);
 
-            const timeIncrement = new BigNumber(600);
-            const auctionPriceParameters = await managerHelper.getExpectedMACOAuctionParametersAsync(
+            const baseCollateralValue = await managerHelper.calculateSetTokenValue(
               baseAssetCollateral,
+              [triggerPrice],
+              [ETH_DECIMALS],
+            );
+
+            const quoteCollateralValue = await managerHelper.calculateSetTokenValue(
               newSet,
-              true,
-              triggerPrice,
-              timeIncrement,
-              auctionTimeToPivot
+              [ether(1)],
+              [USDC_DECIMALS],
+            );
+
+            const auctionPriceParameters = managerHelper.calculateLinearAuctionParameters(
+              baseCollateralValue,
+              quoteCollateralValue,
+              auctionStartPercentage,
+              auctionEndPercentage
             );
 
             const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
@@ -632,14 +690,23 @@ contract('Integration: TwoAssetWeightedStrategyManager', accounts => {
         it('updates the auction start price correctly', async () => {
           await subject();
 
-          const timeIncrement = new BigNumber(600);
-          const auctionPriceParameters = await managerHelper.getExpectedMACOAuctionParametersAsync(
-            quoteAssetCollateral,
+          const baseCollateralValue = await managerHelper.calculateSetTokenValue(
             baseAssetCollateral,
-            false,
-            triggerPrice,
-            timeIncrement,
-            auctionTimeToPivot
+            [triggerPrice],
+            [ETH_DECIMALS],
+          );
+
+          const quoteCollateralValue = await managerHelper.calculateSetTokenValue(
+            quoteAssetCollateral,
+            [ether(1)],
+            [USDC_DECIMALS],
+          );
+
+          const auctionPriceParameters = managerHelper.calculateLinearAuctionParameters(
+            quoteCollateralValue,
+            baseCollateralValue,
+            auctionStartPercentage,
+            auctionEndPercentage
           );
 
           const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
@@ -651,14 +718,23 @@ contract('Integration: TwoAssetWeightedStrategyManager', accounts => {
         it('updates the auction pivot price correctly', async () => {
           await subject();
 
-          const timeIncrement = new BigNumber(600);
-          const auctionPriceParameters = await managerHelper.getExpectedMACOAuctionParametersAsync(
-            quoteAssetCollateral,
+          const baseCollateralValue = await managerHelper.calculateSetTokenValue(
             baseAssetCollateral,
-            false,
-            triggerPrice,
-            timeIncrement,
-            auctionTimeToPivot
+            [triggerPrice],
+            [ETH_DECIMALS],
+          );
+
+          const quoteCollateralValue = await managerHelper.calculateSetTokenValue(
+            quoteAssetCollateral,
+            [ether(1)],
+            [USDC_DECIMALS],
+          );
+
+          const auctionPriceParameters = managerHelper.calculateLinearAuctionParameters(
+            quoteCollateralValue,
+            baseCollateralValue,
+            auctionStartPercentage,
+            auctionEndPercentage
           );
 
           const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
@@ -734,14 +810,23 @@ contract('Integration: TwoAssetWeightedStrategyManager', accounts => {
             const newSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
             const newSet = await protocolHelper.getSetTokenAsync(newSetAddress);
 
-            const timeIncrement = new BigNumber(600);
-            const auctionPriceParameters = await managerHelper.getExpectedMACOAuctionParametersAsync(
-              quoteAssetCollateral,
+            const baseCollateralValue = await managerHelper.calculateSetTokenValue(
               newSet,
-              false,
-              triggerPrice,
-              timeIncrement,
-              auctionTimeToPivot
+              [triggerPrice],
+              [ETH_DECIMALS],
+            );
+
+            const quoteCollateralValue = await managerHelper.calculateSetTokenValue(
+              quoteAssetCollateral,
+              [ether(1)],
+              [USDC_DECIMALS],
+            );
+
+            const auctionPriceParameters = managerHelper.calculateLinearAuctionParameters(
+              quoteCollateralValue,
+              baseCollateralValue,
+              auctionStartPercentage,
+              auctionEndPercentage
             );
 
             const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
@@ -757,14 +842,23 @@ contract('Integration: TwoAssetWeightedStrategyManager', accounts => {
             const newSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
             const newSet = await protocolHelper.getSetTokenAsync(newSetAddress);
 
-            const timeIncrement = new BigNumber(600);
-            const auctionPriceParameters = await managerHelper.getExpectedMACOAuctionParametersAsync(
-              quoteAssetCollateral,
+            const baseCollateralValue = await managerHelper.calculateSetTokenValue(
               newSet,
-              false,
-              triggerPrice,
-              timeIncrement,
-              auctionTimeToPivot
+              [triggerPrice],
+              [ETH_DECIMALS],
+            );
+
+            const quoteCollateralValue = await managerHelper.calculateSetTokenValue(
+              quoteAssetCollateral,
+              [ether(1)],
+              [USDC_DECIMALS],
+            );
+
+            const auctionPriceParameters = managerHelper.calculateLinearAuctionParameters(
+              quoteCollateralValue,
+              baseCollateralValue,
+              auctionStartPercentage,
+              auctionEndPercentage
             );
 
             const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
@@ -842,14 +936,23 @@ contract('Integration: TwoAssetWeightedStrategyManager', accounts => {
             const newSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
             const newSet = await protocolHelper.getSetTokenAsync(newSetAddress);
 
-            const timeIncrement = new BigNumber(600);
-            const auctionPriceParameters = await managerHelper.getExpectedMACOAuctionParametersAsync(
-              quoteAssetCollateral,
+            const baseCollateralValue = await managerHelper.calculateSetTokenValue(
               newSet,
-              false,
-              triggerPrice,
-              timeIncrement,
-              auctionTimeToPivot
+              [triggerPrice],
+              [ETH_DECIMALS],
+            );
+
+            const quoteCollateralValue = await managerHelper.calculateSetTokenValue(
+              quoteAssetCollateral,
+              [ether(1)],
+              [USDC_DECIMALS],
+            );
+
+            const auctionPriceParameters = managerHelper.calculateLinearAuctionParameters(
+              quoteCollateralValue,
+              baseCollateralValue,
+              auctionStartPercentage,
+              auctionEndPercentage
             );
 
             const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
@@ -865,14 +968,23 @@ contract('Integration: TwoAssetWeightedStrategyManager', accounts => {
             const newSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
             const newSet = await protocolHelper.getSetTokenAsync(newSetAddress);
 
-            const timeIncrement = new BigNumber(600);
-            const auctionPriceParameters = await managerHelper.getExpectedMACOAuctionParametersAsync(
-              quoteAssetCollateral,
+            const baseCollateralValue = await managerHelper.calculateSetTokenValue(
               newSet,
-              false,
-              triggerPrice,
-              timeIncrement,
-              auctionTimeToPivot
+              [triggerPrice],
+              [ETH_DECIMALS],
+            );
+
+            const quoteCollateralValue = await managerHelper.calculateSetTokenValue(
+              quoteAssetCollateral,
+              [ether(1)],
+              [USDC_DECIMALS],
+            );
+
+            const auctionPriceParameters = managerHelper.calculateLinearAuctionParameters(
+              quoteCollateralValue,
+              baseCollateralValue,
+              auctionStartPercentage,
+              auctionEndPercentage
             );
 
             const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();

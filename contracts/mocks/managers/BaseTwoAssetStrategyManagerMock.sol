@@ -45,21 +45,23 @@ contract BaseTwoAssetStrategyManagerMock is
      * TwoAssetStrategyManagerWithConfirmation constructor.
      *
      * @param  _coreInstance                    The address of the Core contract
-     * @param  _priceTriggerInstance            The address of the PriceTrigger to be used in the strategy         
      * @param  _allocationPricerInstance        The address of the AllocationPricer to be used in the strategy        
      * @param  _auctionLibraryInstance          The address of auction price curve to use in rebalance
      * @param  _baseAssetAllocation             Starting allocation of the Rebalancing Set in baseAsset amount
+     * @param  _allocationPrecision             Precision of allocation percentage
+     * @param  _auctionStartPercentage          The amount below fair value, in percent, to start auction
+     * @param  _auctionEndPercentage            The amount above fair value, in percent, to end auction
      * @param  _auctionTimeToPivot              The amount of time until pivot reached in rebalance
-     * @param  _auctionSpeed                    Time, in seconds, where 1% of prices are explored during auction
      */
     constructor(
         ICore _coreInstance,
         IAllocationPricer _allocationPricerInstance,
         IAuctionPriceCurve _auctionLibraryInstance,
         uint256 _baseAssetAllocation,
-        uint256 _auctionTimeToPivot,
-        uint256 _auctionSpeed,
-        uint256 _allocationPrecision
+        uint256 _allocationPrecision,
+        uint256 _auctionStartPercentage,
+        uint256 _auctionEndPercentage,
+        uint256 _auctionTimeToPivot
     )
         public
         BaseTwoAssetStrategyManager(
@@ -67,9 +69,10 @@ contract BaseTwoAssetStrategyManagerMock is
             _allocationPricerInstance,
             _auctionLibraryInstance,
             _baseAssetAllocation,
-            _auctionTimeToPivot,
-            _auctionSpeed,
-            _allocationPrecision
+            _allocationPrecision,
+            _auctionStartPercentage,
+            _auctionEndPercentage,
+            _auctionTimeToPivot
         )
     {
         allocation = _baseAssetAllocation;

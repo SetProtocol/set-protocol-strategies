@@ -51,8 +51,9 @@ contract TwoAssetWeightedStrategyManager is
      * @param  _auctionLibraryInstance          The address of auction price curve to use in rebalance
      * @param  _baseAssetAllocation             Starting allocation of the Rebalancing Set in baseAsset amount
      * @param  _allocationPrecision             Precision of allocation percentage
-     * @param  _auctionTimeToPivot              The amount of time until pivot reached in rebalance
-     * @param  _auctionSpeed                    Time, in seconds, where 1% of prices are explored during auction
+     * @param  _auctionStartPercentage          The amount below fair value, in percent, to start auction
+     * @param  _auctionEndPercentage            The amount above fair value, in percent, to end auction
+     * @param  _auctionTimeToPivot              Time, in seconds, spent between start and pivot price
      * @param  _priceTriggers                   Addresses of the various priceTriggers used to determine base asset allocation
      * @param  _triggerWeights                  Weight (out of 100) to assign to price trigger in matching slot of priceTriggers array
      */
@@ -62,8 +63,9 @@ contract TwoAssetWeightedStrategyManager is
         IAuctionPriceCurve _auctionLibraryInstance,
         uint256 _baseAssetAllocation,
         uint256 _allocationPrecision,
+        uint256 _auctionStartPercentage,
+        uint256 _auctionEndPercentage,
         uint256 _auctionTimeToPivot,
-        uint256 _auctionSpeed,
         IPriceTrigger[] memory _priceTriggers,
         uint8[] memory _triggerWeights
     )
@@ -74,8 +76,9 @@ contract TwoAssetWeightedStrategyManager is
             _auctionLibraryInstance,
             _baseAssetAllocation,
             _allocationPrecision,
-            _auctionTimeToPivot,
-            _auctionSpeed
+            _auctionStartPercentage,
+            _auctionEndPercentage,
+            _auctionTimeToPivot
         )
     {
         // Check that priceTriggers and triggerWeights arrays are of equal length
