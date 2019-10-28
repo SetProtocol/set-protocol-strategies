@@ -930,13 +930,13 @@ export class ManagerHelper {
     let scaledValue = value  * 3 / 2;
     let power = 0;
 
-    if (scaledValue >= 0x100000000000000000000000000000000) {scaledValue /= 2 ** 128; power += 128; }
-    if (scaledValue >= 0x10000000000000000) {scaledValue /= 2 ** 64; power += 64; }
-    if (scaledValue >= 0x100000000) {scaledValue /= 2 ** 32; power += 32; }
-    if (scaledValue >= 0x10000) {scaledValue /= 2 ** 16; power += 16; }
-    if (scaledValue >= 0x100) {scaledValue /= 2 ** 8; power += 8; }
-    if (scaledValue >= 0x10) {scaledValue /= 2 ** 4; power += 4; }
-    if (scaledValue >= 0x4) {scaledValue /= 2 ** 2; power += 2; }
+    if (scaledValue >= 0x100000000000000000000000000000000) { scaledValue /= 2 ** 128; power += 128; }
+    if (scaledValue >= 0x10000000000000000) { scaledValue /= 2 ** 64; power += 64; }
+    if (scaledValue >= 0x100000000) { scaledValue /= 2 ** 32; power += 32; }
+    if (scaledValue >= 0x10000) { scaledValue /= 2 ** 16; power += 16; }
+    if (scaledValue >= 0x100) { scaledValue /= 2 ** 8; power += 8; }
+    if (scaledValue >= 0x10) { scaledValue /= 2 ** 4; power += 4; }
+    if (scaledValue >= 0x4) { scaledValue /= 2 ** 2; power += 2; }
     if (scaledValue >= 0x2) power += 1; // No need to shift x anymore
 
     return 2 ** power;
@@ -953,32 +953,32 @@ export class ManagerHelper {
     let result = 0;
 
     if (x >= 10000000000000000000000000000000000000000000000000000000000000000) {
-        x /= 10000000000000000000000000000000000000000000000000000000000000000;
-        result += 64;
+      x /= 10000000000000000000000000000000000000000000000000000000000000000;
+      result += 64;
     }
     if (x >= 100000000000000000000000000000000) {
-        x /= 100000000000000000000000000000000;
-        result += 32;
+      x /= 100000000000000000000000000000000;
+      result += 32;
     }
     if (x >= 10000000000000000) {
-        x /= 10000000000000000;
-        result += 16;
+      x /= 10000000000000000;
+      result += 16;
     }
     if (x >= 100000000) {
-        x /= 100000000;
-        result += 8;
+      x /= 100000000;
+      result += 8;
     }
     if (x >= 10000) {
-        x /= 10000;
-        result += 4;
+      x /= 10000;
+      result += 4;
     }
     if (x >= 100) {
-        x /= 100;
-        result += 2;
+      x /= 100;
+      result += 2;
     }
     if (x >= 10) {
-        x /= 10;
-        result += 1;
+      x /= 10;
+      result += 1;
     }
 
     return new BigNumber(result + 1);

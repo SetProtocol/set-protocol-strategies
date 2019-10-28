@@ -43,7 +43,7 @@ contract('AllocationPricerMathLibrary', accounts => {
     let subjectValue: number;
 
     beforeEach(async () => {
-      subjectValue = 2 ** 130;
+      subjectValue = 2 ** 254;
     });
 
     async function subject(): Promise<BigNumber> {
@@ -60,12 +60,26 @@ contract('AllocationPricerMathLibrary', accounts => {
       expect(actualOutput.toNumber()).to.equal(expectedOutput);
     });
 
+    describe('but value is less than 2 ** 64', async () => {
+      beforeEach(async () => {
+        subjectValue = 2 ** 53;
+      });
+
+      it('should return correct number', async () => {
+        const actualOutput = await subject();
+
+        const expectedOutput = managerHelper.roundToNearestPowerOfTwo(subjectValue);
+
+        expect(actualOutput.toNumber()).to.equal(expectedOutput);
+      });
+    });
+
     describe('but value is less than 2', async () => {
       beforeEach(async () => {
         subjectValue = 1;
       });
 
-      it('should revert', async () => {
+      it('should return correct number', async () => {
         const actualOutput = await subject();
 
         expect(actualOutput.toNumber()).to.equal(1);
@@ -83,7 +97,7 @@ contract('AllocationPricerMathLibrary', accounts => {
     });
   });
 
-  describe('#ceilLog10', async () => {
+  describe.only('#ceilLog10', async () => {
     let subjectValue: BigNumber;
 
     beforeEach(async () => {
@@ -104,12 +118,27 @@ contract('AllocationPricerMathLibrary', accounts => {
       expect(actualOutput).to.be.bignumber.equal(expectedOutput);
     });
 
+    describe('but less than 10 ** 64', async () => {
+      beforeEach(async () => {
+        const rawValue = 1.5 * (10 ** 50);
+        subjectValue = new BigNumber(rawValue.toString());
+      });
+
+      it('should return correct number', async () => {
+        const actualOutput = await subject();
+
+        const expectedOutput = managerHelper.ceilLog10(subjectValue);
+
+        expect(actualOutput).to.be.bignumber.equal(expectedOutput);
+      });
+    });
+
     describe('but value is between 1-10', async () => {
       beforeEach(async () => {
         subjectValue = new BigNumber(9);
       });
 
-      it('should revert', async () => {
+      it('should return correct number', async () => {
         const actualOutput = await subject();
 
         expect(actualOutput).to.be.bignumber.equal(new BigNumber(1));
@@ -121,7 +150,7 @@ contract('AllocationPricerMathLibrary', accounts => {
         subjectValue = new BigNumber(1);
       });
 
-      it('should revert', async () => {
+      it('should return correct number', async () => {
         const actualOutput = await subject();
 
         expect(actualOutput).to.be.bignumber.equal(ZERO);
