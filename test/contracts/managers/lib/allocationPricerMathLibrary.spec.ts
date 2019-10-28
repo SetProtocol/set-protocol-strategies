@@ -97,7 +97,7 @@ contract('AllocationPricerMathLibrary', accounts => {
     });
   });
 
-  describe.only('#ceilLog10', async () => {
+  describe('#ceilLog10', async () => {
     let subjectValue: BigNumber;
 
     beforeEach(async () => {
