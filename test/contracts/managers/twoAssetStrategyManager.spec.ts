@@ -24,7 +24,7 @@ import {
   WhiteListContract,
 } from 'set-protocol-contracts';
 import {
-  BaseTwoAssetStrategyManagerMockContract,
+  TwoAssetStrategyManagerMockContract,
   BinaryAllocatorMockContract,
   USDCMockContract,
 } from '@utils/contracts';
@@ -72,7 +72,7 @@ contract('BaseTwoAssetStrategyManager', accounts => {
 
   let allocator: BinaryAllocatorMockContract;
 
-  let setManager: BaseTwoAssetStrategyManagerMockContract;
+  let setManager: TwoAssetStrategyManagerMockContract;
   let quoteAssetCollateral: SetTokenContract;
   let baseAssetCollateral: SetTokenContract;
 
@@ -164,7 +164,7 @@ contract('BaseTwoAssetStrategyManager', accounts => {
       subjectCaller = deployerAccount;
     });
 
-    async function subject(): Promise<BaseTwoAssetStrategyManagerMockContract> {
+    async function subject(): Promise<TwoAssetStrategyManagerMockContract> {
       return managerHelper.deployTwoAssetStrategyManagerMockAsync(
         subjectCoreInstance,
         subjectAllocatorInstance,

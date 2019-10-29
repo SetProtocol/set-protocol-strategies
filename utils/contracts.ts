@@ -1,8 +1,5 @@
 export { AllocatorMathLibraryMockContract } from '../types/generated/allocator_math_library_mock';
 export { BaseContract } from '../types/base_contract';
-export {
-  TwoAssetStrategyManagerMockContract
-} from '../types/generated/two_asset_strategy_manager_mock';
 export { BinaryAllocatorContract } from '../types/generated/binary_allocator';
 export { BinaryAllocatorMockContract } from '../types/generated/binary_allocator_mock';
 export { BTCDaiRebalancingManagerContract } from '../types/generated/b_t_c_dai_rebalancing_manager';
@@ -46,5 +43,8 @@ export { TimeSeriesFeedContract } from '../types/generated/time_series_feed';
 export { TimeSeriesFeedV2Contract } from '../types/generated/time_series_feed_v2';
 export { TimeSeriesFeedV2MockContract } from '../types/generated/time_series_feed_v2_mock';
 export { TriggerIndexManagerContract } from '../types/generated/trigger_index_manager';
+export {
+  TwoAssetStrategyManagerMockContract
+} from '../types/generated/two_asset_strategy_manager_mock';
 export { UintArrayUtilsLibraryMockContract } from '../types/generated/uint_array_utils_library_mock';
 export { USDCMockContract } from '../types/generated/u_s_d_c_mock';
