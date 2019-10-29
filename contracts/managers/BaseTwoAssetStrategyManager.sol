@@ -139,15 +139,20 @@ contract BaseTwoAssetStrategyManager {
         address currentCollateralSetAddress = rebalancingSetTokenInstance.currentSet();        
 
         // If price trigger has been met, get next Set allocation. Create new set if price difference is too
-        // great to run good auction. Return nextSet address and dollar value of current and next set
-        (
-            address nextSetAddress,
-            uint256 currentSetDollarValue,
-            uint256 nextSetDollarValue
-        ) = allocationPricerInstance.determineNewAllocation(
+        // great to run good auction. Return nextSet address.
+        address nextSetAddress = allocationPricerInstance.determineNewAllocation(
             newBaseAssetAllocation,
             allocationPrecision,
             ISetToken(currentCollateralSetAddress)
+        );
+
+        // Get current and next Set dollar values
+        uint256 currentSetDollarValue = allocationPricerInstance.calculateCollateralSetValue(
+            ISetToken(currentCollateralSetAddress)
+        );
+
+        uint256 nextSetDollarValue = allocationPricerInstance.calculateCollateralSetValue(
+            ISetToken(nextSetAddress)
         );
 
         // Get auction price divisor

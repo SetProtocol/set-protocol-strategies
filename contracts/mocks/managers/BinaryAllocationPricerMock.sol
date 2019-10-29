@@ -56,12 +56,22 @@ contract BinaryAllocationPricerMock is
         ISetToken _currentCollateralSet
     )
         external
-        returns (address, uint256, uint256)
+        returns (address)
     {
         if (_targetBaseAssetAllocation == _allocationPrecision) {
-            return (address(baseAssetCollateralInstance), quoteAssetCollateralValue, baseAssetCollateralValue);
+            return address(baseAssetCollateralInstance);
         } else {
-            return (address(quoteAssetCollateralInstance), baseAssetCollateralValue, quoteAssetCollateralValue);
+            return address(quoteAssetCollateralInstance);
         }
+    }
+
+    function calculateCollateralSetValue(
+        ISetToken _collateralSet
+    )
+        external
+        view
+        returns(uint256)
+    {
+        return _collateralSet == baseAssetCollateralInstance ? baseAssetCollateralValue : quoteAssetCollateralValue;
     }
 }

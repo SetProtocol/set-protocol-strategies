@@ -221,7 +221,7 @@ contract('Integration: TwoAssetWeightedStrategyManager', accounts => {
     blockchain.revertAsync();
   });
 
-  describe.only('#propose', async () => {
+  describe('#propose', async () => {
     let subjectTimeFastForward: BigNumber;
     let subjectCaller: Address;
 

@@ -34,8 +34,6 @@ interface IAllocationPricer {
      * @param  _allocationPrecision             Precision of allocation percentage
      * @param  _currentCollateralSet            Instance of current set collateralizing RebalancingSetToken
      * @return address                          The address of the proposed nextSet
-     * @return uint256                          The USD value of current Set
-     * @return uint256                          The USD value of next Set
      */
     function determineNewAllocation(
         uint256 _targetBaseAssetAllocation,
@@ -43,5 +41,18 @@ interface IAllocationPricer {
         ISetToken _currentCollateralSet
     )
         external
-        returns (address, uint256, uint256);
+        returns (address);
+
+    /*
+     * Calculate value of passed collateral set.
+     *
+     * @param  _collateralSet        Instance of current set collateralizing RebalancingSetToken
+     * @return uint256               USD value of passed Set
+     */
+    function calculateCollateralSetValue(
+        ISetToken _collateralSet
+    )
+        external
+        view
+        returns(uint256);
 }

@@ -161,7 +161,7 @@ contract BinaryAllocationPricer is
         ISetToken _currentCollateralSet
     )
         external
-        returns (address, uint256, uint256)
+        returns (address)
     {
         require(
             _targetBaseAssetAllocation == _allocationPrecision || _targetBaseAssetAllocation == 0,
@@ -177,7 +177,7 @@ contract BinaryAllocationPricer is
         );
 
         // Create struct that holds relevant information for the currentSet
-        uint256 currentSetValue = calculateCollateralSetValue(
+        uint256 currentSetValue = calculateCollateralSetValueInternal(
             address(_currentCollateralSet),
             !toBaseAsset
         );
@@ -199,13 +199,26 @@ contract BinaryAllocationPricer is
             nextSetNaturalUnit
         );
 
-        // Calculate dollar value of new collateral
-        uint256 nextSetValue = calculateCollateralSetValue(
-            nextSetAddress,
-            toBaseAsset
-        );
+        return nextSetAddress;
+    }
 
-        return (nextSetAddress, currentSetValue, nextSetValue);
+    /*
+     * Calculate value of passed collateral set.
+     *
+     * @param  _collateralSet        Instance of current set collateralizing RebalancingSetToken
+     * @return uint256               USD value of passed Set
+     */
+    function calculateCollateralSetValue(
+        ISetToken _collateralSet
+    )
+        external
+        view
+        returns (uint256)
+    {
+        address[] memory setComponents = _collateralSet.getComponents();
+
+        return setComponents[0] == address(baseAssetInstance) ? calculateCollateralSetValueInternal(address(_collateralSet), true) :
+            calculateCollateralSetValueInternal(address(_collateralSet), false);
     }
 
     /* ============ Internal ============ */
@@ -280,7 +293,6 @@ contract BinaryAllocationPricer is
      *
      * @param  _currentCollateralSet            Instance of current set collateralizing RebalancingSetToken
      * @param  _toBaseAsset                     Boolean indicating whether new collateral is made of baseAsset
-
      */
     function validateCurrentCollateralSet(
         ISetToken _currentCollateralSet,
@@ -317,8 +329,9 @@ contract BinaryAllocationPricer is
      *
      * @param  _currentCollateralSet        Instance of current set collateralizing RebalancingSetToken
      * @param  _usingBaseAsset              Boolean indicating whether collateral set uses base asset
+     * @return uint256                      USD value of passed Set
      */
-    function calculateCollateralSetValue(
+    function calculateCollateralSetValueInternal(
         address _collateralSet,
         bool _usingBaseAsset
     )
