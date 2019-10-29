@@ -27,13 +27,13 @@ import { ITrigger } from "./triggers/ITrigger.sol";
 
 
 /**
- * @title TwoAssetWeightedStrategyManager
+ * @title TriggerIndexManager
  * @author Set Protocol
  *
  * Inherits from BaseTwoAssetStrategyManager and implements interface to calculate base asset allocation based on
  * passed in price triggers and the weights assigned to those price triggers.
  */
-contract TwoAssetWeightedStrategyManager is
+contract TriggerIndexManager is
     BaseTwoAssetStrategyManager
 {
     /* ============ State Variables ============ */
@@ -43,7 +43,7 @@ contract TwoAssetWeightedStrategyManager is
 
     /* ============ Constructors ============ */
     /*
-     * TwoAssetStrategyManagerWithConfirmation constructor.
+     * TriggerIndexManager constructor.
      *
      * @param  _coreInstance                    The address of the Core contract
      * @param  _priceTriggerInstance            The address of the PriceTrigger to be used in the strategy         
@@ -84,7 +84,7 @@ contract TwoAssetWeightedStrategyManager is
         // Check that triggers and triggerWeights arrays are of equal length
         require(
             _triggers.length == _triggerWeights.length,
-            "TwoAssetWeightedStrategyManager.constructor: Number of triggers must match, number of weights."
+            "TriggerIndexManager.constructor: Number of triggers must match, number of weights."
         );
 
         // Sum weights of _triggerWeights array
@@ -96,7 +96,7 @@ contract TwoAssetWeightedStrategyManager is
         // Require that weights equal allocation precision
         require(
             weightSum == _allocationPrecision,
-            "TwoAssetWeightedStrategyManager.constructor: Weights must sum to 100."
+            "TriggerIndexManager.constructor: Weights must sum to 100."
         );        
 
         triggers = _triggers;

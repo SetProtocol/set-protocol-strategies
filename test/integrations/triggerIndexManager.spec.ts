@@ -33,7 +33,7 @@ import {
   LinearizedEMATimeSeriesFeedContract,
   MovingAverageToAssetPriceCrossoverTriggerContract,
   OracleProxyContract,
-  TwoAssetWeightedStrategyManagerContract,
+  TriggerIndexManagerContract,
   USDCMockContract,
 } from '@utils/contracts';
 
@@ -66,7 +66,7 @@ const blockchain = new Blockchain(web3);
 const { SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
 const setTestUtils = new SetTestUtils(web3);
 
-contract('Integration: TwoAssetWeightedStrategyManager', accounts => {
+contract('Integration: TriggerIndexManager', accounts => {
   const [
     deployerAccount,
   ] = accounts;
@@ -92,7 +92,7 @@ contract('Integration: TwoAssetWeightedStrategyManager', accounts => {
   let trigger: MovingAverageToAssetPriceCrossoverTriggerContract;
   let allocator: BinaryAllocatorContract;
 
-  let setManager: TwoAssetWeightedStrategyManagerContract;
+  let setManager: TriggerIndexManagerContract;
   let quoteAssetCollateral: SetTokenContract;
   let baseAssetCollateral: SetTokenContract;
 
@@ -247,7 +247,7 @@ contract('Integration: TwoAssetWeightedStrategyManager', accounts => {
       auctionStartPercentage = new BigNumber(2);
       auctionEndPercentage = new BigNumber(10);
       auctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
-      setManager = await  managerHelper.deployTwoAssetWeightedStrategyManagerAsync(
+      setManager = await  managerHelper.deployTriggerIndexManagerAsync(
         core.address,
         allocator.address,
         linearAuctionPriceCurve.address,

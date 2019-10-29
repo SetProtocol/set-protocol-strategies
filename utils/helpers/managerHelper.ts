@@ -20,7 +20,7 @@ import {
   MovingAverageToAssetPriceCrossoverTriggerContract,
   RSITrendingTriggerContract,
   TriggerMockContract,
-  TwoAssetWeightedStrategyManagerContract,
+  TriggerIndexManagerContract,
 } from '../contracts';
 import { BigNumber } from 'bignumber.js';
 
@@ -51,7 +51,7 @@ const MovingAverageToAssetPriceCrossoverTrigger = artifacts.require(
 );
 const RSITrendingTrigger = artifacts.require('RSITrendingTrigger');
 const TriggerMock = artifacts.require('TriggerMock');
-const TwoAssetWeightedStrategyManager = artifacts.require('TwoAssetWeightedStrategyManager');
+const TriggerIndexManager = artifacts.require('TriggerIndexManager');
 
 const { SetProtocolUtils: SetUtils, SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
 const {
@@ -302,7 +302,7 @@ export class ManagerHelper {
     );
   }
 
-  public async deployTwoAssetWeightedStrategyManagerAsync(
+  public async deployTriggerIndexManagerAsync(
     coreInstance: Address,
     allocationPricerInstance: Address,
     auctionLibraryInstance: Address,
@@ -314,8 +314,8 @@ export class ManagerHelper {
     priceTriggers: Address[],
     triggerWeights: BigNumber[],
     from: Address = this._tokenOwnerAddress
-  ): Promise<TwoAssetWeightedStrategyManagerContract> {
-    const truffleRebalacingTokenManager = await TwoAssetWeightedStrategyManager.new(
+  ): Promise<TriggerIndexManagerContract> {
+    const truffleRebalacingTokenManager = await TriggerIndexManager.new(
       coreInstance,
       allocationPricerInstance,
       auctionLibraryInstance,
@@ -329,7 +329,7 @@ export class ManagerHelper {
       { from },
     );
 
-    return new TwoAssetWeightedStrategyManagerContract(
+    return new TriggerIndexManagerContract(
       new web3.eth.Contract(truffleRebalacingTokenManager.abi, truffleRebalacingTokenManager.address),
       { from, gas: DEFAULT_GAS },
     );

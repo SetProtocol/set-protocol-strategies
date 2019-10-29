@@ -17,7 +17,7 @@ import {
 } from 'set-protocol-contracts';
 import {
   TriggerMockContract,
-  TwoAssetWeightedStrategyManagerContract,
+  TriggerIndexManagerContract,
 } from '@utils/contracts';
 
 import {
@@ -37,7 +37,7 @@ const web3 = getWeb3();
 const { expect } = chai;
 const blockchain = new Blockchain(web3);
 
-contract('TwoAssetWeightedStrategyManager', accounts => {
+contract('TriggerIndexManager', accounts => {
   const [
     deployerAccount,
     allocator,
@@ -50,7 +50,7 @@ contract('TwoAssetWeightedStrategyManager', accounts => {
   let triggerTwo: TriggerMockContract;
   let triggerThree: TriggerMockContract;
 
-  let setManager: TwoAssetWeightedStrategyManagerContract;
+  let setManager: TriggerIndexManagerContract;
 
   const protocolHelper = new ProtocolHelper(deployerAccount);
   const managerHelper = new ManagerHelper(deployerAccount);
@@ -83,7 +83,7 @@ contract('TwoAssetWeightedStrategyManager', accounts => {
     blockchain.revertAsync();
   });
 
-  describe('#constructor', async () => {
+  describe.only('#constructor', async () => {
     let subjectCoreInstance: Address;
     let subjectAllocatorInstance: Address;
     let subjectAuctionLibraryInstance: Address;
@@ -110,8 +110,8 @@ contract('TwoAssetWeightedStrategyManager', accounts => {
       subjectCaller = deployerAccount;
     });
 
-    async function subject(): Promise<TwoAssetWeightedStrategyManagerContract> {
-      return managerHelper.deployTwoAssetWeightedStrategyManagerAsync(
+    async function subject(): Promise<TriggerIndexManagerContract> {
+      return managerHelper.deployTriggerIndexManagerAsync(
         subjectCoreInstance,
         subjectAllocatorInstance,
         subjectAuctionLibraryInstance,
@@ -163,7 +163,7 @@ contract('TwoAssetWeightedStrategyManager', accounts => {
     });
   });
 
-  describe('#calculateBaseAssetAllocation', async () => {
+  describe.only('#calculateBaseAssetAllocation', async () => {
     beforeEach(async () => {
       const baseAssetAllocation = ZERO;
       const allocationPrecision = new BigNumber(100);
@@ -172,7 +172,7 @@ contract('TwoAssetWeightedStrategyManager', accounts => {
       const auctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
       const priceTriggers = [triggerOne.address, triggerTwo.address, triggerThree.address];
       const triggerWeights = [new BigNumber(34), new BigNumber(33), new BigNumber(33)];
-      setManager = await managerHelper.deployTwoAssetWeightedStrategyManagerAsync(
+      setManager = await managerHelper.deployTriggerIndexManagerAsync(
         core.address,
         allocator,
         linearAuctionPriceCurve.address,

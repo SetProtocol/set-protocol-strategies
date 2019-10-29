@@ -45,7 +45,5 @@ export { RSIOracleContract } from '../types/generated/r_s_i_oracle';
 export { TimeSeriesFeedContract } from '../types/generated/time_series_feed';
 export { TimeSeriesFeedV2Contract } from '../types/generated/time_series_feed_v2';
 export { TimeSeriesFeedV2MockContract } from '../types/generated/time_series_feed_v2_mock';
-export {
-  TwoAssetWeightedStrategyManagerContract
-} from '../types/generated/two_asset_weighted_strategy_manager';
+export { TriggerIndexManagerContract } from '../types/generated/trigger_index_manager';
 export { USDCMockContract } from '../types/generated/u_s_d_c_mock';
