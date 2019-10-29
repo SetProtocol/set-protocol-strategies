@@ -28,14 +28,14 @@ import { IAllocator } from "./allocators/IAllocator.sol";
 
 
 /**
- * @title BaseTwoAssetStrategyManager
+ * @title TwoAssetStrategyManager
  * @author Set Protocol
  *
  * Base Rebalancing Manager contract for implementing any trading pair strategy. Allocation determinations
  * are implemented in a contract that inherits the functionality of this contract. Additionally, all allocations are
  * priced using the base contracts's Allocator contract.
  */
-contract BaseTwoAssetStrategyManager {
+contract TwoAssetStrategyManager {
     using SafeMath for uint256;
 
     /* ============ State Variables ============ */
@@ -51,7 +51,7 @@ contract BaseTwoAssetStrategyManager {
     address public initializerAddress;
 
     /*
-     * TwoAssetStrategyManagerWithConfirmation constructor.
+     * TwoAssetStrategyManager constructor.
      *
      * @param  _coreInstance                    The address of the Core contract       
      * @param  _allocatorInstance               The address of the Allocator to be used in the strategy        
@@ -101,13 +101,13 @@ contract BaseTwoAssetStrategyManager {
         // Check that the initializer address is calling function
         require(
             msg.sender == initializerAddress,
-            "BaseTwoAssetStrategyManager.initialize: Only the contract deployer can initialize"
+            "TwoAssetStrategyManager.initialize: Only the contract deployer can initialize"
         );
 
         // Make sure the rebalancingSetToken is tracked by Core
         require(
             coreInstance.validSets(address(_rebalancingSetTokenInstance)),
-            "BaseTwoAssetStrategyManager.initialize: Invalid or disabled RebalancingSetToken address"
+            "TwoAssetStrategyManager.initialize: Invalid or disabled RebalancingSetToken address"
         );
 
         rebalancingSetTokenInstance = _rebalancingSetTokenInstance;
@@ -131,7 +131,7 @@ contract BaseTwoAssetStrategyManager {
         // Check that new baseAsset allocation amount is different from current allocation amount
         require(
             newBaseAssetAllocation != baseAssetAllocation,
-            "BaseTwoAssetStrategyManager.propose: No change in allocation detected."
+            "TwoAssetStrategyManager.propose: No change in allocation detected."
         );
 
         // Get current collateral Set

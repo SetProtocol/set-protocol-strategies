@@ -6,7 +6,7 @@ import { Address } from 'set-protocol-utils';
 import { SetTokenContract, MedianContract } from 'set-protocol-contracts';
 
 import {
-  BaseTwoAssetStrategyManagerMockContract,
+  TwoAssetStrategyManagerMockContract,
   BinaryAllocatorContract,
   BinaryAllocatorMockContract,
   BTCETHRebalancingManagerContract,
@@ -40,7 +40,7 @@ import { ProtocolHelper } from '@utils/helpers/protocolHelper';
 import { getWeb3 } from '../web3Helper';
 
 const web3 = getWeb3();
-const BaseTwoAssetStrategyManagerMock = artifacts.require('BaseTwoAssetStrategyManagerMock');
+const TwoAssetStrategyManagerMock = artifacts.require('TwoAssetStrategyManagerMock');
 const BinaryAllocator = artifacts.require('BinaryAllocator');
 const BinaryAllocatorMock = artifacts.require('BinaryAllocatorMock');
 const BTCETHRebalancingManager = artifacts.require('BTCETHRebalancingManager');
@@ -278,7 +278,7 @@ export class ManagerHelper {
     );
   }
 
-  public async deployBaseTwoAssetStrategyManagerMockAsync(
+  public async deployTwoAssetStrategyManagerMockAsync(
     coreInstance: Address,
     allocationPricerInstance: Address,
     auctionLibraryInstance: Address,
@@ -288,8 +288,8 @@ export class ManagerHelper {
     auctionEndPercentage: BigNumber = new BigNumber(10),
     auctionTimeToPivot: BigNumber = ONE_HOUR_IN_SECONDS.mul(4),
     from: Address = this._tokenOwnerAddress
-  ): Promise<BaseTwoAssetStrategyManagerMockContract> {
-    const truffleRebalacingTokenManager = await BaseTwoAssetStrategyManagerMock.new(
+  ): Promise<TwoAssetStrategyManagerMockContract> {
+    const truffleRebalacingTokenManager = await TwoAssetStrategyManagerMock.new(
       coreInstance,
       allocationPricerInstance,
       auctionLibraryInstance,
@@ -301,7 +301,7 @@ export class ManagerHelper {
       { from },
     );
 
-    return new BaseTwoAssetStrategyManagerMockContract(
+    return new TwoAssetStrategyManagerMockContract(
       new web3.eth.Contract(truffleRebalacingTokenManager.abi, truffleRebalacingTokenManager.address),
       { from, gas: DEFAULT_GAS },
     );

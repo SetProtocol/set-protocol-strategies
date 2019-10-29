@@ -21,7 +21,7 @@ import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { IAuctionPriceCurve } from "set-protocol-contracts/contracts/core/lib/auction-price-libraries/IAuctionPriceCurve.sol";
 import { ICore } from "set-protocol-contracts/contracts/core/interfaces/ICore.sol";
 
-import { BaseTwoAssetStrategyManager } from "./BaseTwoAssetStrategyManager.sol";
+import { TwoAssetStrategyManager } from "./TwoAssetStrategyManager.sol";
 import { IAllocator } from "./allocators/IAllocator.sol";
 import { ITrigger } from "./triggers/ITrigger.sol";
 import { UintArrayUtilsLibrary } from "./lib/UintArrayUtilsLibrary.sol";
@@ -31,11 +31,11 @@ import { UintArrayUtilsLibrary } from "./lib/UintArrayUtilsLibrary.sol";
  * @title TriggerIndexManager
  * @author Set Protocol
  *
- * Inherits from BaseTwoAssetStrategyManager and implements interface to calculate base asset allocation based on
+ * Inherits from TwoAssetStrategyManager and implements interface to calculate base asset allocation based on
  * passed in price triggers and the weights assigned to those price triggers.
  */
 contract TriggerIndexManager is
-    BaseTwoAssetStrategyManager
+    TwoAssetStrategyManager
 {
     using SafeMath for uint256;
     using UintArrayUtilsLibrary for uint256[];
@@ -74,7 +74,7 @@ contract TriggerIndexManager is
         uint256[] memory _triggerWeights
     )
         public
-        BaseTwoAssetStrategyManager(
+        TwoAssetStrategyManager(
             _coreInstance,
             _allocatorInstance,
             _auctionLibraryInstance,

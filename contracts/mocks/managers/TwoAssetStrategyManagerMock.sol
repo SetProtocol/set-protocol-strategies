@@ -23,18 +23,18 @@ import { ICore } from "set-protocol-contracts/contracts/core/interfaces/ICore.so
 import { IRebalancingSetToken } from "set-protocol-contracts/contracts/core/interfaces/IRebalancingSetToken.sol";
 import { ISetToken } from "set-protocol-contracts/contracts/core/interfaces/ISetToken.sol";
 
-import { BaseTwoAssetStrategyManager } from "../../managers/BaseTwoAssetStrategyManager.sol";
+import { TwoAssetStrategyManager } from "../../managers/TwoAssetStrategyManager.sol";
 import { IAllocator } from "../../managers/allocators/IAllocator.sol";
 
 
 /**
- * @title BaseTwoAssetStrategyManagerMock
+ * @title TwoAssetStrategyManagerMock
  * @author Set Protocol
  *
- * Mock for testing BaseTwoAssetStrategyManager.
+ * Mock for testing TwoAssetStrategyManager.
  */
-contract BaseTwoAssetStrategyManagerMock is
-    BaseTwoAssetStrategyManager
+contract TwoAssetStrategyManagerMock is
+    TwoAssetStrategyManager
 {
     using SafeMath for uint256;
 
@@ -64,7 +64,7 @@ contract BaseTwoAssetStrategyManagerMock is
         uint256 _auctionTimeToPivot
     )
         public
-        BaseTwoAssetStrategyManager(
+        TwoAssetStrategyManager(
             _coreInstance,
             _allocatorInstance,
             _auctionLibraryInstance,

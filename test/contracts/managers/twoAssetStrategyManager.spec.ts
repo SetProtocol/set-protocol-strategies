@@ -165,7 +165,7 @@ contract('BaseTwoAssetStrategyManager', accounts => {
     });
 
     async function subject(): Promise<BaseTwoAssetStrategyManagerMockContract> {
-      return managerHelper.deployBaseTwoAssetStrategyManagerMockAsync(
+      return managerHelper.deployTwoAssetStrategyManagerMockAsync(
         subjectCoreInstance,
         subjectAllocatorInstance,
         subjectAuctionLibraryInstance,
@@ -262,7 +262,7 @@ contract('BaseTwoAssetStrategyManager', accounts => {
       const auctionEndPercentage = new BigNumber(10);
       const auctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
       const allocationPrecision = new BigNumber(100);
-      setManager = await managerHelper.deployBaseTwoAssetStrategyManagerMockAsync(
+      setManager = await managerHelper.deployTwoAssetStrategyManagerMockAsync(
         core.address,
         allocator.address,
         linearAuctionPriceCurve.address,
@@ -366,7 +366,7 @@ contract('BaseTwoAssetStrategyManager', accounts => {
       auctionStartPercentage = new BigNumber(2);
       auctionEndPercentage = new BigNumber(10);
       auctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
-      setManager = await managerHelper.deployBaseTwoAssetStrategyManagerMockAsync(
+      setManager = await managerHelper.deployTwoAssetStrategyManagerMockAsync(
         core.address,
         allocator.address,
         linearAuctionPriceCurve.address,
@@ -639,7 +639,7 @@ contract('BaseTwoAssetStrategyManager', accounts => {
       const auctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
       const auctionStartPercentage = new BigNumber(2);
       const auctionEndPercentage = new BigNumber(10);
-      setManager = await managerHelper.deployBaseTwoAssetStrategyManagerMockAsync(
+      setManager = await managerHelper.deployTwoAssetStrategyManagerMockAsync(
         core.address,
         allocator.address,
         linearAuctionPriceCurve.address,

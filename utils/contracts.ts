@@ -1,8 +1,8 @@
 export { AllocatorMathLibraryMockContract } from '../types/generated/allocator_math_library_mock';
 export { BaseContract } from '../types/base_contract';
 export {
-  BaseTwoAssetStrategyManagerMockContract
-} from '../types/generated/base_two_asset_strategy_manager_mock';
+  TwoAssetStrategyManagerMockContract
+} from '../types/generated/two_asset_strategy_manager_mock';
 export { BinaryAllocatorContract } from '../types/generated/binary_allocator';
 export { BinaryAllocatorMockContract } from '../types/generated/binary_allocator_mock';
 export { BTCDaiRebalancingManagerContract } from '../types/generated/b_t_c_dai_rebalancing_manager';
