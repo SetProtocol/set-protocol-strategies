@@ -100,12 +100,10 @@ contract RSITrendingTrigger is
         // Else if RSI less than lower bound return false
         // Else return currentTrendState
         bool trendState = rsiValue >= upperBound ? true : rsiValue < lowerBound ?
-            false : currentTrendState;
+            false : revertNoStateChange();
 
-        // Set currentTrendState if trend has changed
-        if (trendState != currentTrendState) {
-            currentTrendState = trendState;
-        }
+        // Set new currentTrendState
+        currentTrendState = trendState;
     }
 
     /*
@@ -119,5 +117,21 @@ contract RSITrendingTrigger is
         returns (bool)
     {
         return currentTrendState;
+    }
+
+    /* ============ Internal ============ */
+
+    /*
+     * Revert call to confirmTrigger when trend state has not changed. "Returns" bool to match typing.
+     */
+    function revertNoStateChange()
+        internal
+        pure
+        returns (bool)
+    {
+        require(
+            false,
+            "RSITrendingTrigger.revertNoStateChange: RSITrigger has not changed from current trend state."
+        );
     }
 }

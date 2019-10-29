@@ -24,6 +24,7 @@ import { ICore } from "set-protocol-contracts/contracts/core/interfaces/ICore.so
 import { BaseTwoAssetStrategyManager } from "./BaseTwoAssetStrategyManager.sol";
 import { IAllocator } from "./allocators/IAllocator.sol";
 import { ITrigger } from "./triggers/ITrigger.sol";
+import { UintArrayUtilsLibrary } from "./lib/UintArrayUtilsLibrary.sol";
 
 
 /**
@@ -36,9 +37,12 @@ import { ITrigger } from "./triggers/ITrigger.sol";
 contract TriggerIndexManager is
     BaseTwoAssetStrategyManager
 {
+    using SafeMath for uint256;
+    using UintArrayUtilsLibrary for uint256[];
+
     /* ============ State Variables ============ */
     ITrigger[] public triggers;
-    uint8[] public triggerWeights;
+    uint256[] public triggerWeights;
     uint256 public allocationPrecision;
 
     /* ============ Constructors ============ */
@@ -67,7 +71,7 @@ contract TriggerIndexManager is
         uint256 _auctionEndPercentage,
         uint256 _auctionTimeToPivot,
         ITrigger[] memory _triggers,
-        uint8[] memory _triggerWeights
+        uint256[] memory _triggerWeights
     )
         public
         BaseTwoAssetStrategyManager(
@@ -88,17 +92,14 @@ contract TriggerIndexManager is
         );
 
         // Sum weights of _triggerWeights array
-        uint8 weightSum = 0;
-        for (uint8 i = 0; i < _triggers.length; i++) {
-            weightSum += _triggerWeights[i];
-        }
+        uint256 weightSum = _triggerWeights.sumArrayValues();
 
         // Require that weights equal allocation precision
         require(
             weightSum == _allocationPrecision,
             "TriggerIndexManager.constructor: Weights must sum to 100."
         );        
-
+        // uint256 test = _auctionStartPercentage.add(_auctionEndPercentage);
         triggers = _triggers;
         triggerWeights = _triggerWeights;
     }
@@ -120,7 +121,8 @@ contract TriggerIndexManager is
 
         // Cycle through price triggers and add their weight if trigger is bullish
         for (uint8 i = 0; i < triggers.length; i++) {
-            allocationSum += triggers[i].isBullish() ? triggerWeights[i] : 0;
+            uint256 addedAllocation = triggers[i].isBullish() ? triggerWeights[i] : 0;
+            allocationSum = allocationSum.add(addedAllocation);
         }
 
         return allocationSum;
@@ -149,7 +151,7 @@ contract TriggerIndexManager is
     function getTriggerWeights()
         external
         view
-        returns (uint8[] memory)
+        returns (uint256[] memory)
     {
         return triggerWeights;
     }

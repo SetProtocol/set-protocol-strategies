@@ -34,6 +34,9 @@ import {
   ZERO
 } from '../constants';
 
+import { extractNewCollateralFromLogs } from '@utils/contract_logs/binaryAllocator';
+import { ProtocolHelper } from '@utils/helpers/protocolHelper';
+
 import { getWeb3 } from '../web3Helper';
 
 const web3 = getWeb3();
@@ -52,8 +55,10 @@ const MovingAverageToAssetPriceCrossoverTrigger = artifacts.require(
 const RSITrendingTrigger = artifacts.require('RSITrendingTrigger');
 const TriggerMock = artifacts.require('TriggerMock');
 const TriggerIndexManager = artifacts.require('TriggerIndexManager');
+const UintArrayUtilsLibrary = artifacts.require('UintArrayUtilsLibrary');
 
 const { SetProtocolUtils: SetUtils, SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
+const setTestUtils = new SetTestUtils(web3);
 const {
   SET_FULL_TOKEN_UNITS,
   WBTC_FULL_TOKEN_UNITS,
@@ -315,6 +320,8 @@ export class ManagerHelper {
     triggerWeights: BigNumber[],
     from: Address = this._tokenOwnerAddress
   ): Promise<TriggerIndexManagerContract> {
+    await this.linkUintArrayUtilsLibraryAsync(TriggerIndexManager);
+
     const truffleRebalacingTokenManager = await TriggerIndexManager.new(
       coreInstance,
       allocationPricerInstance,
@@ -462,6 +469,25 @@ export class ManagerHelper {
   }
 
   /* ============ Helper Functions ============ */
+
+  public async linkUintArrayUtilsLibraryAsync(
+    contract: any,
+  ): Promise<void> {
+    const truffleUintArrayUtilsLibrary = await UintArrayUtilsLibrary.new(
+      { from: this._tokenOwnerAddress },
+    );
+
+    await contract.link('UintArrayUtilsLibrary', truffleUintArrayUtilsLibrary.address);
+  }
+
+  public async getNewBinaryAllocatorCollateralFromLogs(
+    txHash: string,
+    protocolHelper: ProtocolHelper,
+  ): Promise<SetTokenContract> {
+    const logs = await setTestUtils.getLogsFromTxHash(txHash);
+    const [, nextSetAddress] = extractNewCollateralFromLogs([logs[1]]);
+    return await protocolHelper.getSetTokenAsync(nextSetAddress);
+  }
 
   public calculateCollateralSetHash(
     units: BigNumber,

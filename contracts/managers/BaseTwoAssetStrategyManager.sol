@@ -190,9 +190,7 @@ contract BaseTwoAssetStrategyManager {
         returns (bool)
     {
         return calculateBaseAssetAllocation() != baseAssetAllocation;        
-    }    
-
-    /* ============ Internal ============ */
+    } 
 
      /*
      * Unimplemented in this base contract but is used to translate price triggers outputs (boolean)
@@ -201,9 +199,10 @@ contract BaseTwoAssetStrategyManager {
     function calculateBaseAssetAllocation()
         public
         view
-        returns (uint256);
+        returns (uint256);   
 
-    /*
+    /* ============ Internal ============ */
+
     /*
      * Calculates the auction price parameters, targetting 1% slippage every 10 minutes. Range is
      * defined by subtracting auctionStartPercentage * onePercentSlippage from fairValue and adding

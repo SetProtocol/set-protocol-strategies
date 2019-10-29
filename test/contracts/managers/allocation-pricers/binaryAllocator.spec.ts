@@ -392,9 +392,10 @@ contract('BinaryAllocator', accounts => {
       it('updates new baseAsset collateral to the correct naturalUnit', async () => {
         const txHash = await subjectTxn();
 
-        const logs = await setTestUtils.getLogsFromTxHash(txHash);
-        const [, nextSetAddress] = extractNewCollateralFromLogs([logs[1]]);
-        const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
+        const nextSet = await managerHelper.getNewBinaryAllocatorCollateralFromLogs(
+          txHash,
+          protocolHelper
+        );
 
         const nextSetNaturalUnit = await nextSet.naturalUnit.callAsync();
 
@@ -413,9 +414,10 @@ contract('BinaryAllocator', accounts => {
       it('updates new baseAsset collateral to the correct units', async () => {
         const txHash = await subjectTxn();
 
-        const logs = await setTestUtils.getLogsFromTxHash(txHash);
-        const [, nextSetAddress] = extractNewCollateralFromLogs([logs[1]]);
-        const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
+        const nextSet = await managerHelper.getNewBinaryAllocatorCollateralFromLogs(
+          txHash,
+          protocolHelper
+        );
 
         const nextSetUnits = await nextSet.getUnits.callAsync();
 
@@ -434,9 +436,10 @@ contract('BinaryAllocator', accounts => {
       it('updates new baseAsset collateral to the correct components', async () => {
         const txHash = await subjectTxn();
 
-        const logs = await setTestUtils.getLogsFromTxHash(txHash);
-        const [, nextSetAddress] = extractNewCollateralFromLogs([logs[1]]);
-        const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
+        const nextSet = await managerHelper.getNewBinaryAllocatorCollateralFromLogs(
+          txHash,
+          protocolHelper
+        );
 
         const nextSetComponents = await nextSet.getComponents.callAsync();
 
@@ -469,9 +472,10 @@ contract('BinaryAllocator', accounts => {
 
         const txHash = await subjectTxn();
 
-        const logs = await setTestUtils.getLogsFromTxHash(txHash);
-        const [, nextSetAddress] = extractNewCollateralFromLogs([logs[1]]);
-        const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
+        const nextSet = await managerHelper.getNewBinaryAllocatorCollateralFromLogs(
+          txHash,
+          protocolHelper
+        );
 
         const nextSetNaturalUnit = await nextSet.naturalUnit.callAsync();
 
@@ -492,9 +496,10 @@ contract('BinaryAllocator', accounts => {
       it('updates new baseAsset collateral to the correct units', async () => {
         const txHash = await subjectTxn();
 
-        const logs = await setTestUtils.getLogsFromTxHash(txHash);
-        const [, nextSetAddress] = extractNewCollateralFromLogs([logs[1]]);
-        const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
+        const nextSet = await managerHelper.getNewBinaryAllocatorCollateralFromLogs(
+          txHash,
+          protocolHelper
+        );
 
         const nextSetUnits = await nextSet.getUnits.callAsync();
 
@@ -514,9 +519,10 @@ contract('BinaryAllocator', accounts => {
       it('updates new baseAsset collateral to the correct components', async () => {
         const txHash = await subjectTxn();
 
-        const logs = await setTestUtils.getLogsFromTxHash(txHash);
-        const [, nextSetAddress] = extractNewCollateralFromLogs([logs[1]]);
-        const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
+        const nextSet = await managerHelper.getNewBinaryAllocatorCollateralFromLogs(
+          txHash,
+          protocolHelper
+        );
 
         const nextSetComponents = await nextSet.getComponents.callAsync();
 
@@ -585,9 +591,10 @@ contract('BinaryAllocator', accounts => {
       it('updates new quoteAsset collateral to the correct naturalUnit', async () => {
         const txHash = await subjectTxn();
 
-        const logs = await setTestUtils.getLogsFromTxHash(txHash);
-        const [, nextSetAddress] = extractNewCollateralFromLogs([logs[1]]);
-        const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
+        const nextSet = await managerHelper.getNewBinaryAllocatorCollateralFromLogs(
+          txHash,
+          protocolHelper
+        );
 
         const nextSetNaturalUnit = await nextSet.naturalUnit.callAsync();
 
@@ -607,9 +614,10 @@ contract('BinaryAllocator', accounts => {
       it('updates new quoteAsset collateral to the correct units', async () => {
         const txHash = await subjectTxn();
 
-        const logs = await setTestUtils.getLogsFromTxHash(txHash);
-        const [, nextSetAddress] = extractNewCollateralFromLogs([logs[1]]);
-        const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
+        const nextSet = await managerHelper.getNewBinaryAllocatorCollateralFromLogs(
+          txHash,
+          protocolHelper
+        );
 
         const nextSetUnits = await nextSet.getUnits.callAsync();
 
@@ -628,9 +636,10 @@ contract('BinaryAllocator', accounts => {
       it('updates new quoteAsset collateral to the correct components', async () => {
         const txHash = await subjectTxn();
 
-        const logs = await setTestUtils.getLogsFromTxHash(txHash);
-        const [, nextSetAddress] = extractNewCollateralFromLogs([logs[1]]);
-        const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
+        const nextSet = await managerHelper.getNewBinaryAllocatorCollateralFromLogs(
+          txHash,
+          protocolHelper
+        );
 
         const nextSetComponents = await nextSet.getComponents.callAsync();
 
@@ -668,9 +677,10 @@ contract('BinaryAllocator', accounts => {
 
         const txHash = await subjectTxn();
 
-        const logs = await setTestUtils.getLogsFromTxHash(txHash);
-        const [, nextSetAddress] = extractNewCollateralFromLogs([logs[1]]);
-        const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
+        const nextSet = await managerHelper.getNewBinaryAllocatorCollateralFromLogs(
+          txHash,
+          protocolHelper
+        );
 
         const nextSetNaturalUnit = await nextSet.naturalUnit.callAsync();
 
@@ -691,9 +701,10 @@ contract('BinaryAllocator', accounts => {
       it('updates new quoteAsset collateral to the correct units', async () => {
         const txHash = await subjectTxn();
 
-        const logs = await setTestUtils.getLogsFromTxHash(txHash);
-        const [, nextSetAddress] = extractNewCollateralFromLogs([logs[1]]);
-        const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
+        const nextSet = await managerHelper.getNewBinaryAllocatorCollateralFromLogs(
+          txHash,
+          protocolHelper
+        );
 
         const nextSetUnits = await nextSet.getUnits.callAsync();
 
@@ -712,9 +723,10 @@ contract('BinaryAllocator', accounts => {
       it('updates new quoteAsset collateral to the correct components', async () => {
         const txHash = await subjectTxn();
 
-        const logs = await setTestUtils.getLogsFromTxHash(txHash);
-        const [, nextSetAddress] = extractNewCollateralFromLogs([logs[1]]);
-        const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
+        const nextSet = await managerHelper.getNewBinaryAllocatorCollateralFromLogs(
+          txHash,
+          protocolHelper
+        );
 
         const nextSetComponents = await nextSet.getComponents.callAsync();
 

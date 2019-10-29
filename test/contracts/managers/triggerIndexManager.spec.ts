@@ -83,7 +83,7 @@ contract('TriggerIndexManager', accounts => {
     blockchain.revertAsync();
   });
 
-  describe.only('#constructor', async () => {
+  describe('#constructor', async () => {
     let subjectCoreInstance: Address;
     let subjectAllocatorInstance: Address;
     let subjectAuctionLibraryInstance: Address;
@@ -163,7 +163,7 @@ contract('TriggerIndexManager', accounts => {
     });
   });
 
-  describe.only('#calculateBaseAssetAllocation', async () => {
+  describe('#calculateBaseAssetAllocation', async () => {
     beforeEach(async () => {
       const baseAssetAllocation = ZERO;
       const allocationPrecision = new BigNumber(100);

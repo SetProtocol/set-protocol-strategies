@@ -46,4 +46,5 @@ export { TimeSeriesFeedContract } from '../types/generated/time_series_feed';
 export { TimeSeriesFeedV2Contract } from '../types/generated/time_series_feed_v2';
 export { TimeSeriesFeedV2MockContract } from '../types/generated/time_series_feed_v2_mock';
 export { TriggerIndexManagerContract } from '../types/generated/trigger_index_manager';
+export { UintArrayUtilsLibraryMockContract } from '../types/generated/uint_array_utils_library_mock';
 export { USDCMockContract } from '../types/generated/u_s_d_c_mock';

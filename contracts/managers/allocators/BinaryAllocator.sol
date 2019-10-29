@@ -165,7 +165,7 @@ contract BinaryAllocator is
     {
         require(
             _targetBaseAssetAllocation == _allocationPrecision || _targetBaseAssetAllocation == 0,
-            "BinaryAllocator.validateAllocationParams: Passed allocation must be equal to allocationPrecision or 0."
+            "BinaryAllocator.determineNewAllocation: Passed allocation must be equal to allocationPrecision or 0."
         );
 
         // Determine if rebalance is to the baseAsset
@@ -304,7 +304,7 @@ contract BinaryAllocator is
         // Make sure passed currentSet was created by Core
         require(
             coreInstance.validSets(address(_currentCollateralSet)),
-            "BinaryAllocator.validateAllocationParams: Passed collateralSet must be tracked by Core."
+            "BinaryAllocator.validateCurrentCollateralSet: Passed collateralSet must be tracked by Core."
         );
 
         // Get current set components
@@ -313,14 +313,14 @@ contract BinaryAllocator is
         // Make sure current set component array is one item long
         require(
             currentSetComponents.length == 1,
-            "BinaryAllocator.validateAllocationParams: Passed collateral set must have one component."
+            "BinaryAllocator.validateCurrentCollateralSet: Passed collateral set must have one component."
         );
 
         // Make sure that currentSet component is opposite of expected component to be rebalanced into
         address requiredComponent = _toBaseAsset ? address(quoteAssetInstance) : address(baseAssetInstance);
         require(
             currentSetComponents[0] == requiredComponent,
-            "BinaryAllocator.validateAllocationParams: New allocation doesn't match currentSet component."
+            "BinaryAllocator.validateCurrentCollateralSet: New allocation doesn't match currentSet component."
         );
     }
 

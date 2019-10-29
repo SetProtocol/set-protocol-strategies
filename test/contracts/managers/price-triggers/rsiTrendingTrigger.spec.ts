@@ -272,7 +272,7 @@ contract('RSITrendingTrigger', accounts => {
       });
     });
 
-    describe('when RSI is between 40 and 60 and trend state is true', async () => {
+    describe('when RSI is between 40 and 60', async () => {
       before(async () => {
         // Prices are alternating each day
         updatedValues = [
@@ -294,44 +294,8 @@ contract('RSITrendingTrigger', accounts => {
         ];
       });
 
-      it('should return 100', async () => {
-        await subject();
-
-        const actualReturnedTrendState = await priceTrigger.isBullish.callAsync();
-
-        expect(actualReturnedTrendState).to.be.true;
-      });
-    });
-
-    describe('when RSI is between 40 and 60 and trend state is false', async () => {
-      before(async () => {
-        // Prices are alternating each day
-        updatedValues = [
-          ether(170),
-          ether(150),
-          ether(170),
-          ether(150),
-          ether(170),
-          ether(150),
-          ether(170),
-          ether(150),
-          ether(170),
-          ether(150),
-          ether(170),
-          ether(150),
-          ether(170),
-          ether(150),
-          ether(170),
-        ];
-        initialTrendState = false;
-      });
-
-      it('should return 0', async () => {
-        await subject();
-
-        const actualReturnedTrendState = await priceTrigger.isBullish.callAsync();
-
-        expect(actualReturnedTrendState).to.be.false;
+      it('should revert', async () => {
+        await expectRevertError(subject());
       });
     });
   });

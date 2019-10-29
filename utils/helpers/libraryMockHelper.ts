@@ -11,6 +11,7 @@ import {
   LinkedListLibraryMockV3Contract,
   ManagerLibraryMockContract,
   PriceFeedMockContract,
+  UintArrayUtilsLibraryMockContract,
 } from '../contracts';
 import {
   getWeb3,
@@ -28,6 +29,8 @@ const ManagerLibraryMock = artifacts.require('ManagerLibraryMock');
 const EMALibraryMock = artifacts.require('EMALibraryMock');
 const PriceFeedMock = artifacts.require('PriceFeedMock');
 const RSILibraryMock = artifacts.require('RSILibraryMock');
+const UintArrayUtilsLibrary = artifacts.require('UintArrayUtilsLibrary');
+const UintArrayUtilsLibraryMock = artifacts.require('UintArrayUtilsLibraryMock');
 
 export class LibraryMockHelper {
   private _contractOwnerAddress: Address;
@@ -182,4 +185,30 @@ export class LibraryMockHelper {
       { from },
     );
   }
+
+  public async deployUintArrayUtilsLibraryAsync(
+    from: Address = this._contractOwnerAddress
+  ): Promise<UintArrayUtilsLibraryMockContract> {
+    await this.linkUintArrayUtilsLibraryAsync(UintArrayUtilsLibraryMock);
+
+    const mathHelperMockContract = await UintArrayUtilsLibraryMock.new(
+      { from },
+    );
+
+    return new UintArrayUtilsLibraryMockContract(
+      new web3.eth.Contract(mathHelperMockContract.abi, mathHelperMockContract.address),
+      { from },
+    );
+  }
+
+  public async linkUintArrayUtilsLibraryAsync(
+    contract: any,
+  ): Promise<void> {
+    const truffleUintArrayUtilsLibrary = await UintArrayUtilsLibrary.new(
+      { from: this._contractOwnerAddress },
+    );
+
+    await contract.link('UintArrayUtilsLibrary', truffleUintArrayUtilsLibrary.address);
+  }
+
 }
