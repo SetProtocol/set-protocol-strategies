@@ -7,6 +7,7 @@ module.exports = {
     'Migrations.sol',
     'mocks',
     'external',
+    'managers/lib/UintArrayUtilsLibrary.sol',
     'meta-oracles/lib/LinkedListLibraryV2.sol', // There are issues with testing of LinkedListLibrary
     'meta-oracles/lib/LinkedListLibraryV3.sol', // There are issues with testing of LinkedListLibrary
   ],

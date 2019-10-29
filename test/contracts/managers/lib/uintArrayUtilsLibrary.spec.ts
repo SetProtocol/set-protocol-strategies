@@ -18,7 +18,7 @@ BigNumberSetup.configure();
 ChaiSetup.configure();
 const { expect } = chai;
 
-contract('AllocatorMathLibrary', accounts => {
+contract('UintArrayUtilsLibrary', accounts => {
   const [
     deployerAccount,
   ] = accounts;
