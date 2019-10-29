@@ -11,6 +11,9 @@ import {
   UintArrayUtilsLibraryMockContract,
 } from '@utils/contracts';
 
+import {
+  DEFAULT_GAS
+} from '@utils/constants';
 
 import { LibraryMockHelper } from '@utils/helpers/libraryMockHelper';
 
@@ -41,6 +44,7 @@ contract('UintArrayUtilsLibrary', accounts => {
     async function subject(): Promise<BigNumber> {
       return arrayLibraryMock.sumArrayValues.callAsync(
         subjectArray,
+        { gas: DEFAULT_GAS }
       );
     }
 
