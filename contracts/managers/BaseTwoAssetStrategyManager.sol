@@ -24,8 +24,7 @@ import { IRebalancingSetToken } from "set-protocol-contracts/contracts/core/inte
 import { ISetToken } from "set-protocol-contracts/contracts/core/interfaces/ISetToken.sol";
 
 import { FlexibleTimingManagerLibrary } from "./lib/FlexibleTimingManagerLibrary.sol";
-import { IAllocationPricer } from "./allocation-pricers/IAllocationPricer.sol";
-import { IPriceTrigger } from "./price-triggers/IPriceTrigger.sol";
+import { IAllocator } from "./allocators/IAllocator.sol";
 
 
 /**
@@ -34,7 +33,7 @@ import { IPriceTrigger } from "./price-triggers/IPriceTrigger.sol";
  *
  * Base Rebalancing Manager contract for implementing any trading pair strategy. Allocation determinations
  * are implemented in a contract that inherits the functionality of this contract. Additionally, all allocations are
- * priced using the base contracts's AllocationPricer contract.
+ * priced using the base contracts's Allocator contract.
  */
 contract BaseTwoAssetStrategyManager {
     using SafeMath for uint256;
@@ -42,7 +41,7 @@ contract BaseTwoAssetStrategyManager {
     /* ============ State Variables ============ */
     ICore public coreInstance;
     IAuctionPriceCurve public auctionLibraryInstance;
-    IAllocationPricer public allocationPricerInstance;
+    IAllocator public allocatorInstance;
     IRebalancingSetToken public rebalancingSetTokenInstance;
     uint256 public baseAssetAllocation;  // Percent of base asset currently allocated in strategy
     uint256 public allocationPrecision;
@@ -55,7 +54,7 @@ contract BaseTwoAssetStrategyManager {
      * TwoAssetStrategyManagerWithConfirmation constructor.
      *
      * @param  _coreInstance                    The address of the Core contract       
-     * @param  _allocationPricerInstance        The address of the AllocationPricer to be used in the strategy        
+     * @param  _allocatorInstance               The address of the Allocator to be used in the strategy        
      * @param  _auctionLibraryInstance          The address of auction price curve to use in rebalance
      * @param  _baseAssetAllocation             Starting allocation of the Rebalancing Set in baseAsset amount
      * @param  _allocationPrecision             Precision of allocation percentage
@@ -65,7 +64,7 @@ contract BaseTwoAssetStrategyManager {
      */
     constructor(
         ICore _coreInstance,
-        IAllocationPricer _allocationPricerInstance,
+        IAllocator _allocatorInstance,
         IAuctionPriceCurve _auctionLibraryInstance,
         uint256 _baseAssetAllocation,
         uint256 _allocationPrecision,
@@ -76,7 +75,7 @@ contract BaseTwoAssetStrategyManager {
         public
     {
         coreInstance = _coreInstance;
-        allocationPricerInstance = _allocationPricerInstance;
+        allocatorInstance = _allocatorInstance;
         auctionLibraryInstance = _auctionLibraryInstance;
         baseAssetAllocation = _baseAssetAllocation;
         allocationPrecision = _allocationPrecision;
@@ -140,18 +139,18 @@ contract BaseTwoAssetStrategyManager {
 
         // If price trigger has been met, get next Set allocation. Create new set if price difference is too
         // great to run good auction. Return nextSet address.
-        address nextSetAddress = allocationPricerInstance.determineNewAllocation(
+        address nextSetAddress = allocatorInstance.determineNewAllocation(
             newBaseAssetAllocation,
             allocationPrecision,
             ISetToken(currentCollateralSetAddress)
         );
 
         // Get current and next Set dollar values
-        uint256 currentSetDollarValue = allocationPricerInstance.calculateCollateralSetValue(
+        uint256 currentSetDollarValue = allocatorInstance.calculateCollateralSetValue(
             ISetToken(currentCollateralSetAddress)
         );
 
-        uint256 nextSetDollarValue = allocationPricerInstance.calculateCollateralSetValue(
+        uint256 nextSetDollarValue = allocatorInstance.calculateCollateralSetValue(
             ISetToken(nextSetAddress)
         );
 

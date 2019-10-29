@@ -22,8 +22,8 @@ import { IAuctionPriceCurve } from "set-protocol-contracts/contracts/core/lib/au
 import { ICore } from "set-protocol-contracts/contracts/core/interfaces/ICore.sol";
 
 import { BaseTwoAssetStrategyManager } from "./BaseTwoAssetStrategyManager.sol";
-import { IAllocationPricer } from "./allocation-pricers/IAllocationPricer.sol";
-import { IPriceTrigger } from "./price-triggers/IPriceTrigger.sol";
+import { IAllocator } from "./allocators/IAllocator.sol";
+import { ITrigger } from "./triggers/ITrigger.sol";
 
 
 /**
@@ -37,7 +37,7 @@ contract TwoAssetWeightedStrategyManager is
     BaseTwoAssetStrategyManager
 {
     /* ============ State Variables ============ */
-    IPriceTrigger[] public priceTriggers;
+    ITrigger[] public triggers;
     uint8[] public triggerWeights;
     uint256 public allocationPrecision;
 
@@ -47,32 +47,32 @@ contract TwoAssetWeightedStrategyManager is
      *
      * @param  _coreInstance                    The address of the Core contract
      * @param  _priceTriggerInstance            The address of the PriceTrigger to be used in the strategy         
-     * @param  _allocationPricerInstance        The address of the AllocationPricer to be used in the strategy        
+     * @param  _allocatorInstance               The address of the Allocator to be used in the strategy        
      * @param  _auctionLibraryInstance          The address of auction price curve to use in rebalance
      * @param  _baseAssetAllocation             Starting allocation of the Rebalancing Set in baseAsset amount
      * @param  _allocationPrecision             Precision of allocation percentage
      * @param  _auctionStartPercentage          The amount below fair value, in percent, to start auction
      * @param  _auctionEndPercentage            The amount above fair value, in percent, to end auction
      * @param  _auctionTimeToPivot              Time, in seconds, spent between start and pivot price
-     * @param  _priceTriggers                   Addresses of the various priceTriggers used to determine base asset allocation
-     * @param  _triggerWeights                  Weight (out of 100) to assign to price trigger in matching slot of priceTriggers array
+     * @param  _triggers                        Addresses of the various triggers used to determine base asset allocation
+     * @param  _triggerWeights                  Weight (out of 100) to assign to price trigger in matching slot of triggers array
      */
     constructor(
         ICore _coreInstance,
-        IAllocationPricer _allocationPricerInstance,
+        IAllocator _allocatorInstance,
         IAuctionPriceCurve _auctionLibraryInstance,
         uint256 _baseAssetAllocation,
         uint256 _allocationPrecision,
         uint256 _auctionStartPercentage,
         uint256 _auctionEndPercentage,
         uint256 _auctionTimeToPivot,
-        IPriceTrigger[] memory _priceTriggers,
+        ITrigger[] memory _triggers,
         uint8[] memory _triggerWeights
     )
         public
         BaseTwoAssetStrategyManager(
             _coreInstance,
-            _allocationPricerInstance,
+            _allocatorInstance,
             _auctionLibraryInstance,
             _baseAssetAllocation,
             _allocationPrecision,
@@ -81,15 +81,15 @@ contract TwoAssetWeightedStrategyManager is
             _auctionTimeToPivot
         )
     {
-        // Check that priceTriggers and triggerWeights arrays are of equal length
+        // Check that triggers and triggerWeights arrays are of equal length
         require(
-            _priceTriggers.length == _triggerWeights.length,
+            _triggers.length == _triggerWeights.length,
             "TwoAssetWeightedStrategyManager.constructor: Number of triggers must match, number of weights."
         );
 
         // Sum weights of _triggerWeights array
         uint8 weightSum = 0;
-        for (uint8 i = 0; i < _priceTriggers.length; i++) {
+        for (uint8 i = 0; i < _triggers.length; i++) {
             weightSum += _triggerWeights[i];
         }
 
@@ -99,7 +99,7 @@ contract TwoAssetWeightedStrategyManager is
             "TwoAssetWeightedStrategyManager.constructor: Weights must sum to 100."
         );        
 
-        priceTriggers = _priceTriggers;
+        triggers = _triggers;
         triggerWeights = _triggerWeights;
     }
 
@@ -119,8 +119,8 @@ contract TwoAssetWeightedStrategyManager is
         uint256 allocationSum = 0;
 
         // Cycle through price triggers and add their weight if trigger is bullish
-        for (uint8 i = 0; i < priceTriggers.length; i++) {
-            allocationSum += priceTriggers[i].isBullish() ? triggerWeights[i] : 0;
+        for (uint8 i = 0; i < triggers.length; i++) {
+            allocationSum += triggers[i].isBullish() ? triggerWeights[i] : 0;
         }
 
         return allocationSum;
@@ -136,9 +136,9 @@ contract TwoAssetWeightedStrategyManager is
     function getPriceTriggers()
         external
         view
-        returns (IPriceTrigger[] memory)
+        returns (ITrigger[] memory)
     {
-        return priceTriggers;
+        return triggers;
     }
 
     /*

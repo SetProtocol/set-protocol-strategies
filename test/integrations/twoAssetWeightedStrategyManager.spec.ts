@@ -26,7 +26,7 @@ import {
   WhiteListContract,
 } from 'set-protocol-contracts';
 import {
-  BinaryAllocationPricerContract,
+  BinaryAllocatorContract,
   ConstantPriceOracleContract,
   EMAOracleContract,
   LegacyMakerOracleAdapterContract,
@@ -89,8 +89,8 @@ contract('Integration: TwoAssetWeightedStrategyManager', accounts => {
   let timeSeriesFeed: LinearizedEMATimeSeriesFeedContract;
   let emaOracle: EMAOracleContract;
 
-  let priceTrigger: MovingAverageToAssetPriceCrossoverTriggerContract;
-  let allocationPricer: BinaryAllocationPricerContract;
+  let trigger: MovingAverageToAssetPriceCrossoverTriggerContract;
+  let allocator: BinaryAllocatorContract;
 
   let setManager: TwoAssetWeightedStrategyManagerContract;
   let quoteAssetCollateral: SetTokenContract;
@@ -191,7 +191,7 @@ contract('Integration: TwoAssetWeightedStrategyManager', accounts => {
 
     signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
     signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
-    priceTrigger = await managerHelper.deployMovingAverageToAssetPriceCrossoverTrigger(
+    trigger = await managerHelper.deployMovingAverageToAssetPriceCrossoverTrigger(
       emaOracle.address,
       oracleProxy.address,
       timePeriod,
@@ -200,7 +200,7 @@ contract('Integration: TwoAssetWeightedStrategyManager', accounts => {
       signalConfirmationMaxTime
     );
 
-    allocationPricer = await managerHelper.deployBinaryAllocationPricerAsync(
+    allocator = await managerHelper.deployBinaryAllocatorAsync(
       wrappedETH.address,
       usdcMock.address,
       oracleProxy.address,
@@ -213,7 +213,7 @@ contract('Integration: TwoAssetWeightedStrategyManager', accounts => {
 
     await oracleHelper.addAuthorizedAddressesToOracleProxy(
       oracleProxy,
-      [timeSeriesFeed.address, allocationPricer.address, priceTrigger.address]
+      [timeSeriesFeed.address, allocator.address, trigger.address]
     );
   });
 
@@ -249,14 +249,14 @@ contract('Integration: TwoAssetWeightedStrategyManager', accounts => {
       auctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
       setManager = await  managerHelper.deployTwoAssetWeightedStrategyManagerAsync(
         core.address,
-        allocationPricer.address,
+        allocator.address,
         linearAuctionPriceCurve.address,
         baseAssetAllocation,
         allocationPrecision,
         auctionStartPercentage,
         auctionEndPercentage,
         auctionTimeToPivot,
-        [priceTrigger.address],
+        [trigger.address],
         [new BigNumber(100)],
         subjectCaller,
       );
@@ -286,10 +286,10 @@ contract('Integration: TwoAssetWeightedStrategyManager', accounts => {
           new BigNumber(lastBlockInfo.timestamp + 1),
         );
 
-        await priceTrigger.initialTrigger.sendTransactionAsync();
+        await trigger.initialTrigger.sendTransactionAsync();
 
         await blockchain.increaseTimeAsync(signalConfirmationMinTime.add(1));
-        await priceTrigger.confirmTrigger.sendTransactionAsync();
+        await trigger.confirmTrigger.sendTransactionAsync();
       }
 
       subjectTimeFastForward = ONE_DAY_IN_SECONDS.add(1);

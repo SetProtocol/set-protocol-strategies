@@ -19,7 +19,7 @@ pragma experimental "ABIEncoderV2";
 
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
-import { IPriceTrigger } from "./IPriceTrigger.sol";
+import { ITrigger } from "./ITrigger.sol";
 import { IOracle } from "../../meta-oracles/interfaces/IOracle.sol";
 import { IMetaOracleV2 } from "../../meta-oracles/interfaces/IMetaOracleV2.sol";
 
@@ -28,7 +28,7 @@ import { IMetaOracleV2 } from "../../meta-oracles/interfaces/IMetaOracleV2.sol";
  * @title MovingAverageToAssetPriceCrossoverTrigger
  * @author Set Protocol
  *
- * Implementing the IPriceTrigger interface, this contract is queried by a
+ * Implementing the ITrigger interface, this contract is queried by a
  * RebalancingSetToken Manager to determine if the market is in a bullish 
  * state by checking if the the trading pair price is above or below a simple
  * or exponential moving average.
@@ -38,7 +38,7 @@ import { IMetaOracleV2 } from "../../meta-oracles/interfaces/IMetaOracleV2.sol";
  * in the base asset.
  */
 contract MovingAverageToAssetPriceCrossoverTrigger is
-    IPriceTrigger
+    ITrigger
 {
     using SafeMath for uint256;
 

@@ -21,12 +21,12 @@ import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 
 /**
- * @title AllocationPricerMathLibrary
+ * @title AllocatorMathLibrary
  * @author Set Protocol
  *
- * Library containing math helper function for AllocationPricer.
+ * Library containing math helper function for Allocator.
  */
-library AllocationPricerMathLibrary {
+library AllocatorMathLibrary {
     using SafeMath for uint256;
 
     /*
@@ -45,7 +45,7 @@ library AllocationPricerMathLibrary {
         // Make sure passed value is greater than 0
         require (
             _value > 0,
-            "BinaryAllocationPricer.roundToNearestPowerOfTwo: Value must be greater than zero."
+            "AllocatorMathLibrary.roundToNearestPowerOfTwo: Value must be greater than zero."
         );
 
         // Multiply by 1.5 to roughly approximate sqrt(2). Needed to round to nearest power of two. 
@@ -81,7 +81,7 @@ library AllocationPricerMathLibrary {
         // Make sure passed value is greater than 0
         require (
             _value > 0,
-            "BinaryAllocationPricer.ceilLog10: Value must be greater than zero."
+            "AllocatorMathLibrary.ceilLog10: Value must be greater than zero."
         );
 
         // Since log10(1) = 0, if _value = 1 return 0

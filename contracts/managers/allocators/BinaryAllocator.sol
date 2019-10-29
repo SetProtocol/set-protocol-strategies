@@ -25,23 +25,23 @@ import { ICore } from "set-protocol-contracts/contracts/core/interfaces/ICore.so
 import { ISetToken } from "set-protocol-contracts/contracts/core/interfaces/ISetToken.sol";
 import { SetTokenLibrary } from "set-protocol-contracts/contracts/core/lib/SetTokenLibrary.sol";
 
-import { AllocationPricerMathLibrary } from "../lib/AllocationPricerMathLibrary.sol";
+import { AllocatorMathLibrary } from "../lib/AllocatorMathLibrary.sol";
 import { FlexibleTimingManagerLibrary } from "../lib/FlexibleTimingManagerLibrary.sol";
-import { IAllocationPricer } from "./IAllocationPricer.sol";
+import { IAllocator } from "./IAllocator.sol";
 import { IOracle } from "../../meta-oracles/interfaces/IOracle.sol";
 
 
 /**
- * @title BinaryAllocationPricer
+ * @title BinaryAllocator
  * @author Set Protocol
  *
- * Implementing IAllocationPricer the BinaryAllocationPricer flips between two all or nothing
+ * Implementing IAllocator the BinaryAllocator flips between two all or nothing
  * allocations of the base asset depending what allocation the calling manager is seeking. In
  * addition, if either collateral Set becomes 4x more valuable than the other the contract will
  * create a new collateral Set and use that Set going forward.
  */
-contract BinaryAllocationPricer is
-    IAllocationPricer
+contract BinaryAllocator is
+    IAllocator
 {
     using SafeMath for uint256;
 
@@ -74,7 +74,7 @@ contract BinaryAllocationPricer is
     mapping(bytes32 => address) public storedCollateral;
 
     /*
-     * BinaryAllocationPricer constructor.
+     * BinaryAllocator constructor.
      *
      * @param  _baseAssetInstance                   The baseAsset address
      * @param  _quoteAssetInstance                  The quoteAsset address
@@ -105,12 +105,12 @@ contract BinaryAllocationPricer is
         // Make sure collateral instances are using the correct base and quote asset
         require(
             baseAssetCollateralComponents[0] == address(_baseAssetInstance),
-            "BinaryAllocationPricer.constructor: Base collateral component must match base asset."
+            "BinaryAllocator.constructor: Base collateral component must match base asset."
         );
 
         require(
             quoteAssetCollateralComponents[0] == address(_quoteAssetInstance),
-            "BinaryAllocationPricer.constructor: Quote collateral component must match quote asset."
+            "BinaryAllocator.constructor: Quote collateral component must match quote asset."
         );
 
         baseAssetInstance = _baseAssetInstance;
@@ -165,7 +165,7 @@ contract BinaryAllocationPricer is
     {
         require(
             _targetBaseAssetAllocation == _allocationPrecision || _targetBaseAssetAllocation == 0,
-            "BinaryAllocationPricer.validateAllocationParams: Passed allocation must be equal to allocationPrecision or 0."
+            "BinaryAllocator.validateAllocationParams: Passed allocation must be equal to allocationPrecision or 0."
         );
 
         // Determine if rebalance is to the baseAsset
@@ -304,7 +304,7 @@ contract BinaryAllocationPricer is
         // Make sure passed currentSet was created by Core
         require(
             coreInstance.validSets(address(_currentCollateralSet)),
-            "BinaryAllocationPricer.validateAllocationParams: Passed collateralSet must be tracked by Core."
+            "BinaryAllocator.validateAllocationParams: Passed collateralSet must be tracked by Core."
         );
 
         // Get current set components
@@ -313,14 +313,14 @@ contract BinaryAllocationPricer is
         // Make sure current set component array is one item long
         require(
             currentSetComponents.length == 1,
-            "BinaryAllocationPricer.validateAllocationParams: Passed collateral set must have one component."
+            "BinaryAllocator.validateAllocationParams: Passed collateral set must have one component."
         );
 
         // Make sure that currentSet component is opposite of expected component to be rebalanced into
         address requiredComponent = _toBaseAsset ? address(quoteAssetInstance) : address(baseAssetInstance);
         require(
             currentSetComponents[0] == requiredComponent,
-            "BinaryAllocationPricer.validateAllocationParams: New allocation doesn't match currentSet component."
+            "BinaryAllocator.validateAllocationParams: New allocation doesn't match currentSet component."
         );
     }
 
@@ -410,7 +410,7 @@ contract BinaryAllocationPricer is
             .add(1);
 
         // Complete kTwo calculation by taking ceil(log10()) of intermediate
-        uint256 kTwo = AllocationPricerMathLibrary.ceilLog10(intermediate);
+        uint256 kTwo = AllocatorMathLibrary.ceilLog10(intermediate);
 
         // k is max of kOne and kTwo
         uint256 k = Math.max(kOne, kTwo);
@@ -421,7 +421,7 @@ contract BinaryAllocationPricer is
             .div(nextSetComponentPrice);
         
         // Round raw nextSet unit to nearest power of 2
-        uint256 nextSetUnit = AllocationPricerMathLibrary.roundToNearestPowerOfTwo(
+        uint256 nextSetUnit = AllocatorMathLibrary.roundToNearestPowerOfTwo(
             unroundedNextUnit
         );
 

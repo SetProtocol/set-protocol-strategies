@@ -18,12 +18,28 @@ pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
 /**
- * @title IPriceTrigger
+ * @title TriggerMock
  * @author Set Protocol
  *
- * Interface for interacting with PriceTrigger contracts
+ * Mock implementing ITrigger
  */
-interface IPriceTrigger {
+contract TriggerMock {
+
+    bool private currentTrendState;
+
+    /*
+     * RSITrendingTrigger constructor.
+     *
+     * @param  _initialTrendState       Boolean indiciating if currently in bullish state
+     */
+    constructor(
+        bool _initialTrendState
+    )
+        public
+    {
+        // Set all state variables
+        currentTrendState = _initialTrendState;
+    }
 
     /*
      * Returns bool indicating whether the current market conditions are bullish.
@@ -33,17 +49,24 @@ interface IPriceTrigger {
     function isBullish()
         external
         view
-        returns (bool);
+        returns (bool)
+    {
+        return currentTrendState;
+    }
 
     /*
      * For triggers that require confirmation, start the confirmation period.
      */
     function initialTrigger()
-        external;
+        external
+    {}
 
     /*
      * For triggers that require confirmation, confirm the signal.
      */
     function confirmTrigger()
-        external;
+        external
+    {
+        currentTrendState = !currentTrendState;
+    }
 }

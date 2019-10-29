@@ -8,7 +8,7 @@ import { BigNumber } from 'bignumber.js';
 import ChaiSetup from '@utils/chaiSetup';
 import { BigNumberSetup } from '@utils/bigNumberSetup';
 import {
-  AllocationPricerMathLibraryMockContract
+  AllocatorMathLibraryMockContract
 } from '@utils/contracts';
 
 import {
@@ -25,7 +25,7 @@ BigNumberSetup.configure();
 ChaiSetup.configure();
 const { expect } = chai;
 
-contract('AllocationPricerMathLibrary', accounts => {
+contract('AllocatorMathLibrary', accounts => {
   const [
     deployerAccount,
   ] = accounts;
@@ -33,10 +33,10 @@ contract('AllocationPricerMathLibrary', accounts => {
   const libraryMockHelper = new LibraryMockHelper(deployerAccount);
   const managerHelper = new ManagerHelper(deployerAccount);
 
-  let mathLibraryMock: AllocationPricerMathLibraryMockContract;
+  let mathLibraryMock: AllocatorMathLibraryMockContract;
 
   beforeEach(async () => {
-    mathLibraryMock = await libraryMockHelper.deployAllocationPricerMathLibraryAsync();
+    mathLibraryMock = await libraryMockHelper.deployAllocatorMathLibraryAsync();
   });
 
   describe('#roundToNearestPowerOfTwo', async () => {

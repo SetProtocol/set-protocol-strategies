@@ -20,12 +20,12 @@ pragma experimental "ABIEncoderV2";
 import { ISetToken } from "set-protocol-contracts/contracts/core/interfaces/ISetToken.sol";
 
 /**
- * @title IAllocationPricer
+ * @title IAllocator
  * @author Set Protocol
  *
- * Interface for interacting with AllocationPricer contracts
+ * Interface for interacting with Allocator contracts
  */
-interface IAllocationPricer {
+interface IAllocator {
 
     /*
      * Determine the next allocation to rebalance into.

@@ -19,16 +19,16 @@ pragma experimental "ABIEncoderV2";
 
 import { ISetToken } from "set-protocol-contracts/contracts/core/interfaces/ISetToken.sol";
 
-import { IAllocationPricer } from "../../managers/allocation-pricers/IAllocationPricer.sol";
+import { IAllocator } from "../../managers/allocators/IAllocator.sol";
 
 /**
- * @title BinaryAllocationPricerMock
+ * @title BinaryAllocatorMock
  * @author Set Protocol
  *
  * Mock of BinaryAllocationPricer used to test BaseTwoAssetStrategyManager.
  */
-contract BinaryAllocationPricerMock is
-     IAllocationPricer
+contract BinaryAllocatorMock is
+     IAllocator
 {
     ISetToken public baseAssetCollateralInstance;
     ISetToken public quoteAssetCollateralInstance;

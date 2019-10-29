@@ -23,23 +23,7 @@ pragma experimental "ABIEncoderV2";
  *
  * Interface for interacting with PriceTrigger contracts
  */
-contract PriceTriggerMock {
-
-    bool private currentTrendState;
-
-    /*
-     * RSITrendingTrigger constructor.
-     *
-     * @param  _initialTrendState       Boolean indiciating if currently in bullish state
-     */
-    constructor(
-        bool _initialTrendState
-    )
-        public
-    {
-        // Set all state variables
-        currentTrendState = _initialTrendState;
-    }
+interface ITrigger {
 
     /*
      * Returns bool indicating whether the current market conditions are bullish.
@@ -49,24 +33,17 @@ contract PriceTriggerMock {
     function isBullish()
         external
         view
-        returns (bool)
-    {
-        return currentTrendState;
-    }
+        returns (bool);
 
     /*
      * For triggers that require confirmation, start the confirmation period.
      */
     function initialTrigger()
-        external
-    {}
+        external;
 
     /*
      * For triggers that require confirmation, confirm the signal.
      */
     function confirmTrigger()
-        external
-    {
-        currentTrendState = !currentTrendState;
-    }
+        external;
 }

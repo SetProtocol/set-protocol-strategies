@@ -17,7 +17,7 @@
 pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
-import { IPriceTrigger } from "./IPriceTrigger.sol";
+import { ITrigger } from "./ITrigger.sol";
 import { IOracle } from "../../meta-oracles/interfaces/IOracle.sol";
 import { IMetaOracleV2 } from "../../meta-oracles/interfaces/IMetaOracleV2.sol";
 
@@ -26,7 +26,7 @@ import { IMetaOracleV2 } from "../../meta-oracles/interfaces/IMetaOracleV2.sol";
  * @title RSITrendingTrigger
  * @author Set Protocol
  *
- * Implementing the IPriceTrigger interface, this contract is queried by a
+ * Implementing the ITrigger interface, this contract is queried by a
  * RebalancingSetToken Manager to determine the whether the current market state for
  * the RSI Trending trigger is bullish.
  *
@@ -36,7 +36,7 @@ import { IMetaOracleV2 } from "../../meta-oracles/interfaces/IMetaOracleV2.sol";
  *
  */
 contract RSITrendingTrigger is
-    IPriceTrigger
+    ITrigger
 {
     /* ============ State Variables ============ */
     IMetaOracleV2 public rsiOracleInstance;

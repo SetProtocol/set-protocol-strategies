@@ -24,7 +24,7 @@ import { IRebalancingSetToken } from "set-protocol-contracts/contracts/core/inte
 import { ISetToken } from "set-protocol-contracts/contracts/core/interfaces/ISetToken.sol";
 
 import { BaseTwoAssetStrategyManager } from "../../managers/BaseTwoAssetStrategyManager.sol";
-import { IAllocationPricer } from "../../managers/allocation-pricers/IAllocationPricer.sol";
+import { IAllocator } from "../../managers/allocators/IAllocator.sol";
 
 
 /**
@@ -45,7 +45,7 @@ contract BaseTwoAssetStrategyManagerMock is
      * TwoAssetStrategyManagerWithConfirmation constructor.
      *
      * @param  _coreInstance                    The address of the Core contract
-     * @param  _allocationPricerInstance        The address of the AllocationPricer to be used in the strategy        
+     * @param  _allocatorInstance               The address of the Allocator to be used in the strategy        
      * @param  _auctionLibraryInstance          The address of auction price curve to use in rebalance
      * @param  _baseAssetAllocation             Starting allocation of the Rebalancing Set in baseAsset amount
      * @param  _allocationPrecision             Precision of allocation percentage
@@ -55,7 +55,7 @@ contract BaseTwoAssetStrategyManagerMock is
      */
     constructor(
         ICore _coreInstance,
-        IAllocationPricer _allocationPricerInstance,
+        IAllocator _allocatorInstance,
         IAuctionPriceCurve _auctionLibraryInstance,
         uint256 _baseAssetAllocation,
         uint256 _allocationPrecision,
@@ -66,7 +66,7 @@ contract BaseTwoAssetStrategyManagerMock is
         public
         BaseTwoAssetStrategyManager(
             _coreInstance,
-            _allocationPricerInstance,
+            _allocatorInstance,
             _auctionLibraryInstance,
             _baseAssetAllocation,
             _allocationPrecision,

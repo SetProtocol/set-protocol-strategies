@@ -7,8 +7,8 @@ import { SetTokenContract, MedianContract } from 'set-protocol-contracts';
 
 import {
   BaseTwoAssetStrategyManagerMockContract,
-  BinaryAllocationPricerContract,
-  BinaryAllocationPricerMockContract,
+  BinaryAllocatorContract,
+  BinaryAllocatorMockContract,
   BTCETHRebalancingManagerContract,
   BTCDaiRebalancingManagerContract,
   ETHDaiRebalancingManagerContract,
@@ -18,8 +18,8 @@ import {
   MovingAverageOracleContract,
   MovingAverageOracleV2Contract,
   MovingAverageToAssetPriceCrossoverTriggerContract,
-  PriceTriggerMockContract,
   RSITrendingTriggerContract,
+  TriggerMockContract,
   TwoAssetWeightedStrategyManagerContract,
 } from '../contracts';
 import { BigNumber } from 'bignumber.js';
@@ -38,8 +38,8 @@ import { getWeb3 } from '../web3Helper';
 
 const web3 = getWeb3();
 const BaseTwoAssetStrategyManagerMock = artifacts.require('BaseTwoAssetStrategyManagerMock');
-const BinaryAllocationPricer = artifacts.require('BinaryAllocationPricer');
-const BinaryAllocationPricerMock = artifacts.require('BinaryAllocationPricerMock');
+const BinaryAllocator = artifacts.require('BinaryAllocator');
+const BinaryAllocatorMock = artifacts.require('BinaryAllocatorMock');
 const BTCETHRebalancingManager = artifacts.require('BTCETHRebalancingManager');
 const BTCDaiRebalancingManager = artifacts.require('BTCDaiRebalancingManager');
 const ETHDaiRebalancingManager = artifacts.require('ETHDaiRebalancingManager');
@@ -49,8 +49,8 @@ const MACOStrategyManagerV2 = artifacts.require('MACOStrategyManagerV2');
 const MovingAverageToAssetPriceCrossoverTrigger = artifacts.require(
   'MovingAverageToAssetPriceCrossoverTrigger'
 );
-const PriceTriggerMock = artifacts.require('PriceTriggerMock');
 const RSITrendingTrigger = artifacts.require('RSITrendingTrigger');
+const TriggerMock = artifacts.require('TriggerMock');
 const TwoAssetWeightedStrategyManager = artifacts.require('TwoAssetWeightedStrategyManager');
 
 const { SetProtocolUtils: SetUtils, SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
@@ -335,14 +335,14 @@ export class ManagerHelper {
     );
   }
 
-  /* ============ Price Triggers ============ */
-  public async deployPriceTriggerMocksAsync(
+  /* ============ Triggers ============ */
+  public async deployTriggerMocksAsync(
     priceTriggerCount: number,
     initialStates: boolean[],
-  ): Promise<PriceTriggerMockContract[]> {
-    const priceTriggers: PriceTriggerMockContract[] = [];
+  ): Promise<TriggerMockContract[]> {
+    const priceTriggers: TriggerMockContract[] = [];
     const priceTriggersPromises = _.times(priceTriggerCount, async index => {
-      return await PriceTriggerMock.new(
+      return await TriggerMock.new(
         initialStates[index],
         { from: this._tokenOwnerAddress, gas: DEFAULT_GAS },
       );
@@ -350,7 +350,7 @@ export class ManagerHelper {
 
     await Promise.all(priceTriggersPromises).then(priceTriggerInstances => {
       _.each(priceTriggerInstances, priceTrigger => {
-        priceTriggers.push(new PriceTriggerMockContract(
+        priceTriggers.push(new TriggerMockContract(
           new web3.eth.Contract(priceTrigger.abi, priceTrigger.address),
           { from: this._tokenOwnerAddress, gas: DEFAULT_GAS }
         ));
@@ -409,9 +409,9 @@ export class ManagerHelper {
     );
   }
 
-  /* ============ Allocation Pricers ============ */
+  /* ============ Allocators ============ */
 
-  public async deployBinaryAllocationPricerAsync(
+  public async deployBinaryAllocatorAsync(
     baseAssetInstance: Address,
     quoteAssetInstance: Address,
     baseAssetOracleInstance: Address,
@@ -421,8 +421,8 @@ export class ManagerHelper {
     coreInstance: Address,
     setTokenFactoryAddress: Address,
     from: Address = this._tokenOwnerAddress,
-  ): Promise<BinaryAllocationPricerContract> {
-    const truffleAllocationPricer = await BinaryAllocationPricer.new(
+  ): Promise<BinaryAllocatorContract> {
+    const truffleAllocationPricer = await BinaryAllocator.new(
       baseAssetInstance,
       quoteAssetInstance,
       baseAssetOracleInstance,
@@ -434,20 +434,20 @@ export class ManagerHelper {
       { from }
     );
 
-    return new BinaryAllocationPricerContract(
+    return new BinaryAllocatorContract(
       new web3.eth.Contract(truffleAllocationPricer.abi, truffleAllocationPricer.address),
       { from, gas: DEFAULT_GAS },
     );
   }
 
-  public async deployBinaryAllocationPricerMockAsync(
+  public async deployBinaryAllocatorMockAsync(
     baseAssetCollateralInstance: Address,
     quoteAssetCollateralInstance: Address,
     baseAssetCollateralValue: BigNumber,
     quoteAssetCollateralValue: BigNumber,
     from: Address = this._tokenOwnerAddress,
-  ): Promise<BinaryAllocationPricerMockContract> {
-    const truffleAllocationPricer = await BinaryAllocationPricerMock.new(
+  ): Promise<BinaryAllocatorMockContract> {
+    const truffleAllocationPricer = await BinaryAllocatorMock.new(
       baseAssetCollateralInstance,
       quoteAssetCollateralInstance,
       baseAssetCollateralValue,
@@ -455,7 +455,7 @@ export class ManagerHelper {
       { from }
     );
 
-    return new BinaryAllocationPricerMockContract(
+    return new BinaryAllocatorMockContract(
       new web3.eth.Contract(truffleAllocationPricer.abi, truffleAllocationPricer.address),
       { from, gas: DEFAULT_GAS },
     );

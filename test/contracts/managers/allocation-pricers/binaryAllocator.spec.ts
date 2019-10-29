@@ -22,7 +22,7 @@ import {
   WhiteListContract,
 } from 'set-protocol-contracts';
 import {
-  BinaryAllocationPricerContract,
+  BinaryAllocatorContract,
   ConstantPriceOracleContract,
   LegacyMakerOracleAdapterContract,
   OracleProxyContract,
@@ -38,7 +38,7 @@ import {
   ZERO
 } from '@utils/constants';
 
-import { extractNewCollateralFromLogs } from '@utils/contract_logs/binaryAllocationPricer';
+import { extractNewCollateralFromLogs } from '@utils/contract_logs/binaryAllocator';
 import { expectRevertError } from '@utils/tokenAssertions';
 import { getWeb3 } from '@utils/web3Helper';
 
@@ -50,13 +50,13 @@ import { ProtocolHelper } from '@utils/helpers/protocolHelper';
 BigNumberSetup.configure();
 ChaiSetup.configure();
 const web3 = getWeb3();
-const BinaryAllocationPricer = artifacts.require('BinaryAllocationPricer');
+const BinaryAllocator = artifacts.require('BinaryAllocator');
 const { expect } = chai;
 const blockchain = new Blockchain(web3);
 const { SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
 const setTestUtils = new SetTestUtils(web3);
 
-contract('BinaryAllocationPricer', accounts => {
+contract('BinaryAllocator', accounts => {
   const [
     deployerAccount,
     randomTokenAddress,
@@ -76,7 +76,7 @@ contract('BinaryAllocationPricer', accounts => {
   let baseAssetCollateral: SetTokenContract;
   let quoteAssetCollateral: SetTokenContract;
 
-  let allocationPricer: BinaryAllocationPricerContract;
+  let allocator: BinaryAllocatorContract;
 
   let initialEthPrice: BigNumber;
   let usdcPrice: BigNumber;
@@ -88,12 +88,12 @@ contract('BinaryAllocationPricer', accounts => {
 
   before(async () => {
     ABIDecoder.addABI(Core.abi);
-    ABIDecoder.addABI(BinaryAllocationPricer.abi);
+    ABIDecoder.addABI(BinaryAllocator.abi);
   });
 
   after(async () => {
     ABIDecoder.removeABI(Core.abi);
-    ABIDecoder.removeABI(BinaryAllocationPricer.abi);
+    ABIDecoder.removeABI(BinaryAllocator.abi);
   });
 
   beforeEach(async () => {
@@ -174,8 +174,8 @@ contract('BinaryAllocationPricer', accounts => {
       subjectSetTokenFactoryAddress = factory.address;
     });
 
-    async function subject(): Promise<BinaryAllocationPricerContract> {
-      return managerHelper.deployBinaryAllocationPricerAsync(
+    async function subject(): Promise<BinaryAllocatorContract> {
+      return managerHelper.deployBinaryAllocatorAsync(
         subjectBaseAssetInstance,
         subjectQuoteAssetInstance,
         subjectBaseAssetOracleInstance,
@@ -188,39 +188,39 @@ contract('BinaryAllocationPricer', accounts => {
     }
 
     it('sets the correct base asset address', async () => {
-      allocationPricer = await subject();
+      allocator = await subject();
 
-      const actualBaseAssetInstance = await allocationPricer.baseAssetInstance.callAsync();
+      const actualBaseAssetInstance = await allocator.baseAssetInstance.callAsync();
 
       expect(actualBaseAssetInstance).to.equal(subjectBaseAssetInstance);
     });
 
     it('sets the correct quote asset address', async () => {
-      allocationPricer = await subject();
+      allocator = await subject();
 
-      const actualQuoteAssetInstance = await allocationPricer.quoteAssetInstance.callAsync();
+      const actualQuoteAssetInstance = await allocator.quoteAssetInstance.callAsync();
 
       expect(actualQuoteAssetInstance).to.equal(subjectQuoteAssetInstance);
     });
 
     it('sets the correct base asset oracle address', async () => {
-      allocationPricer = await subject();
+      allocator = await subject();
 
-      const actualBaseAssetOracleInstance = await allocationPricer.baseAssetOracleInstance.callAsync();
+      const actualBaseAssetOracleInstance = await allocator.baseAssetOracleInstance.callAsync();
 
       expect(actualBaseAssetOracleInstance).to.equal(subjectBaseAssetOracleInstance);
     });
 
     it('sets the correct quote asset oracle address', async () => {
-      allocationPricer = await subject();
+      allocator = await subject();
 
-      const actualQuoteAssetOracleInstance = await allocationPricer.quoteAssetOracleInstance.callAsync();
+      const actualQuoteAssetOracleInstance = await allocator.quoteAssetOracleInstance.callAsync();
 
       expect(actualQuoteAssetOracleInstance).to.equal(subjectQuoteAssetOracleInstance);
     });
 
     it('adds the correct base collateral address to storedCollateral mapping', async () => {
-      allocationPricer = await subject();
+      allocator = await subject();
 
       const baseSetUnits = await baseAssetCollateral.getUnits.callAsync();
       const baseSetNaturalUnit = await baseAssetCollateral.naturalUnit.callAsync();
@@ -231,13 +231,13 @@ contract('BinaryAllocationPricer', accounts => {
         baseSetComponents[0],
       );
 
-      const actualStoredBaseAddress = await allocationPricer.storedCollateral.callAsync(baseCollateralHash);
+      const actualStoredBaseAddress = await allocator.storedCollateral.callAsync(baseCollateralHash);
 
       expect(actualStoredBaseAddress).to.equal(subjectBaseAssetCollateralInstance);
     });
 
     it('adds the correct quote collateral address to storedCollateral mapping', async () => {
-      allocationPricer = await subject();
+      allocator = await subject();
 
       const quoteSetUnits = await quoteAssetCollateral.getUnits.callAsync();
       const quoteSetNaturalUnit = await quoteAssetCollateral.naturalUnit.callAsync();
@@ -248,40 +248,40 @@ contract('BinaryAllocationPricer', accounts => {
         quoteSetComponents[0],
       );
 
-      const actualStoredQuoteAddress = await allocationPricer.storedCollateral.callAsync(quoteCollateralHash);
+      const actualStoredQuoteAddress = await allocator.storedCollateral.callAsync(quoteCollateralHash);
 
       expect(actualStoredQuoteAddress).to.equal(subjectQuoteAssetCollateralInstance);
     });
 
     it('sets the correct core address', async () => {
-      allocationPricer = await subject();
+      allocator = await subject();
 
-      const actualCoreAddress = await allocationPricer.coreInstance.callAsync();
+      const actualCoreAddress = await allocator.coreInstance.callAsync();
 
       expect(actualCoreAddress).to.equal(subjectCoreInstance);
     });
 
     it('sets the correct set token factory address', async () => {
-      allocationPricer = await subject();
+      allocator = await subject();
 
-      const actualSetTokenFactoryAddress = await allocationPricer.setTokenFactoryAddress.callAsync();
+      const actualSetTokenFactoryAddress = await allocator.setTokenFactoryAddress.callAsync();
 
       expect(actualSetTokenFactoryAddress).to.equal(subjectSetTokenFactoryAddress);
     });
 
     it('sets the correct base asset decimals', async () => {
-      allocationPricer = await subject();
+      allocator = await subject();
 
-      const actualBaseAssetDecimals = await allocationPricer.baseAssetDecimals.callAsync();
+      const actualBaseAssetDecimals = await allocator.baseAssetDecimals.callAsync();
       const expectedBaseAssetDecimals = await wrappedETH.decimals.callAsync();
 
       expect(actualBaseAssetDecimals).to.be.bignumber.equal(expectedBaseAssetDecimals);
     });
 
     it('sets the correct quote asset decimals', async () => {
-      allocationPricer = await subject();
+      allocator = await subject();
 
-      const actualQuoteAssetDecimals = await allocationPricer.quoteAssetDecimals.callAsync();
+      const actualQuoteAssetDecimals = await allocator.quoteAssetDecimals.callAsync();
       const expectedQuoteAssetDecimals = await usdcMock.decimals.callAsync();
 
       expect(actualQuoteAssetDecimals).to.be.bignumber.equal(expectedQuoteAssetDecimals);
@@ -320,7 +320,7 @@ contract('BinaryAllocationPricer', accounts => {
     });
 
     beforeEach(async () => {
-      allocationPricer = await managerHelper.deployBinaryAllocationPricerAsync(
+      allocator = await managerHelper.deployBinaryAllocatorAsync(
         wrappedETH.address,
         usdcMock.address,
         oracleProxy.address,
@@ -333,7 +333,7 @@ contract('BinaryAllocationPricer', accounts => {
 
       await oracleHelper.addAuthorizedAddressesToOracleProxy(
         oracleProxy,
-        [allocationPricer.address]
+        [allocator.address]
       );
 
       const triggerBlockInfo = await web3.eth.getBlock('latest');
@@ -349,7 +349,7 @@ contract('BinaryAllocationPricer', accounts => {
     });
 
     async function subjectCall(): Promise<string> {
-      return allocationPricer.determineNewAllocation.callAsync(
+      return allocator.determineNewAllocation.callAsync(
         subjectTargetBaseAssetAllocation,
         subjectAllocationPrecision,
         subjectCurrentCollateralSet
@@ -357,7 +357,7 @@ contract('BinaryAllocationPricer', accounts => {
     }
 
     async function subjectTxn(): Promise<string> {
-      return allocationPricer.determineNewAllocation.sendTransactionAsync(
+      return allocator.determineNewAllocation.sendTransactionAsync(
         subjectTargetBaseAssetAllocation,
         subjectAllocationPrecision,
         subjectCurrentCollateralSet
@@ -385,7 +385,7 @@ contract('BinaryAllocationPricer', accounts => {
         const logs = await setTestUtils.getLogsFromTxHash(txHash);
         const [expectedHashId, expectedNextSetAddress] = extractNewCollateralFromLogs([logs[1]]);
 
-        const actualNextSetAddress = await allocationPricer.storedCollateral.callAsync(expectedHashId);
+        const actualNextSetAddress = await allocator.storedCollateral.callAsync(expectedHashId);
         expect(actualNextSetAddress).to.equal(expectedNextSetAddress);
       });
 
@@ -460,7 +460,7 @@ contract('BinaryAllocationPricer', accounts => {
         const logs = await setTestUtils.getLogsFromTxHash(txHash);
         const [expectedHashId, expectedNextSetAddress] = extractNewCollateralFromLogs([logs[1]]);
 
-        const actualNextSetAddress = await allocationPricer.storedCollateral.callAsync(expectedHashId);
+        const actualNextSetAddress = await allocator.storedCollateral.callAsync(expectedHashId);
         expect(expectedNextSetAddress).to.equal(actualNextSetAddress);
       });
 
@@ -578,7 +578,7 @@ contract('BinaryAllocationPricer', accounts => {
         const logs = await setTestUtils.getLogsFromTxHash(txHash);
         const [expectedHashId, expectedNextSetAddress] = extractNewCollateralFromLogs([logs[1]]);
 
-        const actualNextSetAddress = await allocationPricer.storedCollateral.callAsync(expectedHashId);
+        const actualNextSetAddress = await allocator.storedCollateral.callAsync(expectedHashId);
         expect(expectedNextSetAddress).to.equal(actualNextSetAddress);
       });
 
@@ -659,7 +659,7 @@ contract('BinaryAllocationPricer', accounts => {
         const logs = await setTestUtils.getLogsFromTxHash(txHash);
         const [expectedHashId, expectedNextSetAddress] = extractNewCollateralFromLogs([logs[1]]);
 
-        const actualNextSetAddress = await allocationPricer.storedCollateral.callAsync(expectedHashId);
+        const actualNextSetAddress = await allocator.storedCollateral.callAsync(expectedHashId);
         expect(expectedNextSetAddress).to.equal(actualNextSetAddress);
       });
 
@@ -772,7 +772,7 @@ contract('BinaryAllocationPricer', accounts => {
     });
 
     beforeEach(async () => {
-      allocationPricer = await managerHelper.deployBinaryAllocationPricerAsync(
+      allocator = await managerHelper.deployBinaryAllocatorAsync(
         wrappedETH.address,
         usdcMock.address,
         oracleProxy.address,
@@ -785,7 +785,7 @@ contract('BinaryAllocationPricer', accounts => {
 
       await oracleHelper.addAuthorizedAddressesToOracleProxy(
         oracleProxy,
-        [allocationPricer.address]
+        [allocator.address]
       );
 
       const triggerBlockInfo = await web3.eth.getBlock('latest');
@@ -799,7 +799,7 @@ contract('BinaryAllocationPricer', accounts => {
     });
 
     async function subject(): Promise<BigNumber> {
-      return allocationPricer.calculateCollateralSetValue.callAsync(
+      return allocator.calculateCollateralSetValue.callAsync(
         subjectCollateralSet
       );
     }

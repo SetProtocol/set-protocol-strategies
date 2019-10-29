@@ -25,7 +25,7 @@ import {
 } from 'set-protocol-contracts';
 import {
   BaseTwoAssetStrategyManagerMockContract,
-  BinaryAllocationPricerMockContract,
+  BinaryAllocatorMockContract,
   USDCMockContract,
 } from '@utils/contracts';
 
@@ -70,7 +70,7 @@ contract('BaseTwoAssetStrategyManager', accounts => {
   let usdcMock: USDCMockContract;
   let wrappedETH: WethMockContract;
 
-  let allocationPricer: BinaryAllocationPricerMockContract;
+  let allocator: BinaryAllocatorMockContract;
 
   let setManager: BaseTwoAssetStrategyManagerMockContract;
   let quoteAssetCollateral: SetTokenContract;
@@ -129,7 +129,7 @@ contract('BaseTwoAssetStrategyManager', accounts => {
       RISK_COLLATERAL_NATURAL_UNIT,
     );
 
-    allocationPricer = await managerHelper.deployBinaryAllocationPricerMockAsync(
+    allocator = await managerHelper.deployBinaryAllocatorMockAsync(
       baseAssetCollateral.address,
       quoteAssetCollateral.address,
       baseAssetCollateralValue,
@@ -143,7 +143,7 @@ contract('BaseTwoAssetStrategyManager', accounts => {
 
   describe('#constructor', async () => {
     let subjectCoreInstance: Address;
-    let subjectAllocationPricerInstance: Address;
+    let subjectAllocatorInstance: Address;
     let subjectAuctionLibraryInstance: Address;
     let subjectBaseAssetAllocation: BigNumber;
     let subjectAllocationPrecision: BigNumber;
@@ -154,7 +154,7 @@ contract('BaseTwoAssetStrategyManager', accounts => {
 
     beforeEach(async () => {
       subjectCoreInstance = core.address;
-      subjectAllocationPricerInstance = allocationPricer.address;
+      subjectAllocatorInstance = allocator.address;
       subjectAuctionLibraryInstance = linearAuctionPriceCurve.address;
       subjectBaseAssetAllocation = ZERO;
       subjectAllocationPrecision = new BigNumber(100);
@@ -167,7 +167,7 @@ contract('BaseTwoAssetStrategyManager', accounts => {
     async function subject(): Promise<BaseTwoAssetStrategyManagerMockContract> {
       return managerHelper.deployBaseTwoAssetStrategyManagerMockAsync(
         subjectCoreInstance,
-        subjectAllocationPricerInstance,
+        subjectAllocatorInstance,
         subjectAuctionLibraryInstance,
         subjectBaseAssetAllocation,
         subjectAllocationPrecision,
@@ -186,12 +186,12 @@ contract('BaseTwoAssetStrategyManager', accounts => {
       expect(actualCoreInstance).to.equal(subjectCoreInstance);
     });
 
-    it('sets the correct allocationPricer address', async () => {
+    it('sets the correct allocator address', async () => {
       setManager = await subject();
 
-      const actualAllocationPricerInstance = await setManager.allocationPricerInstance.callAsync();
+      const actualAllocatorInstance = await setManager.allocatorInstance.callAsync();
 
-      expect(actualAllocationPricerInstance).to.equal(subjectAllocationPricerInstance);
+      expect(actualAllocatorInstance).to.equal(subjectAllocatorInstance);
     });
 
     it('sets the correct auctionLibrary address', async () => {
@@ -264,7 +264,7 @@ contract('BaseTwoAssetStrategyManager', accounts => {
       const allocationPrecision = new BigNumber(100);
       setManager = await managerHelper.deployBaseTwoAssetStrategyManagerMockAsync(
         core.address,
-        allocationPricer.address,
+        allocator.address,
         linearAuctionPriceCurve.address,
         ZERO,
         allocationPrecision,
@@ -368,7 +368,7 @@ contract('BaseTwoAssetStrategyManager', accounts => {
       auctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
       setManager = await managerHelper.deployBaseTwoAssetStrategyManagerMockAsync(
         core.address,
-        allocationPricer.address,
+        allocator.address,
         linearAuctionPriceCurve.address,
         initialBaseAssetAllocation,
         allocationPrecision,
@@ -641,7 +641,7 @@ contract('BaseTwoAssetStrategyManager', accounts => {
       const auctionEndPercentage = new BigNumber(10);
       setManager = await managerHelper.deployBaseTwoAssetStrategyManagerMockAsync(
         core.address,
-        allocationPricer.address,
+        allocator.address,
         linearAuctionPriceCurve.address,
         initialBaseAssetAllocation,
         allocationPrecision,

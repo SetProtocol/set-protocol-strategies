@@ -17,9 +17,9 @@
 pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
-import { AllocationPricerMathLibrary } from "../../managers/lib/AllocationPricerMathLibrary.sol";
+import { AllocatorMathLibrary } from "../../managers/lib/AllocatorMathLibrary.sol";
 
-contract AllocationPricerMathLibraryMock {
+contract AllocatorMathLibraryMock {
 
     function roundToNearestPowerOfTwo(
         uint256 _value
@@ -28,7 +28,7 @@ contract AllocationPricerMathLibraryMock {
         pure
         returns (uint256)
     {
-        return AllocationPricerMathLibrary.roundToNearestPowerOfTwo(
+        return AllocatorMathLibrary.roundToNearestPowerOfTwo(
             _value
         );
     }
@@ -40,7 +40,7 @@ contract AllocationPricerMathLibraryMock {
         pure
         returns (uint256)
     {
-        return AllocationPricerMathLibrary.ceilLog10(
+        return AllocatorMathLibrary.ceilLog10(
             _value
         );
     }

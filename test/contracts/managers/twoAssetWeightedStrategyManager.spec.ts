@@ -16,7 +16,7 @@ import {
   LinearAuctionPriceCurveContract,
 } from 'set-protocol-contracts';
 import {
-  PriceTriggerMockContract,
+  TriggerMockContract,
   TwoAssetWeightedStrategyManagerContract,
 } from '@utils/contracts';
 
@@ -40,15 +40,15 @@ const blockchain = new Blockchain(web3);
 contract('TwoAssetWeightedStrategyManager', accounts => {
   const [
     deployerAccount,
-    allocationPricer,
+    allocator,
   ] = accounts;
 
   let core: CoreContract;
   let linearAuctionPriceCurve: LinearAuctionPriceCurveContract;
 
-  let priceTriggerOne: PriceTriggerMockContract;
-  let priceTriggerTwo: PriceTriggerMockContract;
-  let priceTriggerThree: PriceTriggerMockContract;
+  let triggerOne: TriggerMockContract;
+  let triggerTwo: TriggerMockContract;
+  let triggerThree: TriggerMockContract;
 
   let setManager: TwoAssetWeightedStrategyManagerContract;
 
@@ -70,10 +70,10 @@ contract('TwoAssetWeightedStrategyManager', accounts => {
     linearAuctionPriceCurve = await protocolHelper.getDeployedLinearAuctionPriceCurveAsync();
 
     [
-      priceTriggerOne,
-      priceTriggerTwo,
-      priceTriggerThree,
-    ] = await managerHelper.deployPriceTriggerMocksAsync(
+      triggerOne,
+      triggerTwo,
+      triggerThree,
+    ] = await managerHelper.deployTriggerMocksAsync(
       3,
       [true, false, true]
     );
@@ -85,7 +85,7 @@ contract('TwoAssetWeightedStrategyManager', accounts => {
 
   describe('#constructor', async () => {
     let subjectCoreInstance: Address;
-    let subjectAllocationPricerInstance: Address;
+    let subjectAllocatorInstance: Address;
     let subjectAuctionLibraryInstance: Address;
     let subjectBaseAssetAllocation: BigNumber;
     let subjectAllocationPrecision: BigNumber;
@@ -98,14 +98,14 @@ contract('TwoAssetWeightedStrategyManager', accounts => {
 
     beforeEach(async () => {
       subjectCoreInstance = core.address;
-      subjectAllocationPricerInstance = allocationPricer;
+      subjectAllocatorInstance = allocator;
       subjectAuctionLibraryInstance = linearAuctionPriceCurve.address;
       subjectBaseAssetAllocation = ZERO;
       subjectAllocationPrecision = new BigNumber(100);
       subjectAuctionStartPercentage = new BigNumber(2);
       subjectAuctionEndPercentage = new BigNumber(10);
       subjectAuctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
-      subjectPriceTriggers = [priceTriggerOne.address, priceTriggerTwo.address, priceTriggerThree.address];
+      subjectPriceTriggers = [triggerOne.address, triggerTwo.address, triggerThree.address];
       subjectTriggerWeights = [new BigNumber(34), new BigNumber(33), new BigNumber(33)];
       subjectCaller = deployerAccount;
     });
@@ -113,7 +113,7 @@ contract('TwoAssetWeightedStrategyManager', accounts => {
     async function subject(): Promise<TwoAssetWeightedStrategyManagerContract> {
       return managerHelper.deployTwoAssetWeightedStrategyManagerAsync(
         subjectCoreInstance,
-        subjectAllocationPricerInstance,
+        subjectAllocatorInstance,
         subjectAuctionLibraryInstance,
         subjectBaseAssetAllocation,
         subjectAllocationPrecision,
@@ -170,11 +170,11 @@ contract('TwoAssetWeightedStrategyManager', accounts => {
       const auctionStartPercentage = new BigNumber(2);
       const auctionEndPercentage = new BigNumber(10);
       const auctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
-      const priceTriggers = [priceTriggerOne.address, priceTriggerTwo.address, priceTriggerThree.address];
+      const priceTriggers = [triggerOne.address, triggerTwo.address, triggerThree.address];
       const triggerWeights = [new BigNumber(34), new BigNumber(33), new BigNumber(33)];
       setManager = await managerHelper.deployTwoAssetWeightedStrategyManagerAsync(
         core.address,
-        allocationPricer,
+        allocator,
         linearAuctionPriceCurve.address,
         baseAssetAllocation,
         allocationPrecision,
