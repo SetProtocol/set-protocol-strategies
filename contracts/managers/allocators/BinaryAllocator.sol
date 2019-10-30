@@ -64,10 +64,7 @@ contract BinaryAllocator is
     ERC20Detailed public baseAssetInstance;
     ERC20Detailed public quoteAssetInstance;
     IOracle public baseAssetOracleInstance;
-    IOracle public quoteAssetOracleInstance;
-    // Remember to remove these!!
-    ISetToken public baseAssetCollateralInstance;
-    ISetToken public quoteAssetCollateralInstance;    
+    IOracle public quoteAssetOracleInstance;  
     uint8 public baseAssetDecimals;
     uint8 public quoteAssetDecimals;
 
