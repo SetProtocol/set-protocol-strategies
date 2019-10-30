@@ -24,7 +24,7 @@ import { UintArrayUtilsLibrary } from "../../managers/lib/UintArrayUtilsLibrary.
  *
  * Mock for UintArrayUtilsLibrary
  */
-library UintArrayUtilsLibraryMock {
+contract UintArrayUtilsLibraryMock {
     /*
      * Calculate the sum of values in an uint256 array.
      *

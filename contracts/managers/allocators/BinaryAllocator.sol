@@ -152,8 +152,6 @@ contract BinaryAllocator is
      * @param  _allocationPrecision             Precision of allocation percentage
      * @param  _currentCollateralSet            Instance of current set collateralizing RebalancingSetToken
      * @return address                          The address of the proposed nextSet
-     * @return uint256                          The USD value of current Set
-     * @return uint256                          The USD value of next Set
      */
     function determineNewAllocation(
         uint256 _targetBaseAssetAllocation,

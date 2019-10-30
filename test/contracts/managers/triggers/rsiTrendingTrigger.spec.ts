@@ -205,7 +205,7 @@ contract('RSITrendingTrigger', accounts => {
     });
   });
 
-  describe('#confirmTrigger', async () => {
+  describe.only('#confirmTrigger', async () => {
     let subjectCaller: Address;
 
     let initialTrendState: boolean;

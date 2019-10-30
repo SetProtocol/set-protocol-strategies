@@ -96,14 +96,15 @@ contract RSITrendingTrigger is
         // Query RSI oracle
         uint256 rsiValue = rsiOracleInstance.read(rsiTimePeriod);
 
-        // If RSI greater than upper bound return true
-        // Else if RSI less than lower bound return false
-        // Else return currentTrendState
-        bool trendState = rsiValue >= upperBound ? true : rsiValue < lowerBound ?
-            false : revertNoStateChange();
+        // Check RSI value is above upper bound or below lower bound to trigger a rebalance
+        require(
+            rsiValue >= upperBound || rsiValue < lowerBound,
+            "RSITrendingTrigger.checkPriceTrigger: RSI must be below lower bound or above upper bound"
+        );
 
-        // Set new currentTrendState
-        currentTrendState = trendState;
+        // If RSI greater than upper bound set currentTrendState to max allocation of base asset
+        // Else RSI less than lower bound set currentTrendState to min allocation of base asset
+        currentTrendState = rsiValue >= upperBound ? true : false;
     }
 
     /*
@@ -117,21 +118,5 @@ contract RSITrendingTrigger is
         returns (bool)
     {
         return currentTrendState;
-    }
-
-    /* ============ Internal ============ */
-
-    /*
-     * Revert call to confirmTrigger when trend state has not changed. "Returns" bool to match typing.
-     */
-    function revertNoStateChange()
-        internal
-        pure
-        returns (bool)
-    {
-        require(
-            false,
-            "RSITrendingTrigger.revertNoStateChange: RSITrigger has not changed from current trend state."
-        );
     }
 }
