@@ -53,9 +53,7 @@ contract BinaryAllocator is
     );
 
     /* ============ Constants ============ */
-    uint256 constant SET_TOKEN_WHOLE_UNIT = 10 ** 18;
     uint256 constant MINIMUM_COLLATERAL_NATURAL_UNIT_DECIMALS = 6;
-    uint256 constant ALLOCATION_PRICE_RATIO_LIMIT = 4;
 
     /* ============ State Variables ============ */
     ICore public coreInstance;
