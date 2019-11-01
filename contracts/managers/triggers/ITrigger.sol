@@ -25,6 +25,12 @@ pragma experimental "ABIEncoderV2";
  */
 interface ITrigger {
 
+    event TriggerFlipped(
+        bool _flipTo,
+        uint256 _triggerFlippedIndex,
+        uint256 _timestamp
+    );
+
     /*
      * Returns bool indicating whether the current market conditions are bullish.
      *
@@ -42,8 +48,24 @@ interface ITrigger {
         external;
 
     /*
-     * For triggers that require confirmation, confirm the signal.
+     * Confirm the signal.
      */
     function confirmTrigger()
         external;
+
+    /*
+     * Check if initialTrigger can be successfully called.
+     */
+    function canInitialTrigger()
+        external
+        view
+        returns (bool);
+
+    /*
+     * Check if confirmTrigger can be successfully called.
+     */
+    function canConfirmTrigger()
+        external
+        view
+        returns (bool);
 }

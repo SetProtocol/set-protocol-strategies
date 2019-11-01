@@ -46,6 +46,7 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
     IMetaOracleV2 public movingAveragePriceFeedInstance;
     IOracle public assetPairOracleInstance;
     uint256 public movingAverageDays;
+    uint256 public triggerFlippedIndex;
     bool private lastConfirmedState;
 
     // Time to start of confirmation period in seconds
@@ -82,6 +83,7 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
         signalConfirmationMinTime = _signalConfirmationMinTime;
         signalConfirmationMaxTime = _signalConfirmationMaxTime;
         lastConfirmedState = _initialState;
+        triggerFlippedIndex = 0;
     }
 
     /* ============ External ============ */
@@ -95,8 +97,9 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
     function initialTrigger()
         external
     {
+        // Make sure enough time has elapsed since last initialTrigger
         require(
-            block.timestamp > lastInitialTriggerTimestamp.add(signalConfirmationMaxTime),
+            hasConfirmationWindowElapsed(),
             "MovingAverageToAssetPriceCrossoverTrigger.initialTrigger: Not enough time passed from last initial crossover."
         );
 
@@ -118,10 +121,9 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
     function confirmTrigger()
         external
     {
-        // Make sure enough time has passed to initiate proposal on Rebalancing Set Token
+        // Make sure currently in confirmation window
         require(
-            block.timestamp >= lastInitialTriggerTimestamp.add(signalConfirmationMinTime) &&
-            block.timestamp <= lastInitialTriggerTimestamp.add(signalConfirmationMaxTime),
+            inConfirmationWindow(),
             "MovingAverageToAssetPriceCrossoverTrigger.confirmPropose: Confirming signal must be within bounds of the confirm propose."
         );
 
@@ -133,6 +135,9 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
         );
 
         lastConfirmedState = currentMarketState;
+        triggerFlippedIndex = triggerFlippedIndex.add(1);
+
+        emit TriggerFlipped(currentMarketState, triggerFlippedIndex, block.timestamp);
     }
 
     /*
@@ -148,6 +153,36 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
         return lastConfirmedState;
     }
 
+    /*
+     * Return if initialTrigger can be called without reverting.
+     */
+    function canInitialTrigger()
+        external
+        view
+        returns (bool)
+    {
+        if (hasConfirmationWindowElapsed()) {
+            return getCurrentMarketState() != lastConfirmedState;
+        } else {
+            return false;
+        }
+    }
+
+    /*
+     * Return if confirmTrigger can be called without reverting.
+     */
+    function canConfirmTrigger()
+        external
+        view
+        returns (bool)
+    {
+        if (inConfirmationWindow()) {
+            return getCurrentMarketState() != lastConfirmedState;
+        } else {
+            return false;
+        }
+    }
+
     /* ============ Internal ============ */
 
     /*
@@ -158,6 +193,7 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
      */
     function getCurrentMarketState()
         internal
+        view
         returns(bool)
     {
         // Query moving average and asset pair oracle
@@ -166,5 +202,28 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
 
         // If asset pair price greater than moving average return true, else return false
         return assetPairPrice > movingAveragePrice;        
+    }
+
+    /*
+     * Return if enough time passed since last initialTrigger
+     */
+    function hasConfirmationWindowElapsed()
+        internal
+        view
+        returns (bool)
+    {
+        return block.timestamp > lastInitialTriggerTimestamp.add(signalConfirmationMaxTime);
+    }
+
+    /*
+     * Return if currently in confirmation window.
+     */
+    function inConfirmationWindow()
+        internal
+        view
+        returns (bool)
+    {
+        return block.timestamp >= lastInitialTriggerTimestamp.add(signalConfirmationMinTime) &&
+            block.timestamp <= lastInitialTriggerTimestamp.add(signalConfirmationMaxTime);
     }
 }

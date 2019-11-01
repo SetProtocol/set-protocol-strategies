@@ -22,6 +22,7 @@ import { IAuctionPriceCurve } from "set-protocol-contracts/contracts/core/lib/au
 import { ICore } from "set-protocol-contracts/contracts/core/interfaces/ICore.sol";
 import { IRebalancingSetToken } from "set-protocol-contracts/contracts/core/interfaces/IRebalancingSetToken.sol";
 import { ISetToken } from "set-protocol-contracts/contracts/core/interfaces/ISetToken.sol";
+import { RebalancingLibrary } from "set-protocol-contracts/contracts/core/lib/RebalancingLibrary.sol";
 
 import { FlexibleTimingManagerLibrary } from "./lib/FlexibleTimingManagerLibrary.sol";
 import { IAllocator } from "./allocators/IAllocator.sol";
@@ -181,15 +182,16 @@ contract TwoAssetStrategyManager {
     }
 
      /*
-     * Function returning whether the ideal base asset allocation is different from the current
-     * base asset allocation.
+     * Function returning whether rebalance is ready to go ahead
      */
     function isReadyToRebalance()
         external
         view
         returns (bool)
     {
-        return calculateBaseAssetAllocation() != baseAssetAllocation;        
+        // If RebalancingSetToken in valid state and new allocation different from last known allocation
+        // then return true, else false
+        return rebalancingSetTokenInValidState() && calculateBaseAssetAllocation() != baseAssetAllocation;        
     } 
 
      /*
@@ -238,5 +240,23 @@ contract TwoAssetStrategyManager {
         );
 
         return (auctionStartPrice, auctionPivotPrice);
+    }
+
+     /*
+     * Function returning whether the rebalanceInterval has elapsed and then RebalancingSetToken is in 
+     * Default state
+     */
+    function rebalancingSetTokenInValidState()
+        internal
+        view
+        returns (bool)
+    {
+        // Get RebalancingSetToken timing info
+        uint256 lastRebalanceTimestamp = rebalancingSetTokenInstance.lastRebalanceTimestamp();
+        uint256 rebalanceInterval = rebalancingSetTokenInstance.rebalanceInterval();
+
+        // Require that Rebalancing Set Token is in Default state and rebalanceInterval elapsed
+        return block.timestamp >= lastRebalanceTimestamp.add(rebalanceInterval) &&
+            rebalancingSetTokenInstance.rebalanceState() == RebalancingLibrary.State.Default;        
     }
 }

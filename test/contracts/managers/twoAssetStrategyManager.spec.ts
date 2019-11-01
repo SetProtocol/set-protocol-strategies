@@ -625,6 +625,9 @@ contract('BaseTwoAssetStrategyManager', accounts => {
 
     let initialBaseAssetAllocation: BigNumber;
     let finalBaseAssetAllocation: BigNumber;
+    let auctionStartPercentage: BigNumber;
+    let auctionEndPercentage: BigNumber;
+    let auctionTimeToPivot: BigNumber;
 
     let collateralSetAddress: Address;
     let proposalPeriod: BigNumber;
@@ -636,9 +639,9 @@ contract('BaseTwoAssetStrategyManager', accounts => {
 
     beforeEach(async () => {
       const allocationPrecision = new BigNumber(100);
-      const auctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
-      const auctionStartPercentage = new BigNumber(2);
-      const auctionEndPercentage = new BigNumber(10);
+      auctionStartPercentage = new BigNumber(2);
+      auctionEndPercentage = new BigNumber(10);
+      auctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
       setManager = await managerHelper.deployTwoAssetStrategyManagerMockAsync(
         core.address,
         allocator.address,
@@ -680,25 +683,128 @@ contract('BaseTwoAssetStrategyManager', accounts => {
       );
     }
 
-    it('returns true', async () => {
-      const isReadyToRebalance = await subject();
+    describe('when propose is called from the Default state', async () => {
+      describe('and allocating from base asset to quote asset', async () => {
+        it('should return true', async () => {
+          const canInitialTrigger = await subject();
 
-      expect(isReadyToRebalance).to.be.true;
-    });
+          expect(canInitialTrigger).to.be.true;
+        });
 
-    describe('when allocation current and expected allocation are the same', async () => {
-      before(async () => {
-        finalBaseAssetAllocation = new BigNumber(100);
+        describe('but allocation has not changed', async () => {
+          before(async () => {
+            finalBaseAssetAllocation = new BigNumber(100);
+          });
+
+          after(async () => {
+            finalBaseAssetAllocation = ZERO;
+          });
+
+          it('return false', async () => {
+            const canInitialTrigger = await subject();
+
+            expect(canInitialTrigger).to.be.false;
+          });
+        });
+
+        describe('but not enough time has passed from last rebalance', async () => {
+          beforeEach(async () => {
+            subjectTimeFastForward = ZERO;
+          });
+
+          it('returns false', async () => {
+            const canInitialTrigger = await subject();
+
+            expect(canInitialTrigger).to.be.false;
+          });
+        });
       });
 
-      after(async () => {
-        finalBaseAssetAllocation = ZERO;
+      describe('and allocating from quote asset to base asset', async () => {
+        before(async () => {
+          initialBaseAssetAllocation = ZERO;
+          finalBaseAssetAllocation = new BigNumber(100);
+        });
+
+        it('returns true', async () => {
+          const canInitialTrigger = await subject();
+
+          expect(canInitialTrigger).to.be.true;
+        });
+
+        describe('but allocation has not changed', async () => {
+          before(async () => {
+            finalBaseAssetAllocation = ZERO;
+          });
+
+          after(async () => {
+            finalBaseAssetAllocation = new BigNumber(100);
+          });
+
+          it('returns false', async () => {
+            const canInitialTrigger = await subject();
+
+            expect(canInitialTrigger).to.be.false;
+          });
+        });
+
+        describe('returns false', async () => {
+          beforeEach(async () => {
+            subjectTimeFastForward = ZERO;
+          });
+
+          it('should revert', async () => {
+            const canInitialTrigger = await subject();
+
+            expect(canInitialTrigger).to.be.false;
+          });
+        });
+      });
+    });
+
+    describe('when propose is called and rebalancing set token is in Proposal state', async () => {
+      beforeEach(async () => {
+        await blockchain.increaseTimeAsync(subjectTimeFastForward);
+        await setManager.propose.sendTransactionAsync();
       });
 
       it('returns false', async () => {
-        const isReadyToRebalance = await subject();
+        const canInitialTrigger = await subject();
 
-        expect(isReadyToRebalance).to.be.false;
+        expect(canInitialTrigger).to.be.false;
+      });
+    });
+
+    describe('when propose is called and rebalancing set token is in Rebalance state', async () => {
+      beforeEach(async () => {
+        // Issue currentSetToken
+        const initialAllocationTokenAddress = await rebalancingSetToken.currentSet.callAsync();
+        const initialAllocationToken = await protocolHelper.getSetTokenAsync(initialAllocationTokenAddress);
+        await core.issue.sendTransactionAsync(
+          initialAllocationToken.address,
+          ether(9),
+          {from: deployerAccount, gas: DEFAULT_GAS},
+        );
+        await erc20Helper.approveTransfersAsync([initialAllocationToken], transferProxy.address);
+
+        // Use issued currentSetToken to issue rebalancingSetToken
+        await core.issue.sendTransactionAsync(
+          rebalancingSetToken.address,
+          ether(7),
+          { from: deployerAccount, gas: DEFAULT_GAS }
+        );
+
+        await blockchain.increaseTimeAsync(subjectTimeFastForward);
+        await setManager.propose.sendTransactionAsync();
+
+        await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS);
+        await rebalancingSetToken.startRebalance.sendTransactionAsync();
+      });
+
+      it('returns false', async () => {
+        const canInitialTrigger = await subject();
+
+        expect(canInitialTrigger).to.be.false;
       });
     });
   });

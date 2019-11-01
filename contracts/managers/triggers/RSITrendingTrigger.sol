@@ -17,6 +17,8 @@
 pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
+import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+
 import { ITrigger } from "./ITrigger.sol";
 import { IOracle } from "../../meta-oracles/interfaces/IOracle.sol";
 import { IMetaOracleV2 } from "../../meta-oracles/interfaces/IMetaOracleV2.sol";
@@ -38,6 +40,8 @@ import { IMetaOracleV2 } from "../../meta-oracles/interfaces/IMetaOracleV2.sol";
 contract RSITrendingTrigger is
     ITrigger
 {
+    using SafeMath for uint256;
+
     /* ============ State Variables ============ */
     IMetaOracleV2 public rsiOracleInstance;
     // RSI Bound under which strategy indicates bearish market
@@ -45,7 +49,8 @@ contract RSITrendingTrigger is
     // RSI Bound over which strategy indicates bullish market
     uint256 public upperBound;
     uint256 public rsiTimePeriod;
-    bool private currentTrendState;
+    uint256 public triggerFlippedIndex;
+    bool private lastConfirmedTrendState;
 
     /*
      * RSITrendingTrigger constructor.
@@ -76,15 +81,24 @@ contract RSITrendingTrigger is
         lowerBound = _lowerBound;
         upperBound = _upperBound;
         rsiTimePeriod = _rsiTimePeriod;
-        currentTrendState = _initialTrendState;
+        lastConfirmedTrendState = _initialTrendState;
+        triggerFlippedIndex = 0;
     }
+
+    /* ============ External ============ */
 
     /*
      * Since RSI does not require a confirmation leave initialTrigger function unimplemented.
      */
     function initialTrigger()
         external
-    {}
+    {
+        // Revert if function called since it's not supposed to be implemented
+        require(
+            false,
+            "RSITrendingTrigger.initialTrigger: This function is unimplemented."
+        );
+    }
 
     /*
      * If RSI is above upper bound then should be true, if RSI is below lower bound
@@ -96,15 +110,16 @@ contract RSITrendingTrigger is
         // Query RSI oracle
         uint256 rsiValue = rsiOracleInstance.read(rsiTimePeriod);
 
-        // Check RSI value is above upper bound or below lower bound to trigger a rebalance
+        // Check RSI trend is different from last confirmed trend state
         require(
-            rsiValue >= upperBound || rsiValue < lowerBound,
-            "RSITrendingTrigger.checkPriceTrigger: RSI must be below lower bound or above upper bound"
+            isNewRSIState(rsiValue),
+            "RSITrendingTrigger.confirmTrigger: Current RSI value does not change trend state."
         );
 
-        // If RSI greater than upper bound set currentTrendState to max allocation of base asset
-        // Else RSI less than lower bound set currentTrendState to min allocation of base asset
-        currentTrendState = rsiValue >= upperBound ? true : false;
+        lastConfirmedTrendState = rsiValue >= upperBound ? true : false;
+        triggerFlippedIndex = triggerFlippedIndex.add(1);
+
+        emit TriggerFlipped(lastConfirmedTrendState, triggerFlippedIndex, block.timestamp);
     }
 
     /*
@@ -117,6 +132,65 @@ contract RSITrendingTrigger is
         view
         returns (bool)
     {
-        return currentTrendState;
+        return lastConfirmedTrendState;
+    }
+
+    /*
+     * Since RSI does not require a confirmation leave canInitialTrigger function unimplemented.
+     */
+    function canInitialTrigger()
+        external
+        view
+        returns (bool)
+    {
+        // Revert if function called since it's not supposed to be implemented
+        require(
+            false,
+            "RSITrendingTrigger.canInitialTrigger: This function is unimplemented."
+        );
+    }
+
+    /*
+     * Returns if confirmTrigger could be successfully called without a revert.
+     *
+     * @return             Whether confirmTrigger can be called
+     */
+    function canConfirmTrigger()
+        external
+        view
+        returns (bool)
+    {
+        // Query RSI oracle
+        uint256 rsiValue = rsiOracleInstance.read(rsiTimePeriod);
+
+        // Check if current RSI value would cause trend state change
+        return isNewRSIState(rsiValue);       
+    }
+
+    /* ============ External ============ */
+
+    /*
+     * Returns if current RSI value would lead to a trend state change
+     *
+     * @param  _rsiValue    Current RSI value
+     * @return              Whether RSI value changes trend state
+     */
+    function isNewRSIState(
+        uint256 _rsiValue
+    )
+        internal
+        view
+        returns (bool)
+    {
+        // If RSI value outside bounds evaluate further, else return false
+        if (_rsiValue >= upperBound || _rsiValue < lowerBound) {
+            // Analyze current market state
+            bool currentMarketState = _rsiValue >= upperBound ? true : false;
+
+            // If market state is different from last confirmed state then return true, else false
+            return currentMarketState != lastConfirmedTrendState;
+        } else {
+            return false;
+        }         
     }
 }

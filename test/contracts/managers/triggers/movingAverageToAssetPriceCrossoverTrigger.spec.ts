@@ -1,6 +1,7 @@
 require('module-alias/register');
 
 import * as _ from 'lodash';
+import * as ABIDecoder from 'abi-decoder';
 import * as chai from 'chai';
 import * as setProtocolUtils from 'set-protocol-utils';
 
@@ -29,8 +30,10 @@ import {
   DEFAULT_GAS,
   ONE_DAY_IN_SECONDS,
   ONE_HOUR_IN_SECONDS,
+  ZERO
 } from '@utils/constants';
 
+import { LogTriggerFlipped } from '@utils/contract_logs/iTrigger';
 import { expectRevertError } from '@utils/tokenAssertions';
 import { getWeb3 } from '@utils/web3Helper';
 
@@ -40,10 +43,13 @@ import { ProtocolHelper } from '@utils/helpers/protocolHelper';
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
+
+const MovingAverageToAssetPriceCrossoverTrigger = artifacts.require('MovingAverageToAssetPriceCrossoverTrigger');
 const web3 = getWeb3();
 const { expect } = chai;
 const blockchain = new Blockchain(web3);
 const { SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
+const setTestUtils = new SetTestUtils(web3);
 
 contract('MovingAverageToAssetPriceCrossoverTrigger', accounts => {
   const [
@@ -57,13 +63,21 @@ contract('MovingAverageToAssetPriceCrossoverTrigger', accounts => {
   let timeSeriesFeed: TimeSeriesFeedContract;
   let movingAverageOracle: MovingAverageOracleV2Contract;
 
-  let priceTrigger: MovingAverageToAssetPriceCrossoverTriggerContract;
+  let trigger: MovingAverageToAssetPriceCrossoverTriggerContract;
 
   let initialEthPrice: BigNumber;
 
   const managerHelper = new ManagerHelper(deployerAccount);
   const oracleHelper = new OracleHelper(deployerAccount);
   const protocolHelper = new ProtocolHelper(deployerAccount);
+
+  before(async () => {
+    ABIDecoder.addABI(MovingAverageToAssetPriceCrossoverTrigger.abi);
+  });
+
+  after(async () => {
+    ABIDecoder.removeABI(MovingAverageToAssetPriceCrossoverTrigger.abi);
+  });
 
   beforeEach(async () => {
     blockchain.saveSnapshotAsync();
@@ -144,51 +158,59 @@ contract('MovingAverageToAssetPriceCrossoverTrigger', accounts => {
     }
 
     it('sets the correct moving average oracle address', async () => {
-      priceTrigger = await subject();
+      trigger = await subject();
 
-      const actualMovingAveragePriceFeedAddress = await priceTrigger.movingAveragePriceFeedInstance.callAsync();
+      const actualMovingAveragePriceFeedAddress = await trigger.movingAveragePriceFeedInstance.callAsync();
 
       expect(actualMovingAveragePriceFeedAddress).to.equal(subjectMovingAveragePriceFeedInstance);
     });
 
     it('sets the correct asset pair oracle address', async () => {
-      priceTrigger = await subject();
+      trigger = await subject();
 
-      const actualAssetPairOracleAddress = await priceTrigger.assetPairOracleInstance.callAsync();
+      const actualAssetPairOracleAddress = await trigger.assetPairOracleInstance.callAsync();
 
       expect(actualAssetPairOracleAddress).to.equal(subjectAssetPairOracleInstance);
     });
 
     it('sets the correct moving average days', async () => {
-      priceTrigger = await subject();
+      trigger = await subject();
 
-      const actualMovingAverageDays = await priceTrigger.movingAverageDays.callAsync();
+      const actualMovingAverageDays = await trigger.movingAverageDays.callAsync();
 
       expect(actualMovingAverageDays).to.be.bignumber.equal(subjectMovingAverageDays);
     });
 
     it('sets the correct signalConfirmationMinTime', async () => {
-      priceTrigger = await subject();
+      trigger = await subject();
 
-      const actualSignalConfirmationMinTime = await priceTrigger.signalConfirmationMinTime.callAsync();
+      const actualSignalConfirmationMinTime = await trigger.signalConfirmationMinTime.callAsync();
 
       expect(actualSignalConfirmationMinTime).to.be.bignumber.equal(subjectSignalConfirmationMinTime);
     });
 
     it('sets the correct signalConfirmationMaxTime', async () => {
-      priceTrigger = await subject();
+      trigger = await subject();
 
-      const actualSignalConfirmationMaxTime = await priceTrigger.signalConfirmationMaxTime.callAsync();
+      const actualSignalConfirmationMaxTime = await trigger.signalConfirmationMaxTime.callAsync();
 
       expect(actualSignalConfirmationMaxTime).to.be.bignumber.equal(subjectSignalConfirmationMaxTime);
     });
 
     it('sets the correct lastConfirmedState', async () => {
-      priceTrigger = await subject();
+      trigger = await subject();
 
-      const actualBaseAssetAllocation = await priceTrigger.isBullish.callAsync();
+      const actualBaseAssetAllocation = await trigger.isBullish.callAsync();
 
       expect(actualBaseAssetAllocation).to.be.false;
+    });
+
+    it('sets the current triggerFlippedIndex to 0', async () => {
+      trigger = await subject();
+
+      const actualTriggerFlippedIndex = await trigger.triggerFlippedIndex.callAsync();
+
+      expect(actualTriggerFlippedIndex).to.be.bignumber.equal(ZERO);
     });
   });
 
@@ -206,7 +228,7 @@ contract('MovingAverageToAssetPriceCrossoverTrigger', accounts => {
       const initialState = false;
       const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
       const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
-      priceTrigger = await managerHelper.deployMovingAverageToAssetPriceCrossoverTrigger(
+      trigger = await managerHelper.deployMovingAverageToAssetPriceCrossoverTrigger(
         movingAverageOracle.address,
         oracleProxy.address,
         movingAverageDays,
@@ -216,7 +238,7 @@ contract('MovingAverageToAssetPriceCrossoverTrigger', accounts => {
       );
       await oracleHelper.addAuthorizedAddressesToOracleProxy(
         oracleProxy,
-        [priceTrigger.address]
+        [trigger.address]
       );
 
       await oracleHelper.batchUpdateTimeSeriesFeedAsync(
@@ -230,7 +252,7 @@ contract('MovingAverageToAssetPriceCrossoverTrigger', accounts => {
     });
 
     async function subject(): Promise<string> {
-      return priceTrigger.initialTrigger.sendTransactionAsync(
+      return trigger.initialTrigger.sendTransactionAsync(
         { from: subjectCaller, gas: DEFAULT_GAS}
       );
     }
@@ -241,13 +263,13 @@ contract('MovingAverageToAssetPriceCrossoverTrigger', accounts => {
       const block = await web3.eth.getBlock('latest');
       const expectedTimestamp = new BigNumber(block.timestamp);
 
-      const actualTimestamp = await priceTrigger.lastInitialTriggerTimestamp.callAsync();
+      const actualTimestamp = await trigger.lastInitialTriggerTimestamp.callAsync();
       expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
     });
 
     describe('but not enough time has passed from last initial propose', async () => {
       beforeEach(async () => {
-        await priceTrigger.initialTrigger.sendTransactionAsync();
+        await trigger.initialTrigger.sendTransactionAsync();
       });
 
       it('should revert', async () => {
@@ -286,7 +308,7 @@ contract('MovingAverageToAssetPriceCrossoverTrigger', accounts => {
       const movingAverageDays = new BigNumber(20);
       signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
       signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
-      priceTrigger = await managerHelper.deployMovingAverageToAssetPriceCrossoverTrigger(
+      trigger = await managerHelper.deployMovingAverageToAssetPriceCrossoverTrigger(
         movingAverageOracle.address,
         oracleProxy.address,
         movingAverageDays,
@@ -296,7 +318,7 @@ contract('MovingAverageToAssetPriceCrossoverTrigger', accounts => {
       );
       await oracleHelper.addAuthorizedAddressesToOracleProxy(
         oracleProxy,
-        [priceTrigger.address]
+        [trigger.address]
       );
 
       await oracleHelper.batchUpdateTimeSeriesFeedAsync(
@@ -306,7 +328,7 @@ contract('MovingAverageToAssetPriceCrossoverTrigger', accounts => {
         updatedValues
       );
 
-      await priceTrigger.initialTrigger.sendTransactionAsync();
+      await trigger.initialTrigger.sendTransactionAsync();
 
       const lastBlockInfo = await web3.eth.getBlock('latest');
       await oracleHelper.updateMedianizerPriceAsync(
@@ -321,7 +343,7 @@ contract('MovingAverageToAssetPriceCrossoverTrigger', accounts => {
 
     async function subject(): Promise<string> {
       await blockchain.increaseTimeAsync(subjectTimeFastForward);
-      return priceTrigger.confirmTrigger.sendTransactionAsync(
+      return trigger.confirmTrigger.sendTransactionAsync(
         { from: subjectCaller, gas: DEFAULT_GAS}
       );
     }
@@ -329,8 +351,33 @@ contract('MovingAverageToAssetPriceCrossoverTrigger', accounts => {
     it('sets the lastConfirmedAllocation correctly', async () => {
       await subject();
 
-      const actualLastConfirmedAllocation = await priceTrigger.isBullish.callAsync();
+      const actualLastConfirmedAllocation = await trigger.isBullish.callAsync();
       expect(actualLastConfirmedAllocation).to.be.true;
+    });
+
+    it('sets the current triggerFlippedIndex to 1', async () => {
+      await subject();
+
+      const actualTriggerFlippedIndex = await trigger.triggerFlippedIndex.callAsync();
+
+      expect(actualTriggerFlippedIndex).to.be.bignumber.equal(new BigNumber(1));
+    });
+
+    it('emits the correct TriggerFlipped event', async () => {
+      const txHash = await subject();
+
+      const block = await web3.eth.getBlock('latest');
+      const expectedTimestamp = new BigNumber(block.timestamp);
+
+      const formattedLogs = await setTestUtils.getLogsFromTxHash(txHash);
+      const expectedLogs = LogTriggerFlipped(
+        true,
+        new BigNumber(1),
+        expectedTimestamp,
+        trigger.address
+      );
+
+      await SetTestUtils.assertLogEquivalence(formattedLogs, expectedLogs);
     });
 
     describe('but price trigger has not flipped', async () => {
@@ -363,7 +410,7 @@ contract('MovingAverageToAssetPriceCrossoverTrigger', accounts => {
       it('sets the lastConfirmedAllocation correctly', async () => {
         await subject();
 
-        const actualLastConfirmedAllocation = await priceTrigger.isBullish.callAsync();
+        const actualLastConfirmedAllocation = await trigger.isBullish.callAsync();
         expect(actualLastConfirmedAllocation).to.be.false;
       });
 
@@ -399,6 +446,219 @@ contract('MovingAverageToAssetPriceCrossoverTrigger', accounts => {
     });
   });
 
+  describe('#canInitialTrigger', async () => {
+    let subjectCaller: Address;
+
+    let updatedValues: BigNumber[];
+
+    before(async () => {
+      updatedValues = _.map(new Array(19), function(el, i) {return ether(150 + i); });
+    });
+
+    beforeEach(async () => {
+      const movingAverageDays = new BigNumber(20);
+      const initialState = false;
+      const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
+      const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
+      trigger = await managerHelper.deployMovingAverageToAssetPriceCrossoverTrigger(
+        movingAverageOracle.address,
+        oracleProxy.address,
+        movingAverageDays,
+        initialState,
+        signalConfirmationMinTime,
+        signalConfirmationMaxTime
+      );
+      await oracleHelper.addAuthorizedAddressesToOracleProxy(
+        oracleProxy,
+        [trigger.address]
+      );
+
+      await oracleHelper.batchUpdateTimeSeriesFeedAsync(
+        timeSeriesFeed,
+        ethMedianizer,
+        updatedValues.length,
+        updatedValues
+      );
+
+      subjectCaller = deployerAccount;
+    });
+
+    async function subject(): Promise<boolean> {
+      return trigger.canInitialTrigger.callAsync(
+        { from: subjectCaller, gas: DEFAULT_GAS}
+      );
+    }
+
+    it('returns true', async () => {
+      const canInitialTrigger = await subject();
+
+      expect(canInitialTrigger).to.be.true;
+    });
+
+    describe('but not enough time has passed from last initial propose', async () => {
+      beforeEach(async () => {
+        await trigger.initialTrigger.sendTransactionAsync();
+      });
+
+      it('should return false', async () => {
+        const canInitialTrigger = await subject();
+
+        expect(canInitialTrigger).to.be.false;
+      });
+    });
+
+    describe('but price trigger has not flipped', async () => {
+      before(async () => {
+        updatedValues = _.map(new Array(19), function(el, i) {return ether(170 - i); });
+      });
+
+      it('should return false', async () => {
+        const canInitialTrigger = await subject();
+
+        expect(canInitialTrigger).to.be.false;
+      });
+    });
+  });
+
+  describe('#canConfirmTrigger', async () => {
+    let subjectTimeFastForward: BigNumber;
+    let subjectCaller: Address;
+
+    let updatedValues: BigNumber[];
+    let lastPrice: BigNumber;
+    let initialState: boolean;
+    let signalConfirmationMinTime: BigNumber;
+    let signalConfirmationMaxTime: BigNumber;
+
+    before(async () => {
+      initialState = false;
+      lastPrice = ether(170);
+      updatedValues = _.map(new Array(19), function(el, i) {return ether(150 + i); });
+    });
+
+    beforeEach(async () => {
+      const movingAverageDays = new BigNumber(20);
+      signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
+      signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
+      trigger = await managerHelper.deployMovingAverageToAssetPriceCrossoverTrigger(
+        movingAverageOracle.address,
+        oracleProxy.address,
+        movingAverageDays,
+        initialState,
+        signalConfirmationMinTime,
+        signalConfirmationMaxTime
+      );
+      await oracleHelper.addAuthorizedAddressesToOracleProxy(
+        oracleProxy,
+        [trigger.address]
+      );
+
+      await oracleHelper.batchUpdateTimeSeriesFeedAsync(
+        timeSeriesFeed,
+        ethMedianizer,
+        updatedValues.length,
+        updatedValues
+      );
+
+      await trigger.initialTrigger.sendTransactionAsync();
+
+      const lastBlockInfo = await web3.eth.getBlock('latest');
+      await oracleHelper.updateMedianizerPriceAsync(
+        ethMedianizer,
+        lastPrice,
+        new BigNumber(lastBlockInfo.timestamp + 1),
+      );
+
+      subjectTimeFastForward = signalConfirmationMinTime.add(1);
+      subjectCaller = deployerAccount;
+    });
+
+    async function subject(): Promise<boolean> {
+      await blockchain.increaseTimeAsync(subjectTimeFastForward);
+      return trigger.canConfirmTrigger.callAsync(
+        { from: subjectCaller, gas: DEFAULT_GAS}
+      );
+    }
+
+    it('returns true', async () => {
+      const canInitialTrigger = await subject();
+
+      expect(canInitialTrigger).to.be.true;
+    });
+
+    describe('but price trigger has not flipped', async () => {
+      before(async () => {
+        lastPrice = ether(150);
+      });
+
+      after(async () => {
+        lastPrice = ether(170);
+      });
+
+      it('should return false', async () => {
+        const canInitialTrigger = await subject();
+
+        expect(canInitialTrigger).to.be.false;
+      });
+    });
+
+    describe('price going from bullish to bearish', async () => {
+      before(async () => {
+        initialState = true;
+        lastPrice = ether(130);
+        updatedValues = _.map(new Array(19), function(el, i) {return ether(150 - i); });
+      });
+
+      after(async () => {
+        initialState = false;
+        lastPrice = ether(170);
+        updatedValues = _.map(new Array(19), function(el, i) {return ether(150 + i); });
+      });
+
+      it('should return true', async () => {
+        const canInitialTrigger = await subject();
+
+        expect(canInitialTrigger).to.be.true;
+      });
+
+      describe('but price trigger has not flipped', async () => {
+        before(async () => {
+          lastPrice = ether(150);
+        });
+
+        it('should return false', async () => {
+          const canInitialTrigger = await subject();
+
+          expect(canInitialTrigger).to.be.false;
+        });
+      });
+    });
+
+    describe('but not enough time has passed from initial propose', async () => {
+      beforeEach(async () => {
+        subjectTimeFastForward = signalConfirmationMinTime.sub(10);
+      });
+
+      it('should return false', async () => {
+        const canInitialTrigger = await subject();
+
+        expect(canInitialTrigger).to.be.false;
+      });
+    });
+
+    describe('but too much time has passed from initial propose', async () => {
+      beforeEach(async () => {
+        subjectTimeFastForward = signalConfirmationMaxTime.add(1);
+      });
+
+      it('should return false', async () => {
+        const canInitialTrigger = await subject();
+
+        expect(canInitialTrigger).to.be.false;
+      });
+    });
+  });
+
   describe('#isBullish', async () => {
     let initialState: boolean;
 
@@ -407,7 +667,7 @@ contract('MovingAverageToAssetPriceCrossoverTrigger', accounts => {
       initialState = false;
       const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
       const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
-      priceTrigger = await managerHelper.deployMovingAverageToAssetPriceCrossoverTrigger(
+      trigger = await managerHelper.deployMovingAverageToAssetPriceCrossoverTrigger(
         movingAverageOracle.address,
         oracleProxy.address,
         movingAverageDays,
@@ -418,7 +678,7 @@ contract('MovingAverageToAssetPriceCrossoverTrigger', accounts => {
     });
 
     async function subject(): Promise<boolean> {
-      return priceTrigger.isBullish.callAsync();
+      return trigger.isBullish.callAsync();
     }
 
     it('retrieves the lastConfirmedState', async () => {
