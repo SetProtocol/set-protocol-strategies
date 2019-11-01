@@ -183,6 +183,8 @@ contract TwoAssetStrategyManager {
 
      /*
      * Function returning whether rebalance is ready to go ahead
+     *
+     * @return       Whether rebalance is ready to go be proposed
      */
     function isReadyToRebalance()
         external
@@ -245,6 +247,8 @@ contract TwoAssetStrategyManager {
      /*
      * Function returning whether the rebalanceInterval has elapsed and then RebalancingSetToken is in 
      * Default state
+     *
+     * @return       Whether RebalancingSetToken is in valid state for rebalance
      */
     function rebalancingSetTokenInValidState()
         internal

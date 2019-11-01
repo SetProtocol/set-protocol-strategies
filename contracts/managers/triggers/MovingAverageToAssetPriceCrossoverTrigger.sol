@@ -155,6 +155,8 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
 
     /*
      * Return if initialTrigger can be called without reverting.
+     *
+     * @return       Whether in can initialTrigger
      */
     function canInitialTrigger()
         external
@@ -170,6 +172,8 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
 
     /*
      * Return if confirmTrigger can be called without reverting.
+     *
+     * @return       Whether in can confirmTrigger
      */
     function canConfirmTrigger()
         external
@@ -206,6 +210,8 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
 
     /*
      * Return if enough time passed since last initialTrigger
+     *
+     * @return       Whether enough time has passed since last initialTrigger
      */
     function hasConfirmationWindowElapsed()
         internal
@@ -217,6 +223,8 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
 
     /*
      * Return if currently in confirmation window.
+     *
+     * @return       Whether in confirmation window
      */
     function inConfirmationWindow()
         internal
