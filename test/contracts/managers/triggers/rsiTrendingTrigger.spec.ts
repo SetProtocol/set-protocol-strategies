@@ -202,6 +202,14 @@ contract('RSITrendingTrigger', accounts => {
       expect(actualTriggerFlippedIndex).to.be.bignumber.equal(ZERO);
     });
 
+    it('deployed with requiresConfirmation set to false', async () => {
+      trigger = await subject();
+
+      const requiresConfirmation = await trigger.requiresConfirmation.callAsync();
+
+      expect(requiresConfirmation).to.be.false;
+    });
+
     describe('when initial trend allocation is 100', async () => {
       beforeEach(async () => {
         subjectInitialTrendState = true;
@@ -225,43 +233,6 @@ contract('RSITrendingTrigger', accounts => {
       it('should revert', async () => {
         await expectRevertError(subject());
       });
-    });
-  });
-
-  describe('#initialTrigger', async () => {
-    let subjectCaller: Address;
-
-    let initialTrendState: boolean;
-
-    before(async () => {
-      // Prices are increasing each day
-      initialTrendState = true;
-    });
-
-    beforeEach(async () => {
-      const rsiTimePeriod = new BigNumber(14);
-      const lowerBound = new BigNumber(40);
-      const upperBound = new BigNumber(60);
-
-      trigger = await managerHelper.deployRSITrendingTrigger(
-        rsiOracle.address,
-        lowerBound,
-        upperBound,
-        rsiTimePeriod,
-        initialTrendState,
-      );
-
-      subjectCaller = deployerAccount;
-    });
-
-    async function subject(): Promise<string> {
-      return trigger.initialTrigger.sendTransactionAsync(
-        { from: subjectCaller, gas: DEFAULT_GAS}
-      );
-    }
-
-    it('should revert', async () => {
-      await expectRevertError(subject());
     });
   });
 
@@ -393,43 +364,6 @@ contract('RSITrendingTrigger', accounts => {
       it('should revert', async () => {
         await expectRevertError(subject());
       });
-    });
-  });
-
-  describe('#canInitialTrigger', async () => {
-    let subjectCaller: Address;
-
-    let initialTrendState: boolean;
-
-    before(async () => {
-      // Prices are increasing each day
-      initialTrendState = true;
-    });
-
-    beforeEach(async () => {
-      const rsiTimePeriod = new BigNumber(14);
-      const lowerBound = new BigNumber(40);
-      const upperBound = new BigNumber(60);
-
-      trigger = await managerHelper.deployRSITrendingTrigger(
-        rsiOracle.address,
-        lowerBound,
-        upperBound,
-        rsiTimePeriod,
-        initialTrendState,
-      );
-
-      subjectCaller = deployerAccount;
-    });
-
-    async function subject(): Promise<boolean> {
-      return trigger.canInitialTrigger.callAsync(
-        { from: subjectCaller, gas: DEFAULT_GAS}
-      );
-    }
-
-    it('should revert', async () => {
-      await expectRevertError(subject());
     });
   });
 

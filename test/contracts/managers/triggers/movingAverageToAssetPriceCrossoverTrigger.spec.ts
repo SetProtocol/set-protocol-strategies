@@ -212,6 +212,14 @@ contract('MovingAverageToAssetPriceCrossoverTrigger', accounts => {
 
       expect(actualTriggerFlippedIndex).to.be.bignumber.equal(ZERO);
     });
+
+    it('deployed with requiresConfirmation set to true', async () => {
+      trigger = await subject();
+
+      const requiresConfirmation = await trigger.requiresConfirmation.callAsync();
+
+      expect(requiresConfirmation).to.be.true;
+    });
   });
 
   describe('#initialTrigger', async () => {

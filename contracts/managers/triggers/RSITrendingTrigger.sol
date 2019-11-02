@@ -51,6 +51,8 @@ contract RSITrendingTrigger is
     uint256 public rsiTimePeriod;
     uint256 public triggerFlippedIndex;
     bool private lastConfirmedTrendState;
+    
+    bool public requiresConfirmation = false;
 
     /*
      * RSITrendingTrigger constructor.
@@ -92,13 +94,7 @@ contract RSITrendingTrigger is
      */
     function initialTrigger()
         external
-    {
-        // Revert if function called since it's not supposed to be implemented
-        require(
-            false,
-            "RSITrendingTrigger.initialTrigger: This function is unimplemented."
-        );
-    }
+    {}
 
     /*
      * If RSI is above upper bound then should be true, if RSI is below lower bound
@@ -110,7 +106,7 @@ contract RSITrendingTrigger is
         // Query RSI oracle
         uint256 rsiValue = rsiOracleInstance.read(rsiTimePeriod);
 
-        // Check RSI trend is different from last confirmed trend state
+        // Check RSI trend is different from last confirmed trend state 
         require(
             isNewRSIState(rsiValue),
             "RSITrendingTrigger.confirmTrigger: Current RSI value does not change trend state."
@@ -142,13 +138,7 @@ contract RSITrendingTrigger is
         external
         view
         returns (bool)
-    {
-        // Revert if function called since it's not supposed to be implemented
-        require(
-            false,
-            "RSITrendingTrigger.canInitialTrigger: This function is unimplemented."
-        );
-    }
+    {}
 
     /*
      * Returns if confirmTrigger could be successfully called without a revert.

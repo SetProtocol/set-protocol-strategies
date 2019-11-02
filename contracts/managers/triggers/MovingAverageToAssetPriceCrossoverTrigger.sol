@@ -55,6 +55,8 @@ contract MovingAverageToAssetPriceCrossoverTrigger is
     uint256 public signalConfirmationMaxTime;
     uint256 public lastInitialTriggerTimestamp;
 
+    bool public requiresConfirmation = true;
+
     /*
      * MovingAverageToAssetPriceCrossoverTrigger constructor.
      *
