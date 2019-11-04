@@ -51,7 +51,7 @@ contract RSITrendingTrigger is
     uint256 public rsiTimePeriod;
     uint256 public triggerFlippedIndex;
     bool private lastConfirmedTrendState;
-    
+
     bool public requiresConfirmation = false;
 
     /*
@@ -112,14 +112,14 @@ contract RSITrendingTrigger is
             "RSITrendingTrigger.confirmTrigger: Current RSI value does not change trend state."
         );
 
-        lastConfirmedTrendState = rsiValue >= upperBound ? true : false;
+        lastConfirmedTrendState = getCurrentMarketState(rsiValue);
         triggerFlippedIndex = triggerFlippedIndex.add(1);
 
         emit TriggerFlipped(lastConfirmedTrendState, triggerFlippedIndex, block.timestamp);
     }
 
     /*
-     * Returns if trigger is in bullish state.
+     * Returns true if trigger is in bullish state.
      *
      * @return             Whether market conditions are bullish
      */
@@ -174,13 +174,26 @@ contract RSITrendingTrigger is
     {
         // If RSI value outside bounds evaluate further, else return false
         if (_rsiValue >= upperBound || _rsiValue < lowerBound) {
-            // Analyze current market state
-            bool currentMarketState = _rsiValue >= upperBound ? true : false;
-
             // If market state is different from last confirmed state then return true, else false
-            return currentMarketState != lastConfirmedTrendState;
+            return getCurrentMarketState(_rsiValue) != lastConfirmedTrendState;
         } else {
             return false;
         }         
+    }
+
+    /*
+     * Returns current market state based on passed RSI value
+     *
+     * @param  _rsiValue    Current RSI value
+     * @return              RSI trend state
+     */
+    function getCurrentMarketState(
+        uint256 _rsiValue
+    )
+        internal
+        view
+        returns (bool)
+    {
+        return _rsiValue >= upperBound ? true : false;
     }
 }
