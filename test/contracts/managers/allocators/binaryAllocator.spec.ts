@@ -22,7 +22,7 @@ import {
   WhiteListContract,
 } from 'set-protocol-contracts';
 import {
-  BinaryAllocationPricerContract,
+  BinaryAllocatorContract,
   ConstantPriceOracleContract,
   LegacyMakerOracleAdapterContract,
   OracleProxyContract,
@@ -38,7 +38,7 @@ import {
   ZERO
 } from '@utils/constants';
 
-import { extractNewSetTokenAddressFromLogs } from '@utils/contract_logs/core';
+import { extractNewCollateralFromLogs } from '@utils/contract_logs/binaryAllocator';
 import { expectRevertError } from '@utils/tokenAssertions';
 import { getWeb3 } from '@utils/web3Helper';
 
@@ -50,12 +50,13 @@ import { ProtocolHelper } from '@utils/helpers/protocolHelper';
 BigNumberSetup.configure();
 ChaiSetup.configure();
 const web3 = getWeb3();
+const BinaryAllocator = artifacts.require('BinaryAllocator');
 const { expect } = chai;
 const blockchain = new Blockchain(web3);
 const { SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
 const setTestUtils = new SetTestUtils(web3);
 
-contract('BinaryAllocationPricer', accounts => {
+contract('BinaryAllocator', accounts => {
   const [
     deployerAccount,
     randomTokenAddress,
@@ -75,7 +76,7 @@ contract('BinaryAllocationPricer', accounts => {
   let baseAssetCollateral: SetTokenContract;
   let quoteAssetCollateral: SetTokenContract;
 
-  let allocationPricer: BinaryAllocationPricerContract;
+  let allocator: BinaryAllocatorContract;
 
   let initialEthPrice: BigNumber;
   let usdcPrice: BigNumber;
@@ -87,10 +88,12 @@ contract('BinaryAllocationPricer', accounts => {
 
   before(async () => {
     ABIDecoder.addABI(Core.abi);
+    ABIDecoder.addABI(BinaryAllocator.abi);
   });
 
   after(async () => {
     ABIDecoder.removeABI(Core.abi);
+    ABIDecoder.removeABI(BinaryAllocator.abi);
   });
 
   beforeEach(async () => {
@@ -133,7 +136,7 @@ contract('BinaryAllocationPricer', accounts => {
       core,
       factory.address,
       [wrappedETH.address],
-      [new BigNumber(10 ** 6)],
+      [new BigNumber(2 ** 20)],  // 1048576
       RISK_COLLATERAL_NATURAL_UNIT,
     );
 
@@ -141,7 +144,7 @@ contract('BinaryAllocationPricer', accounts => {
       core,
       factory.address,
       [usdcMock.address],
-      [new BigNumber(100)],
+      [new BigNumber(2 ** 7)],  // 128
       STABLE_COLLATERAL_NATURAL_UNIT,
     );
   });
@@ -171,8 +174,8 @@ contract('BinaryAllocationPricer', accounts => {
       subjectSetTokenFactoryAddress = factory.address;
     });
 
-    async function subject(): Promise<BinaryAllocationPricerContract> {
-      return managerHelper.deployBinaryAllocationPricerAsync(
+    async function subject(): Promise<BinaryAllocatorContract> {
+      return managerHelper.deployBinaryAllocatorAsync(
         subjectBaseAssetInstance,
         subjectQuoteAssetInstance,
         subjectBaseAssetOracleInstance,
@@ -185,82 +188,100 @@ contract('BinaryAllocationPricer', accounts => {
     }
 
     it('sets the correct base asset address', async () => {
-      allocationPricer = await subject();
+      allocator = await subject();
 
-      const actualBaseAssetInstance = await allocationPricer.baseAssetInstance.callAsync();
+      const actualBaseAssetInstance = await allocator.baseAssetInstance.callAsync();
 
       expect(actualBaseAssetInstance).to.equal(subjectBaseAssetInstance);
     });
 
     it('sets the correct quote asset address', async () => {
-      allocationPricer = await subject();
+      allocator = await subject();
 
-      const actualQuoteAssetInstance = await allocationPricer.quoteAssetInstance.callAsync();
+      const actualQuoteAssetInstance = await allocator.quoteAssetInstance.callAsync();
 
       expect(actualQuoteAssetInstance).to.equal(subjectQuoteAssetInstance);
     });
 
     it('sets the correct base asset oracle address', async () => {
-      allocationPricer = await subject();
+      allocator = await subject();
 
-      const actualBaseAssetOracleInstance = await allocationPricer.baseAssetOracleInstance.callAsync();
+      const actualBaseAssetOracleInstance = await allocator.baseAssetOracleInstance.callAsync();
 
       expect(actualBaseAssetOracleInstance).to.equal(subjectBaseAssetOracleInstance);
     });
 
     it('sets the correct quote asset oracle address', async () => {
-      allocationPricer = await subject();
+      allocator = await subject();
 
-      const actualQuoteAssetOracleInstance = await allocationPricer.quoteAssetOracleInstance.callAsync();
+      const actualQuoteAssetOracleInstance = await allocator.quoteAssetOracleInstance.callAsync();
 
       expect(actualQuoteAssetOracleInstance).to.equal(subjectQuoteAssetOracleInstance);
     });
 
-    it('sets the correct base collateral address', async () => {
-      allocationPricer = await subject();
+    it('adds the correct base collateral address to storedCollateral mapping', async () => {
+      allocator = await subject();
 
-      const actualBaseAssetCollateralInstance = await allocationPricer.baseAssetCollateralInstance.callAsync();
+      const baseSetUnits = await baseAssetCollateral.getUnits.callAsync();
+      const baseSetNaturalUnit = await baseAssetCollateral.naturalUnit.callAsync();
+      const baseSetComponents = await baseAssetCollateral.getComponents.callAsync();
+      const baseCollateralHash = managerHelper.calculateCollateralSetHash(
+        baseSetUnits[0],
+        baseSetNaturalUnit,
+        baseSetComponents[0],
+      );
 
-      expect(actualBaseAssetCollateralInstance).to.equal(subjectBaseAssetCollateralInstance);
+      const actualStoredBaseAddress = await allocator.storedCollateral.callAsync(baseCollateralHash);
+
+      expect(actualStoredBaseAddress).to.equal(subjectBaseAssetCollateralInstance);
     });
 
-    it('sets the correct quote collateral address', async () => {
-      allocationPricer = await subject();
+    it('adds the correct quote collateral address to storedCollateral mapping', async () => {
+      allocator = await subject();
 
-      const actualQuoteAssetCollateralInstance = await allocationPricer.quoteAssetCollateralInstance.callAsync();
+      const quoteSetUnits = await quoteAssetCollateral.getUnits.callAsync();
+      const quoteSetNaturalUnit = await quoteAssetCollateral.naturalUnit.callAsync();
+      const quoteSetComponents = await quoteAssetCollateral.getComponents.callAsync();
+      const quoteCollateralHash = managerHelper.calculateCollateralSetHash(
+        quoteSetUnits[0],
+        quoteSetNaturalUnit,
+        quoteSetComponents[0],
+      );
 
-      expect(actualQuoteAssetCollateralInstance).to.equal(subjectQuoteAssetCollateralInstance);
+      const actualStoredQuoteAddress = await allocator.storedCollateral.callAsync(quoteCollateralHash);
+
+      expect(actualStoredQuoteAddress).to.equal(subjectQuoteAssetCollateralInstance);
     });
 
     it('sets the correct core address', async () => {
-      allocationPricer = await subject();
+      allocator = await subject();
 
-      const actualCoreAddress = await allocationPricer.coreInstance.callAsync();
+      const actualCoreAddress = await allocator.coreInstance.callAsync();
 
       expect(actualCoreAddress).to.equal(subjectCoreInstance);
     });
 
     it('sets the correct set token factory address', async () => {
-      allocationPricer = await subject();
+      allocator = await subject();
 
-      const actualSetTokenFactoryAddress = await allocationPricer.setTokenFactoryAddress.callAsync();
+      const actualSetTokenFactoryAddress = await allocator.setTokenFactoryAddress.callAsync();
 
       expect(actualSetTokenFactoryAddress).to.equal(subjectSetTokenFactoryAddress);
     });
 
     it('sets the correct base asset decimals', async () => {
-      allocationPricer = await subject();
+      allocator = await subject();
 
-      const actualBaseAssetDecimals = await allocationPricer.baseAssetDecimals.callAsync();
+      const actualBaseAssetDecimals = await allocator.baseAssetDecimals.callAsync();
       const expectedBaseAssetDecimals = await wrappedETH.decimals.callAsync();
 
       expect(actualBaseAssetDecimals).to.be.bignumber.equal(expectedBaseAssetDecimals);
     });
 
     it('sets the correct quote asset decimals', async () => {
-      allocationPricer = await subject();
+      allocator = await subject();
 
-      const actualQuoteAssetDecimals = await allocationPricer.quoteAssetDecimals.callAsync();
+      const actualQuoteAssetDecimals = await allocator.quoteAssetDecimals.callAsync();
       const expectedQuoteAssetDecimals = await usdcMock.decimals.callAsync();
 
       expect(actualQuoteAssetDecimals).to.be.bignumber.equal(expectedQuoteAssetDecimals);
@@ -289,6 +310,7 @@ contract('BinaryAllocationPricer', accounts => {
 
   describe('#determineNewAllocation', async () => {
     let subjectTargetBaseAssetAllocation: BigNumber;
+    let subjectAllocationPrecision: BigNumber;
     let subjectCurrentCollateralSet: Address;
 
     let ethPrice: BigNumber;
@@ -298,7 +320,7 @@ contract('BinaryAllocationPricer', accounts => {
     });
 
     beforeEach(async () => {
-      allocationPricer = await managerHelper.deployBinaryAllocationPricerAsync(
+      allocator = await managerHelper.deployBinaryAllocatorAsync(
         wrappedETH.address,
         usdcMock.address,
         oracleProxy.address,
@@ -311,7 +333,7 @@ contract('BinaryAllocationPricer', accounts => {
 
       await oracleHelper.addAuthorizedAddressesToOracleProxy(
         oracleProxy,
-        [allocationPricer.address]
+        [allocator.address]
       );
 
       const triggerBlockInfo = await web3.eth.getBlock('latest');
@@ -322,49 +344,30 @@ contract('BinaryAllocationPricer', accounts => {
       );
 
       subjectTargetBaseAssetAllocation = new BigNumber(100);
+      subjectAllocationPrecision = new BigNumber(100);
       subjectCurrentCollateralSet = quoteAssetCollateral.address;
     });
 
-    async function subjectCall(): Promise<[string, BigNumber, BigNumber]> {
-      return allocationPricer.determineNewAllocation.callAsync(
+    async function subjectCall(): Promise<string> {
+      return allocator.determineNewAllocation.callAsync(
         subjectTargetBaseAssetAllocation,
+        subjectAllocationPrecision,
         subjectCurrentCollateralSet
       );
     }
 
     async function subjectTxn(): Promise<string> {
-      return allocationPricer.determineNewAllocation.sendTransactionAsync(
+      return allocator.determineNewAllocation.sendTransactionAsync(
         subjectTargetBaseAssetAllocation,
+        subjectAllocationPrecision,
         subjectCurrentCollateralSet
       );
     }
 
     it('returns the correct nextSet address', async () => {
-      const [actualNextSetAddress, , ] = await subjectCall();
+      const actualNextSetAddress = await subjectCall();
 
       expect(actualNextSetAddress).to.equal(baseAssetCollateral.address);
-    });
-
-    it('returns the correct currentSet value', async () => {
-      const [, actualCurrentSetValue, ] = await subjectCall();
-
-      const expectedCurrentSetValue = await managerHelper.calculateSetTokenValue(
-        quoteAssetCollateral,
-        [usdcPrice],
-        [USDC_DECIMALS]
-      );
-      expect(actualCurrentSetValue).to.be.bignumber.equal(expectedCurrentSetValue);
-    });
-
-    it('returns the correct nextSet value', async () => {
-      const [, , actualNextSetValue] = await subjectCall();
-
-      const expectedNextSetValue = await managerHelper.calculateSetTokenValue(
-        baseAssetCollateral,
-        [ethPrice],
-        [ETH_DECIMALS]
-      );
-      expect(actualNextSetValue).to.be.bignumber.equal(expectedNextSetValue);
     });
 
     describe('but collateral is 4x different in price', async () => {
@@ -380,24 +383,26 @@ contract('BinaryAllocationPricer', accounts => {
         const txHash = await subjectTxn();
 
         const logs = await setTestUtils.getLogsFromTxHash(txHash);
-        const expectedNextSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
+        const [expectedHashId, expectedNextSetAddress] = extractNewCollateralFromLogs([logs[1]]);
 
-        const actualNextSetAddress = await allocationPricer.baseAssetCollateralInstance.callAsync();
-        expect(expectedNextSetAddress).to.equal(actualNextSetAddress);
+        const actualNextSetAddress = await allocator.storedCollateral.callAsync(expectedHashId);
+        expect(actualNextSetAddress).to.equal(expectedNextSetAddress);
       });
 
       it('updates new baseAsset collateral to the correct naturalUnit', async () => {
-        await subjectTxn();
+        const txHash = await subjectTxn();
 
-        const nextSetAddress = await allocationPricer.baseAssetCollateralInstance.callAsync();
-        const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
+        const nextSet = await managerHelper.getNewBinaryAllocatorCollateralFromLogs(
+          txHash,
+          protocolHelper
+        );
+
         const nextSetNaturalUnit = await nextSet.naturalUnit.callAsync();
 
         const currentAssetPrice = await usdcOracle.read.callAsync();
         const nextAssetPrice = await legacyMakerOracleAdapter.read.callAsync();
         const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
           quoteAssetCollateral,
-          baseAssetCollateral,
           currentAssetPrice,
           nextAssetPrice,
           USDC_DECIMALS,
@@ -407,17 +412,19 @@ contract('BinaryAllocationPricer', accounts => {
       });
 
       it('updates new baseAsset collateral to the correct units', async () => {
-        await subjectTxn();
+        const txHash = await subjectTxn();
 
-        const nextSetAddress = await allocationPricer.baseAssetCollateralInstance.callAsync();
-        const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
+        const nextSet = await managerHelper.getNewBinaryAllocatorCollateralFromLogs(
+          txHash,
+          protocolHelper
+        );
+
         const nextSetUnits = await nextSet.getUnits.callAsync();
 
         const currentAssetPrice = await usdcOracle.read.callAsync();
         const nextAssetPrice = await legacyMakerOracleAdapter.read.callAsync();
         const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
           quoteAssetCollateral,
-          baseAssetCollateral,
           currentAssetPrice,
           nextAssetPrice,
           USDC_DECIMALS,
@@ -427,10 +434,13 @@ contract('BinaryAllocationPricer', accounts => {
       });
 
       it('updates new baseAsset collateral to the correct components', async () => {
-        await subjectTxn();
+        const txHash = await subjectTxn();
 
-        const nextSetAddress = await allocationPricer.baseAssetCollateralInstance.callAsync();
-        const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
+        const nextSet = await managerHelper.getNewBinaryAllocatorCollateralFromLogs(
+          txHash,
+          protocolHelper
+        );
+
         const nextSetComponents = await nextSet.getComponents.callAsync();
 
         const expectedNextSetComponents = [wrappedETH.address];
@@ -451,45 +461,52 @@ contract('BinaryAllocationPricer', accounts => {
         const txHash = await subjectTxn();
 
         const logs = await setTestUtils.getLogsFromTxHash(txHash);
-        const expectedNextSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
+        const [expectedHashId, expectedNextSetAddress] = extractNewCollateralFromLogs([logs[1]]);
 
-        const actualNextSetAddress = await allocationPricer.baseAssetCollateralInstance.callAsync();
+        const actualNextSetAddress = await allocator.storedCollateral.callAsync(expectedHashId);
         expect(expectedNextSetAddress).to.equal(actualNextSetAddress);
       });
 
       it('updates new baseAsset collateral to the correct naturalUnit', async () => {
-        await subjectTxn();
+        const previousNaturalUnit = await baseAssetCollateral.naturalUnit.callAsync();
 
-        const nextSetAddress = await allocationPricer.baseAssetCollateralInstance.callAsync();
-        const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
+        const txHash = await subjectTxn();
+
+        const nextSet = await managerHelper.getNewBinaryAllocatorCollateralFromLogs(
+          txHash,
+          protocolHelper
+        );
+
         const nextSetNaturalUnit = await nextSet.naturalUnit.callAsync();
 
         const currentAssetPrice = await usdcOracle.read.callAsync();
         const nextAssetPrice = await legacyMakerOracleAdapter.read.callAsync();
         const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
           quoteAssetCollateral,
-          baseAssetCollateral,
           currentAssetPrice,
           nextAssetPrice,
           USDC_DECIMALS,
           ETH_DECIMALS
         );
 
+        expect(previousNaturalUnit).to.be.bignumber.not.equal(nextSetNaturalUnit);
         expect(nextSetNaturalUnit).to.be.bignumber.equal(expectedNextSetParams['naturalUnit']);
       });
 
       it('updates new baseAsset collateral to the correct units', async () => {
-        await subjectTxn();
+        const txHash = await subjectTxn();
 
-        const nextSetAddress = await allocationPricer.baseAssetCollateralInstance.callAsync();
-        const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
+        const nextSet = await managerHelper.getNewBinaryAllocatorCollateralFromLogs(
+          txHash,
+          protocolHelper
+        );
+
         const nextSetUnits = await nextSet.getUnits.callAsync();
 
         const currentAssetPrice = await usdcOracle.read.callAsync();
         const nextAssetPrice = await legacyMakerOracleAdapter.read.callAsync();
         const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
           quoteAssetCollateral,
-          baseAssetCollateral,
           currentAssetPrice,
           nextAssetPrice,
           USDC_DECIMALS,
@@ -500,10 +517,13 @@ contract('BinaryAllocationPricer', accounts => {
       });
 
       it('updates new baseAsset collateral to the correct components', async () => {
-        await subjectTxn();
+        const txHash = await subjectTxn();
 
-        const nextSetAddress = await allocationPricer.baseAssetCollateralInstance.callAsync();
-        const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
+        const nextSet = await managerHelper.getNewBinaryAllocatorCollateralFromLogs(
+          txHash,
+          protocolHelper
+        );
+
         const nextSetComponents = await nextSet.getComponents.callAsync();
 
         const expectedNextSetComponents = [wrappedETH.address];
@@ -528,31 +548,9 @@ contract('BinaryAllocationPricer', accounts => {
       });
 
       it('returns the correct nextSet address', async () => {
-        const [actualNextSetAddress, , ] = await subjectCall();
+        const actualNextSetAddress = await subjectCall();
 
         expect(actualNextSetAddress).to.equal(quoteAssetCollateral.address);
-      });
-
-      it('returns the correct currentSet value', async () => {
-        const [, actualCurrentSetValue, ] = await subjectCall();
-
-        const expectedCurrentSetValue = await managerHelper.calculateSetTokenValue(
-          baseAssetCollateral,
-          [ethPrice],
-          [ETH_DECIMALS]
-        );
-        expect(actualCurrentSetValue).to.be.bignumber.equal(expectedCurrentSetValue);
-      });
-
-      it('returns the correct nextSet value', async () => {
-        const [, , actualNextSetValue] = await subjectCall();
-
-        const expectedNextSetValue = await managerHelper.calculateSetTokenValue(
-          quoteAssetCollateral,
-          [usdcPrice],
-          [USDC_DECIMALS]
-        );
-        expect(actualNextSetValue).to.be.bignumber.equal(expectedNextSetValue);
       });
 
       describe('when the current collateral set component is not the baseAsset', async () => {
@@ -584,24 +582,26 @@ contract('BinaryAllocationPricer', accounts => {
         const txHash = await subjectTxn();
 
         const logs = await setTestUtils.getLogsFromTxHash(txHash);
-        const expectedNextSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
+        const [expectedHashId, expectedNextSetAddress] = extractNewCollateralFromLogs([logs[1]]);
 
-        const actualNextSetAddress = await allocationPricer.quoteAssetCollateralInstance.callAsync();
+        const actualNextSetAddress = await allocator.storedCollateral.callAsync(expectedHashId);
         expect(expectedNextSetAddress).to.equal(actualNextSetAddress);
       });
 
       it('updates new quoteAsset collateral to the correct naturalUnit', async () => {
-        await subjectTxn();
+        const txHash = await subjectTxn();
 
-        const nextSetAddress = await allocationPricer.quoteAssetCollateralInstance.callAsync();
-        const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
+        const nextSet = await managerHelper.getNewBinaryAllocatorCollateralFromLogs(
+          txHash,
+          protocolHelper
+        );
+
         const nextSetNaturalUnit = await nextSet.naturalUnit.callAsync();
 
         const currentAssetPrice = await legacyMakerOracleAdapter.read.callAsync();
         const nextAssetPrice = await usdcOracle.read.callAsync();
         const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
           baseAssetCollateral,
-          quoteAssetCollateral,
           currentAssetPrice,
           nextAssetPrice,
           ETH_DECIMALS,
@@ -612,17 +612,19 @@ contract('BinaryAllocationPricer', accounts => {
       });
 
       it('updates new quoteAsset collateral to the correct units', async () => {
-        await subjectTxn();
+        const txHash = await subjectTxn();
 
-        const nextSetAddress = await allocationPricer.quoteAssetCollateralInstance.callAsync();
-        const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
+        const nextSet = await managerHelper.getNewBinaryAllocatorCollateralFromLogs(
+          txHash,
+          protocolHelper
+        );
+
         const nextSetUnits = await nextSet.getUnits.callAsync();
 
         const currentAssetPrice = await legacyMakerOracleAdapter.read.callAsync();
         const nextAssetPrice = await usdcOracle.read.callAsync();
         const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
           baseAssetCollateral,
-          quoteAssetCollateral,
           currentAssetPrice,
           nextAssetPrice,
           ETH_DECIMALS,
@@ -632,10 +634,13 @@ contract('BinaryAllocationPricer', accounts => {
       });
 
       it('updates new quoteAsset collateral to the correct components', async () => {
-        await subjectTxn();
+        const txHash = await subjectTxn();
 
-        const nextSetAddress = await allocationPricer.quoteAssetCollateralInstance.callAsync();
-        const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
+        const nextSet = await managerHelper.getNewBinaryAllocatorCollateralFromLogs(
+          txHash,
+          protocolHelper
+        );
+
         const nextSetComponents = await nextSet.getComponents.callAsync();
 
         const expectedNextSetComponents = [usdcMock.address];
@@ -645,7 +650,7 @@ contract('BinaryAllocationPricer', accounts => {
 
     describe('but new quoteAsset collateral requires bump in natural unit', async () => {
       before(async () => {
-        ethPrice = ether(.4);
+        ethPrice = ether(.1);
       });
 
       after(async () => {
@@ -661,44 +666,52 @@ contract('BinaryAllocationPricer', accounts => {
         const txHash = await subjectTxn();
 
         const logs = await setTestUtils.getLogsFromTxHash(txHash);
-        const expectedNextSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
+        const [expectedHashId, expectedNextSetAddress] = extractNewCollateralFromLogs([logs[1]]);
 
-        const actualNextSetAddress = await allocationPricer.quoteAssetCollateralInstance.callAsync();
+        const actualNextSetAddress = await allocator.storedCollateral.callAsync(expectedHashId);
         expect(expectedNextSetAddress).to.equal(actualNextSetAddress);
       });
 
       it('updates new quoteAsset collateral to the correct naturalUnit', async () => {
-        await subjectTxn();
+        const previousNaturalUnit = await quoteAssetCollateral.naturalUnit.callAsync();
 
-        const nextSetAddress = await allocationPricer.quoteAssetCollateralInstance.callAsync();
-        const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
+        const txHash = await subjectTxn();
+
+        const nextSet = await managerHelper.getNewBinaryAllocatorCollateralFromLogs(
+          txHash,
+          protocolHelper
+        );
+
         const nextSetNaturalUnit = await nextSet.naturalUnit.callAsync();
 
         const currentAssetPrice = await legacyMakerOracleAdapter.read.callAsync();
         const nextAssetPrice = await usdcOracle.read.callAsync();
         const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
           baseAssetCollateral,
-          quoteAssetCollateral,
           currentAssetPrice,
           nextAssetPrice,
           ETH_DECIMALS,
           USDC_DECIMALS,
         );
+
+        expect(previousNaturalUnit).to.be.bignumber.not.equal(nextSetNaturalUnit);
         expect(nextSetNaturalUnit).to.be.bignumber.equal(expectedNextSetParams['naturalUnit']);
       });
 
       it('updates new quoteAsset collateral to the correct units', async () => {
-        await subjectTxn();
+        const txHash = await subjectTxn();
 
-        const nextSetAddress = await allocationPricer.quoteAssetCollateralInstance.callAsync();
-        const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
+        const nextSet = await managerHelper.getNewBinaryAllocatorCollateralFromLogs(
+          txHash,
+          protocolHelper
+        );
+
         const nextSetUnits = await nextSet.getUnits.callAsync();
 
         const currentAssetPrice = await legacyMakerOracleAdapter.read.callAsync();
         const nextAssetPrice = await usdcOracle.read.callAsync();
         const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
           baseAssetCollateral,
-          quoteAssetCollateral,
           currentAssetPrice,
           nextAssetPrice,
           ETH_DECIMALS,
@@ -708,10 +721,13 @@ contract('BinaryAllocationPricer', accounts => {
       });
 
       it('updates new quoteAsset collateral to the correct components', async () => {
-        await subjectTxn();
+        const txHash = await subjectTxn();
 
-        const nextSetAddress = await allocationPricer.quoteAssetCollateralInstance.callAsync();
-        const nextSet = await protocolHelper.getSetTokenAsync(nextSetAddress);
+        const nextSet = await managerHelper.getNewBinaryAllocatorCollateralFromLogs(
+          txHash,
+          protocolHelper
+        );
+
         const nextSetComponents = await nextSet.getComponents.callAsync();
 
         const expectedNextSetComponents = [usdcMock.address];
@@ -719,7 +735,7 @@ contract('BinaryAllocationPricer', accounts => {
       });
     });
 
-    describe('when the target allocation amount does not equal 0 or 100', async () => {
+    describe('when the target allocation amount does not equal 0 or allocationPrecision', async () => {
       beforeEach(async () => {
         subjectTargetBaseAssetAllocation = new BigNumber(1);
       });
@@ -754,6 +770,79 @@ contract('BinaryAllocationPricer', accounts => {
 
       it('should revert', async () => {
         await expectRevertError(subjectCall());
+      });
+    });
+  });
+
+  describe('#calculateCollateralSetValue', async () => {
+    let subjectCollateralSet: Address;
+
+    let ethPrice: BigNumber;
+
+    before(async () => {
+      ethPrice = ether(140);
+    });
+
+    beforeEach(async () => {
+      allocator = await managerHelper.deployBinaryAllocatorAsync(
+        wrappedETH.address,
+        usdcMock.address,
+        oracleProxy.address,
+        usdcOracle.address,
+        baseAssetCollateral.address,
+        quoteAssetCollateral.address,
+        core.address,
+        factory.address
+      );
+
+      await oracleHelper.addAuthorizedAddressesToOracleProxy(
+        oracleProxy,
+        [allocator.address]
+      );
+
+      const triggerBlockInfo = await web3.eth.getBlock('latest');
+      await oracleHelper.updateMedianizerPriceAsync(
+        ethMedianizer,
+        ethPrice,
+        new BigNumber(triggerBlockInfo.timestamp + 1),
+      );
+
+      subjectCollateralSet = quoteAssetCollateral.address;
+    });
+
+    async function subject(): Promise<BigNumber> {
+      return allocator.calculateCollateralSetValue.callAsync(
+        subjectCollateralSet
+      );
+    }
+
+    it('returns the Set value', async () => {
+      const actualSetValue = await subject();
+
+      const expectedSetValue = await managerHelper.calculateSetTokenValue(
+        quoteAssetCollateral,
+        [usdcPrice],
+        [USDC_DECIMALS],
+      );
+
+      expect(actualSetValue).to.bignumber.equal(expectedSetValue);
+    });
+
+    describe('when the set uses the base asset', async () => {
+      beforeEach(async () => {
+        subjectCollateralSet = baseAssetCollateral.address;
+      });
+
+      it('returns the Set value', async () => {
+        const actualSetValue = await subject();
+
+        const expectedSetValue = await managerHelper.calculateSetTokenValue(
+          baseAssetCollateral,
+          [ethPrice],
+          [ETH_DECIMALS],
+        );
+
+        expect(actualSetValue).to.bignumber.equal(expectedSetValue);
       });
     });
   });

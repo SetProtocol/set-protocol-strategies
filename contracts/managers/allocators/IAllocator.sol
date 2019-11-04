@@ -20,34 +20,39 @@ pragma experimental "ABIEncoderV2";
 import { ISetToken } from "set-protocol-contracts/contracts/core/interfaces/ISetToken.sol";
 
 /**
- * @title IAllocationPricer
+ * @title IAllocator
  * @author Set Protocol
  *
- * Interface for interacting with AllocationPricer contracts
+ * Interface for interacting with Allocator contracts
  */
-interface IAllocationPricer {
+interface IAllocator {
 
     /*
      * Determine the next allocation to rebalance into.
      *
      * @param  _targetBaseAssetAllocation       Target allocation of the base asset
+     * @param  _allocationPrecision             Precision of allocation percentage
      * @param  _currentCollateralSet            Instance of current set collateralizing RebalancingSetToken
      * @return address                          The address of the proposed nextSet
-     * @return uint256                          The USD value of current Set
-     * @return uint256                          The USD value of next Set
      */
     function determineNewAllocation(
         uint256 _targetBaseAssetAllocation,
+        uint256 _allocationPrecision,
         ISetToken _currentCollateralSet
     )
         external
-        returns (address, uint256, uint256);
+        returns (address);
 
-    function baseAssetCollateralInstance()
+    /*
+     * Calculate value of passed collateral set.
+     *
+     * @param  _collateralSet        Instance of current set collateralizing RebalancingSetToken
+     * @return uint256               USD value of passed Set
+     */
+    function calculateCollateralSetValue(
+        ISetToken _collateralSet
+    )
         external
-        returns (ISetToken);
-
-    function quoteAssetCollateralInstance()
-        external
-        returns (ISetToken);
+        view
+        returns(uint256);
 }

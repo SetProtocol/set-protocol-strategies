@@ -15,23 +15,37 @@
 */
 
 pragma solidity 0.5.7;
-pragma experimental "ABIEncoderV2";
+
+import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+
 
 /**
- * @title IPriceTrigger
+ * @title UintArrayUtilsLibrary
  * @author Set Protocol
  *
- * Interface for interacting with PriceTrigger contracts
+ * Library of utility functions for uint arrays.
  */
-interface IPriceTrigger {
-
+library UintArrayUtilsLibrary {
+    using SafeMath for uint256;
+    
     /*
-     * Returns the percentage of base asset the calling Manager should allocate the RebalancingSetToken
-     * to.
+     * Calculate the sum of values in an uint256 array.
      *
-     * @return             The percentage of base asset to be allocated to
+     * @param  _array        Array of uint256 values
+     * @return uint256       Sum of array values
      */
-    function retrieveBaseAssetAllocation()
+    function sumArrayValues(
+        uint256[] calldata _array
+    )
         external
-        returns (uint256);
+        pure
+        returns (uint256)
+    {
+        uint256 weightSum = 0;
+        for (uint8 i = 0; i < _array.length; i++) {
+            weightSum = weightSum.add(_array[i]);
+        }
+
+        return weightSum;
+    }
 }

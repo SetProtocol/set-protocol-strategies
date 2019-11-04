@@ -1,5 +1,6 @@
 import { Address } from 'set-protocol-utils';
 import {
+  AllocatorMathLibraryMockContract,
   DataSourceLinearInterpolationLibraryMockContract,
   EMALibraryMockContract,
   RSILibraryMockContract,
@@ -10,12 +11,14 @@ import {
   LinkedListLibraryMockV3Contract,
   ManagerLibraryMockContract,
   PriceFeedMockContract,
+  UintArrayUtilsLibraryMockContract,
 } from '../contracts';
 import {
   getWeb3,
 } from '../web3Helper';
 
 const web3 = getWeb3();
+const AllocatorMathLibraryMock = artifacts.require('AllocatorMathLibraryMock');
 const DataSourceLinearInterpolationLibraryMock = artifacts.require('DataSourceLinearInterpolationLibraryMock');
 const FlexibleTimingManagerLibraryMock = artifacts.require('FlexibleTimingManagerLibraryMock');
 const LinkedListHelperMock = artifacts.require('LinkedListHelperMock');
@@ -26,6 +29,8 @@ const ManagerLibraryMock = artifacts.require('ManagerLibraryMock');
 const EMALibraryMock = artifacts.require('EMALibraryMock');
 const PriceFeedMock = artifacts.require('PriceFeedMock');
 const RSILibraryMock = artifacts.require('RSILibraryMock');
+const UintArrayUtilsLibrary = artifacts.require('UintArrayUtilsLibrary');
+const UintArrayUtilsLibraryMock = artifacts.require('UintArrayUtilsLibraryMock');
 
 export class LibraryMockHelper {
   private _contractOwnerAddress: Address;
@@ -167,4 +172,43 @@ export class LibraryMockHelper {
       { from },
     );
   }
+
+  public async deployAllocatorMathLibraryAsync(
+    from: Address = this._contractOwnerAddress
+  ): Promise<AllocatorMathLibraryMockContract> {
+    const mathHelperMockContract = await AllocatorMathLibraryMock.new(
+      { from },
+    );
+
+    return new AllocatorMathLibraryMockContract(
+      new web3.eth.Contract(mathHelperMockContract.abi, mathHelperMockContract.address),
+      { from },
+    );
+  }
+
+  public async deployUintArrayUtilsLibraryAsync(
+    from: Address = this._contractOwnerAddress
+  ): Promise<UintArrayUtilsLibraryMockContract> {
+    await this.linkUintArrayUtilsLibraryAsync(UintArrayUtilsLibraryMock);
+
+    const mathHelperMockContract = await UintArrayUtilsLibraryMock.new(
+      { from },
+    );
+
+    return new UintArrayUtilsLibraryMockContract(
+      new web3.eth.Contract(mathHelperMockContract.abi, mathHelperMockContract.address),
+      { from },
+    );
+  }
+
+  public async linkUintArrayUtilsLibraryAsync(
+    contract: any,
+  ): Promise<void> {
+    const truffleUintArrayUtilsLibrary = await UintArrayUtilsLibrary.new(
+      { from: this._contractOwnerAddress },
+    );
+
+    await contract.link('UintArrayUtilsLibrary', truffleUintArrayUtilsLibrary.address);
+  }
+
 }

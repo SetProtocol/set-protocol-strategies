@@ -1,6 +1,7 @@
 require('module-alias/register');
 
 import * as _ from 'lodash';
+import * as ABIDecoder from 'abi-decoder';
 import * as chai from 'chai';
 import * as setProtocolUtils from 'set-protocol-utils';
 
@@ -28,8 +29,10 @@ import {
 import {
   DEFAULT_GAS,
   ONE_DAY_IN_SECONDS,
-  ZERO,
+  ZERO
 } from '@utils/constants';
+
+import { LogTriggerFlipped } from '@utils/contract_logs/iTrigger';
 import { expectRevertError } from '@utils/tokenAssertions';
 import { getWeb3 } from '@utils/web3Helper';
 
@@ -39,10 +42,13 @@ import { ProtocolHelper } from '@utils/helpers/protocolHelper';
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
+
+const RSITrendingTrigger = artifacts.require('RSITrendingTrigger');
 const web3 = getWeb3();
 const { expect } = chai;
 const blockchain = new Blockchain(web3);
 const { SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
+const setTestUtils = new SetTestUtils(web3);
 
 contract('RSITrendingTrigger', accounts => {
   const [
@@ -56,13 +62,21 @@ contract('RSITrendingTrigger', accounts => {
   let timeSeriesFeed: TimeSeriesFeedContract;
   let rsiOracle: RSIOracleContract;
 
-  let priceTrigger: RSITrendingTriggerContract;
+  let trigger: RSITrendingTriggerContract;
 
   let initialEthPrice: BigNumber;
 
   const managerHelper = new ManagerHelper(deployerAccount);
   const oracleHelper = new OracleHelper(deployerAccount);
   const protocolHelper = new ProtocolHelper(deployerAccount);
+
+  before(async () => {
+    ABIDecoder.addABI(RSITrendingTrigger.abi);
+  });
+
+  after(async () => {
+    ABIDecoder.removeABI(RSITrendingTrigger.abi);
+  });
 
   beforeEach(async () => {
     blockchain.saveSnapshotAsync();
@@ -120,14 +134,14 @@ contract('RSITrendingTrigger', accounts => {
     let subjectLowerBound: BigNumber;
     let subjectUpperBound: BigNumber;
     let subjectRSITimePeriod: BigNumber;
-    let subjectInitialTrendAllocation: BigNumber;
+    let subjectInitialTrendState: boolean;
 
     beforeEach(async () => {
       subjectLowerBound = new BigNumber(40);
       subjectUpperBound = new BigNumber(60);
       subjectRSIOracleInstance = rsiOracle.address;
       subjectRSITimePeriod = new BigNumber(14);
-      subjectInitialTrendAllocation = ZERO;
+      subjectInitialTrendState = false;
     });
 
     async function subject(): Promise<RSITrendingTriggerContract> {
@@ -136,61 +150,77 @@ contract('RSITrendingTrigger', accounts => {
         subjectLowerBound,
         subjectUpperBound,
         subjectRSITimePeriod,
-        subjectInitialTrendAllocation
+        subjectInitialTrendState
       );
     }
 
     it('sets the correct RSI oracle address', async () => {
-      priceTrigger = await subject();
+      trigger = await subject();
 
-      const actualRSIOracleAddress = await priceTrigger.rsiOracleInstance.callAsync();
+      const actualRSIOracleAddress = await trigger.rsiOracleInstance.callAsync();
 
       expect(actualRSIOracleAddress).to.equal(subjectRSIOracleInstance);
     });
 
     it('sets the correct lower bound', async () => {
-      priceTrigger = await subject();
+      trigger = await subject();
 
-      const actualRSILowerBound = await priceTrigger.lowerBound.callAsync();
+      const actualRSILowerBound = await trigger.lowerBound.callAsync();
 
       expect(actualRSILowerBound).to.be.bignumber.equal(subjectLowerBound);
     });
 
     it('sets the correct upper bound', async () => {
-      priceTrigger = await subject();
+      trigger = await subject();
 
-      const actualRSIUpperBound = await priceTrigger.upperBound.callAsync();
+      const actualRSIUpperBound = await trigger.upperBound.callAsync();
 
       expect(actualRSIUpperBound).to.be.bignumber.equal(subjectUpperBound);
     });
 
     it('sets the correct RSI days', async () => {
-      priceTrigger = await subject();
+      trigger = await subject();
 
-      const actualRSITimePeriod = await priceTrigger.rsiTimePeriod.callAsync();
+      const actualRSITimePeriod = await trigger.rsiTimePeriod.callAsync();
 
       expect(actualRSITimePeriod).to.be.bignumber.equal(subjectRSITimePeriod);
     });
 
-    it('sets the current trend allocation to zero', async () => {
-      priceTrigger = await subject();
+    it('sets the current trend state to false', async () => {
+      trigger = await subject();
 
-      const actualCurrentTrendAllocation = await priceTrigger.currentTrendAllocation.callAsync();
+      const actualCurrentTrendAllocation = await trigger.isBullish.callAsync();
 
-      expect(actualCurrentTrendAllocation).to.be.bignumber.equal(subjectInitialTrendAllocation);
+      expect(actualCurrentTrendAllocation).to.be.false;
+    });
+
+    it('sets the current triggerFlippedIndex to 0', async () => {
+      trigger = await subject();
+
+      const actualTriggerFlippedIndex = await trigger.triggerFlippedIndex.callAsync();
+
+      expect(actualTriggerFlippedIndex).to.be.bignumber.equal(ZERO);
+    });
+
+    it('deployed with requiresConfirmation set to false', async () => {
+      trigger = await subject();
+
+      const requiresConfirmation = await trigger.requiresConfirmation.callAsync();
+
+      expect(requiresConfirmation).to.be.false;
     });
 
     describe('when initial trend allocation is 100', async () => {
       beforeEach(async () => {
-        subjectInitialTrendAllocation = new BigNumber(100);
+        subjectInitialTrendState = true;
       });
 
       it('sets the current trend allocation to 100', async () => {
-        priceTrigger = await subject();
+        trigger = await subject();
 
-        const actualCurrentTrendAllocation = await priceTrigger.currentTrendAllocation.callAsync();
+        const actualCurrentTrendAllocation = await trigger.isBullish.callAsync();
 
-        expect(actualCurrentTrendAllocation).to.be.bignumber.equal(subjectInitialTrendAllocation);
+        expect(actualCurrentTrendAllocation).to.be.true;
       });
     });
 
@@ -204,28 +234,18 @@ contract('RSITrendingTrigger', accounts => {
         await expectRevertError(subject());
       });
     });
-
-    describe('when passed initial trend allocation is not 0 or 100', async () => {
-      beforeEach(async () => {
-        subjectInitialTrendAllocation = new BigNumber(50);
-      });
-
-      it('should revert', async () => {
-        await expectRevertError(subject());
-      });
-    });
   });
 
-  describe('#retrieveBaseAssetAllocation', async () => {
+  describe('#confirmTrigger', async () => {
     let subjectCaller: Address;
 
-    let initialTrendAllocation: BigNumber;
+    let initialTrendState: boolean;
     let updatedValues: BigNumber[];
 
     before(async () => {
       // Prices are increasing each day
       updatedValues = _.map(new Array(15), function(el, i) {return ether(150 + i); });
-      initialTrendAllocation = new BigNumber(100);
+      initialTrendState = false;
     });
 
     beforeEach(async () => {
@@ -233,16 +253,16 @@ contract('RSITrendingTrigger', accounts => {
       const lowerBound = new BigNumber(40);
       const upperBound = new BigNumber(60);
 
-      priceTrigger = await managerHelper.deployRSITrendingTrigger(
+      trigger = await managerHelper.deployRSITrendingTrigger(
         rsiOracle.address,
         lowerBound,
         upperBound,
         rsiTimePeriod,
-        initialTrendAllocation,
+        initialTrendState,
       );
       await oracleHelper.addAuthorizedAddressesToOracleProxy(
         oracleProxy,
-        [priceTrigger.address]
+        [trigger.address]
       );
       await oracleHelper.batchUpdateTimeSeriesFeedAsync(
         timeSeriesFeed,
@@ -254,36 +274,62 @@ contract('RSITrendingTrigger', accounts => {
       subjectCaller = deployerAccount;
     });
 
-    async function subject(): Promise<BigNumber> {
-      return priceTrigger.retrieveBaseAssetAllocation.callAsync(
+    async function subject(): Promise<string> {
+      return trigger.confirmTrigger.sendTransactionAsync(
         { from: subjectCaller, gas: DEFAULT_GAS}
       );
     }
 
-    it('when RSI over 60 it returns 100', async () => {
-      const actualReturnedAllocation = await subject();
+    it('when RSI over 60 it returns true', async () => {
+      await subject();
 
-      const expectedReturnedAllocation = new BigNumber(100);
+      const actualReturnedTrendState = await trigger.isBullish.callAsync();
 
-      expect(actualReturnedAllocation).to.be.bignumber.equal(expectedReturnedAllocation);
+      expect(actualReturnedTrendState).to.be.true;
     });
 
-    describe('when RSI is below 40 it returns 0', async () => {
+    it('sets the current triggerFlippedIndex to 1', async () => {
+      await subject();
+
+      const actualTriggerFlippedIndex = await trigger.triggerFlippedIndex.callAsync();
+
+      expect(actualTriggerFlippedIndex).to.be.bignumber.equal(new BigNumber(1));
+    });
+
+    it('emits the correct TriggerFlipped event', async () => {
+      const txHash = await subject();
+
+      const block = await web3.eth.getBlock('latest');
+      const expectedTimestamp = new BigNumber(block.timestamp);
+
+      const formattedLogs = await setTestUtils.getLogsFromTxHash(txHash);
+      const expectedLogs = LogTriggerFlipped(
+        true,
+        new BigNumber(1),
+        expectedTimestamp,
+        trigger.address
+      );
+
+      await SetTestUtils.assertLogEquivalence(formattedLogs, expectedLogs);
+    });
+
+    describe('when RSI is below 40', async () => {
       before(async () => {
         // Prices are decreasing each day
         updatedValues = _.map(new Array(15), function(el, i) {return ether(170 - i); });
+        initialTrendState = true;
       });
 
-      it('returns 0', async () => {
-        const actualReturnedAllocation = await subject();
+      it('returns false', async () => {
+        await subject();
 
-        const expectedReturnedAllocation = ZERO;
+        const actualReturnedTrendState = await trigger.isBullish.callAsync();
 
-        expect(actualReturnedAllocation).to.be.bignumber.equal(expectedReturnedAllocation);
+        expect(actualReturnedTrendState).to.be.false;
       });
     });
 
-    describe('when RSI is between 40 and 60 and trend allocation is 100', async () => {
+    describe('when RSI is between 40 and 60', async () => {
       before(async () => {
         // Prices are alternating each day
         updatedValues = [
@@ -305,16 +351,87 @@ contract('RSITrendingTrigger', accounts => {
         ];
       });
 
-      it('should return 100', async () => {
-        const actualReturnedAllocation = await subject();
-
-        const expectedReturnedAllocation = new BigNumber(100);
-
-        expect(actualReturnedAllocation).to.be.bignumber.equal(expectedReturnedAllocation);
+      it('should revert', async () => {
+        await expectRevertError(subject());
       });
     });
 
-    describe('when RSI is between 40 and 60 and trend allocation is 0', async () => {
+    describe('when RSI trigger state does not change', async () => {
+      before(async () => {
+        initialTrendState = true;
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+  });
+
+  describe('#canConfirmTrigger', async () => {
+    let subjectCaller: Address;
+
+    let initialTrendState: boolean;
+    let updatedValues: BigNumber[];
+
+    before(async () => {
+      // Prices are increasing each day
+      updatedValues = _.map(new Array(15), function(el, i) {return ether(150 + i); });
+      initialTrendState = false;
+    });
+
+    beforeEach(async () => {
+      const rsiTimePeriod = new BigNumber(14);
+      const lowerBound = new BigNumber(40);
+      const upperBound = new BigNumber(60);
+
+      trigger = await managerHelper.deployRSITrendingTrigger(
+        rsiOracle.address,
+        lowerBound,
+        upperBound,
+        rsiTimePeriod,
+        initialTrendState,
+      );
+      await oracleHelper.addAuthorizedAddressesToOracleProxy(
+        oracleProxy,
+        [trigger.address]
+      );
+      await oracleHelper.batchUpdateTimeSeriesFeedAsync(
+        timeSeriesFeed,
+        ethMedianizer,
+        updatedValues.length,
+        updatedValues
+      );
+
+      subjectCaller = deployerAccount;
+    });
+
+    async function subject(): Promise<boolean> {
+      return trigger.canConfirmTrigger.callAsync(
+        { from: subjectCaller, gas: DEFAULT_GAS}
+      );
+    }
+
+    it('when RSI over 60 it returns true', async () => {
+      const canConfirm = await subject();
+
+      expect(canConfirm).to.be.true;
+    });
+
+    describe('when RSI is below 40', async () => {
+      before(async () => {
+        // Prices are decreasing each day
+        updatedValues = _.map(new Array(15), function(el, i) {return ether(170 - i); });
+        initialTrendState = true;
+      });
+
+      it('returns true', async () => {
+        const canConfirm = await subject();
+
+        expect(canConfirm).to.be.true;
+      });
+    });
+
+    describe('when RSI is between 40 and 60', async () => {
       before(async () => {
         // Prices are alternating each day
         updatedValues = [
@@ -334,16 +451,54 @@ contract('RSITrendingTrigger', accounts => {
           ether(150),
           ether(170),
         ];
-        initialTrendAllocation = ZERO;
       });
 
-      it('should return 0', async () => {
-        const actualReturnedAllocation = await subject();
+      it('should return false', async () => {
+        const canConfirm = await subject();
 
-        const expectedReturnedAllocation = ZERO;
-
-        expect(actualReturnedAllocation).to.be.bignumber.equal(expectedReturnedAllocation);
+        expect(canConfirm).to.be.false;
       });
+    });
+
+    describe('when RSI trigger state does not change', async () => {
+      before(async () => {
+        initialTrendState = true;
+      });
+
+      it('should return false', async () => {
+        const canConfirm = await subject();
+
+        expect(canConfirm).to.be.false;
+      });
+    });
+  });
+
+  describe('#isBullish', async () => {
+    let initialState: boolean;
+
+    beforeEach(async () => {
+      initialState = false;
+      const rsiTimePeriod = new BigNumber(14);
+      const lowerBound = new BigNumber(40);
+      const upperBound = new BigNumber(60);
+      trigger = await managerHelper.deployRSITrendingTrigger(
+        rsiOracle.address,
+        lowerBound,
+        upperBound,
+        rsiTimePeriod,
+        initialState,
+      );
+    });
+
+    async function subject(): Promise<boolean> {
+      return trigger.isBullish.callAsync();
+    }
+
+    it('retrieves the lastConfirmedTrend', async () => {
+      const actualLastConfirmedTrend = await subject();
+
+      const expectedLastConfirmedTrend = initialState;
+      expect(actualLastConfirmedTrend).to.be.equal(expectedLastConfirmedTrend);
     });
   });
 });
