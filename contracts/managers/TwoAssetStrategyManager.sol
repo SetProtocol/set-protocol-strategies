@@ -40,10 +40,6 @@ import { ITrigger } from "./triggers/ITrigger.sol";
 contract TwoAssetStrategyManager {
     using SafeMath for uint256;
 
-    /* ============ Constants ============ */
-    uint256 constant MAX_BASE_ASSET_ALLOCATION = 100;
-    uint256 constant MIN_BASE_ASSET_ALLOCATION = 0;
-
     /* ============ State Variables ============ */
     ICore public coreInstance;
     IAuctionPriceCurve public auctionLibraryInstance;
@@ -74,6 +70,7 @@ contract TwoAssetStrategyManager {
      * @param  _auctionLibraryInstance          The address of auction price curve to use in rebalance
      * @param  _baseAssetAllocation             Starting allocation of the Rebalancing Set in baseAsset amount
      * @param  _allocationPrecision             Precision of allocation percentage
+     * @param  _amaxBaseAssetAllocation         Base asset allocation when trigger is bullish
      * @param  _auctionStartPercentage          The amount below fair value, in percent, to start auction
      * @param  _auctionEndPercentage            The amount above fair value, in percent, to end auction
      * @param  _auctionTimeToPivot              Time, in seconds, spent between start and pivot price
