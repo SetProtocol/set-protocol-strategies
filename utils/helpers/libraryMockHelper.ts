@@ -14,10 +14,10 @@ import {
   UintArrayUtilsLibraryMockContract,
 } from '../contracts';
 import {
-  getWeb3,
+  getContractInstance,
+  txnFrom,
 } from '../web3Helper';
 
-const web3 = getWeb3();
 const AllocatorMathLibraryMock = artifacts.require('AllocatorMathLibraryMock');
 const DataSourceLinearInterpolationLibraryMock = artifacts.require('DataSourceLinearInterpolationLibraryMock');
 const FlexibleTimingManagerLibraryMock = artifacts.require('FlexibleTimingManagerLibraryMock');
@@ -44,39 +44,33 @@ export class LibraryMockHelper {
   public async deployManagerLibraryMockAsync(
     from: Address = this._contractOwnerAddress
   ): Promise<ManagerLibraryMockContract> {
-    const managerLibraryMockContract = await ManagerLibraryMock.new(
-      { from },
-    );
+    const managerLibraryMockContract = await ManagerLibraryMock.new(txnFrom(from));
 
     return new ManagerLibraryMockContract(
-      new web3.eth.Contract(managerLibraryMockContract.abi, managerLibraryMockContract.address),
-      { from },
+      getContractInstance(managerLibraryMockContract),
+      txnFrom(from),
     );
   }
 
   public async deployEMALibraryMockAsync(
     from: Address = this._contractOwnerAddress
   ): Promise<EMALibraryMockContract> {
-    const emaLibraryMockContract = await EMALibraryMock.new(
-      { from },
-    );
+    const emaLibraryMockContract = await EMALibraryMock.new(txnFrom(from));
 
     return new EMALibraryMockContract(
-      new web3.eth.Contract(emaLibraryMockContract.abi, emaLibraryMockContract.address),
-      { from },
+      getContractInstance(emaLibraryMockContract),
+      txnFrom(from),
     );
   }
 
   public async deployFlexibleTimingManagerLibraryMockAsync(
     from: Address = this._contractOwnerAddress
   ): Promise<FlexibleTimingManagerLibraryMockContract> {
-    const managerLibraryMockContract = await FlexibleTimingManagerLibraryMock.new(
-      { from },
-    );
+    const managerLibraryMockContract = await FlexibleTimingManagerLibraryMock.new(txnFrom(from));
 
     return new FlexibleTimingManagerLibraryMockContract(
-      new web3.eth.Contract(managerLibraryMockContract.abi, managerLibraryMockContract.address),
-      { from },
+      getContractInstance(managerLibraryMockContract),
+      txnFrom(from),
     );
   }
 
@@ -86,103 +80,89 @@ export class LibraryMockHelper {
   ): Promise<PriceFeedMockContract> {
     const priceFeedTruffle = await PriceFeedMock.new(
       priceFeed,
-      { from },
+      txnFrom(from),
     );
 
     return new PriceFeedMockContract(
-      new web3.eth.Contract(priceFeedTruffle.abi, priceFeedTruffle.address),
-      { from },
+      getContractInstance(priceFeedTruffle),
+      txnFrom(from),
     );
   }
 
   public async deployLinkedListHelperMockAsync(
     from: Address = this._contractOwnerAddress
   ): Promise<LinkedListHelperMockContract> {
-    const linkedListHelper = await LinkedListHelperMock.new(
-      { from },
-    );
+    const linkedListHelper = await LinkedListHelperMock.new(txnFrom(from));
 
     return new LinkedListHelperMockContract(
-      new web3.eth.Contract(linkedListHelper.abi, linkedListHelper.address),
-      { from },
+      getContractInstance(linkedListHelper),
+      txnFrom(from),
     );
   }
 
   public async deployLinkedListLibraryMockAsync(
     from: Address = this._contractOwnerAddress
   ): Promise<LinkedListLibraryMockContract> {
-    const linkedList = await LinkedListLibraryMock.new(
-      { from },
-    );
+    const linkedList = await LinkedListLibraryMock.new(txnFrom(from));
 
     return new LinkedListLibraryMockContract(
-      new web3.eth.Contract(linkedList.abi, linkedList.address),
-      { from },
+      getContractInstance(linkedList),
+      txnFrom(from),
     );
   }
 
   public async deployDataSourceLinearInterpolationLibraryMockAsync(
     from: Address = this._contractOwnerAddress
   ): Promise<DataSourceLinearInterpolationLibraryMockContract> {
-    const interpolationLib = await DataSourceLinearInterpolationLibraryMock.new(
-      { from },
-    );
+    const interpolationLib = await DataSourceLinearInterpolationLibraryMock.new(txnFrom(from));
 
     return new DataSourceLinearInterpolationLibraryMockContract(
-      new web3.eth.Contract(interpolationLib.abi, interpolationLib.address),
-      { from },
+      getContractInstance(interpolationLib),
+      txnFrom(from),
     );
   }
 
   public async deployLinkedListLibraryMockV2Async(
     from: Address = this._contractOwnerAddress
   ): Promise<LinkedListLibraryMockV2Contract> {
-    const linkedList = await LinkedListLibraryMockV2.new(
-      { from },
-    );
+    const linkedList = await LinkedListLibraryMockV2.new(txnFrom(from));
 
     return new LinkedListLibraryMockV2Contract(
-      new web3.eth.Contract(linkedList.abi, linkedList.address),
-      { from },
+      getContractInstance(linkedList),
+      txnFrom(from),
     );
   }
 
   public async deployLinkedListLibraryMockV3Async(
     from: Address = this._contractOwnerAddress
   ): Promise<LinkedListLibraryMockV3Contract> {
-    const linkedList = await LinkedListLibraryMockV3.new(
-      { from },
-    );
+    const linkedList = await LinkedListLibraryMockV3.new(txnFrom(from));
 
     return new LinkedListLibraryMockV3Contract(
-      new web3.eth.Contract(linkedList.abi, linkedList.address),
-      { from },
+      getContractInstance(linkedList),
+      txnFrom(from),
     );
   }
 
   public async deployRSILibraryMockAsync(
     from: Address = this._contractOwnerAddress
   ): Promise<RSILibraryMockContract> {
-    const rsiLibraryMockContract = await RSILibraryMock.new(
-      { from },
-    );
+    const rsiLibraryMockContract = await RSILibraryMock.new(txnFrom(from));
 
     return new RSILibraryMockContract(
-      new web3.eth.Contract(rsiLibraryMockContract.abi, rsiLibraryMockContract.address),
-      { from },
+      getContractInstance(rsiLibraryMockContract),
+      txnFrom(from),
     );
   }
 
   public async deployAllocatorMathLibraryAsync(
     from: Address = this._contractOwnerAddress
   ): Promise<AllocatorMathLibraryMockContract> {
-    const mathHelperMockContract = await AllocatorMathLibraryMock.new(
-      { from },
-    );
+    const mathHelperMockContract = await AllocatorMathLibraryMock.new(txnFrom(from));
 
     return new AllocatorMathLibraryMockContract(
-      new web3.eth.Contract(mathHelperMockContract.abi, mathHelperMockContract.address),
-      { from },
+      getContractInstance(mathHelperMockContract),
+      txnFrom(from),
     );
   }
 
@@ -191,13 +171,11 @@ export class LibraryMockHelper {
   ): Promise<UintArrayUtilsLibraryMockContract> {
     await this.linkUintArrayUtilsLibraryAsync(UintArrayUtilsLibraryMock);
 
-    const mathHelperMockContract = await UintArrayUtilsLibraryMock.new(
-      { from },
-    );
+    const mathHelperMockContract = await UintArrayUtilsLibraryMock.new(txnFrom(from));
 
     return new UintArrayUtilsLibraryMockContract(
-      new web3.eth.Contract(mathHelperMockContract.abi, mathHelperMockContract.address),
-      { from },
+      getContractInstance(mathHelperMockContract),
+      txnFrom(from),
     );
   }
 
