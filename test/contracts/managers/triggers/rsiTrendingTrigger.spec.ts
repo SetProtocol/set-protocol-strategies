@@ -3,6 +3,7 @@ require('module-alias/register');
 import * as _ from 'lodash';
 import * as ABIDecoder from 'abi-decoder';
 import * as chai from 'chai';
+import * as setProtocolUtils from 'set-protocol-utils';
 
 import { Address } from 'set-protocol-utils';
 import { BigNumber } from 'bignumber.js';
@@ -44,6 +45,7 @@ const RSITrendingTrigger = artifacts.require('RSITrendingTrigger');
 const web3 = getWeb3();
 const { expect } = chai;
 const blockchain = new Blockchain(web3);
+const { SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
 
 contract('RSITrendingTrigger', accounts => {
   const [
