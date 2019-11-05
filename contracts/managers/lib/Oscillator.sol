@@ -17,20 +17,36 @@
 pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
+
 /**
- * @title IPriceTrigger
+ * @title Oscillator
  * @author Set Protocol
  *
- * Interface for interacting with PriceTrigger contracts
+ * Library of utility functions to deal with oscillator-related functionality.
  */
-interface ITrigger {
+library Oscillator {
+    
+    enum State { UPPER, LOWER, NEUTRAL }
+
+    // Oscillator bounds typically between 0 and 100
+    struct Bounds {
+        uint256 lower;
+        uint256 upper;
+    }
+
     /*
-     * Returns bool indicating whether the current market conditions are bullish.
-     *
-     * @return             Boolean whether condition is bullish
+     * Returns upper of value is greater or equal to upper bound.
+     * Returns lower if lower than lower bound, and neutral if in between.
      */
-    function isBullish()
-        external
+    function getState(
+        Bounds storage _bounds,
+        uint256 _value
+    )
+        internal
         view
-        returns (bool);
+        returns(State)
+    {
+        return _value >= _bounds.upper ? State.UPPER : 
+            _value < _bounds.lower ? State.LOWER : State.NEUTRAL;
+    }
 }
