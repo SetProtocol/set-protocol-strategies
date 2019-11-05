@@ -37,7 +37,7 @@ import {
 import { extractNewCollateralFromLogs } from '@utils/contract_logs/binaryAllocator';
 import { ProtocolHelper } from '@utils/helpers/protocolHelper';
 
-import { getWeb3 } from '../web3Helper';
+import { getWeb3, getContractInstance } from '../web3Helper';
 
 const web3 = getWeb3();
 const TwoAssetStrategyManagerMock = artifacts.require('TwoAssetStrategyManagerMock');
@@ -104,7 +104,7 @@ export class ManagerHelper {
     );
 
     return new BTCETHRebalancingManagerContract(
-      new web3.eth.Contract(truffleRebalacingTokenManager.abi, truffleRebalacingTokenManager.address),
+      getContractInstance(truffleRebalacingTokenManager),
       { from, gas: DEFAULT_GAS },
     );
   }
@@ -135,7 +135,7 @@ export class ManagerHelper {
     );
 
     return new BTCDaiRebalancingManagerContract(
-      new web3.eth.Contract(truffleRebalacingTokenManager.abi, truffleRebalacingTokenManager.address),
+      getContractInstance(truffleRebalacingTokenManager),
       { from, gas: DEFAULT_GAS },
     );
   }
@@ -166,7 +166,7 @@ export class ManagerHelper {
     );
 
     return new ETHDaiRebalancingManagerContract(
-      new web3.eth.Contract(truffleRebalacingTokenManager.abi, truffleRebalacingTokenManager.address),
+      getContractInstance(truffleRebalacingTokenManager),
       { from, gas: DEFAULT_GAS },
     );
   }
@@ -201,7 +201,7 @@ export class ManagerHelper {
     );
 
     return new MACOStrategyManagerContract(
-      new web3.eth.Contract(truffleRebalacingTokenManager.abi, truffleRebalacingTokenManager.address),
+      getContractInstance(truffleRebalacingTokenManager),
       { from, gas: DEFAULT_GAS },
     );
   }
@@ -237,7 +237,7 @@ export class ManagerHelper {
     );
 
     return new MACOStrategyManagerV2Contract(
-      new web3.eth.Contract(truffleRebalacingTokenManager.abi, truffleRebalacingTokenManager.address),
+      getContractInstance(truffleRebalacingTokenManager),
       { from, gas: DEFAULT_GAS },
     );
   }
@@ -273,7 +273,7 @@ export class ManagerHelper {
     );
 
     return new InverseMACOStrategyManagerContract(
-      new web3.eth.Contract(truffleRebalacingTokenManager.abi, truffleRebalacingTokenManager.address),
+      getContractInstance(truffleRebalacingTokenManager),
       { from, gas: DEFAULT_GAS },
     );
   }
@@ -302,7 +302,7 @@ export class ManagerHelper {
     );
 
     return new TwoAssetStrategyManagerMockContract(
-      new web3.eth.Contract(truffleRebalacingTokenManager.abi, truffleRebalacingTokenManager.address),
+      getContractInstance(truffleRebalacingTokenManager),
       { from, gas: DEFAULT_GAS },
     );
   }
@@ -337,7 +337,7 @@ export class ManagerHelper {
     );
 
     return new TriggerIndexManagerContract(
-      new web3.eth.Contract(truffleRebalacingTokenManager.abi, truffleRebalacingTokenManager.address),
+      getContractInstance(truffleRebalacingTokenManager),
       { from, gas: DEFAULT_GAS },
     );
   }
@@ -358,7 +358,7 @@ export class ManagerHelper {
     await Promise.all(priceTriggersPromises).then(priceTriggerInstances => {
       _.each(priceTriggerInstances, priceTrigger => {
         priceTriggers.push(new TriggerMockContract(
-          new web3.eth.Contract(priceTrigger.abi, priceTrigger.address),
+          getContractInstance(priceTrigger),
           { from: this._tokenOwnerAddress, gas: DEFAULT_GAS }
         ));
       });
@@ -388,7 +388,7 @@ export class ManagerHelper {
     );
 
     return new MovingAverageToAssetPriceCrossoverTriggerContract(
-      new web3.eth.Contract(trufflePriceTrigger.abi, trufflePriceTrigger.address),
+      getContractInstance(trufflePriceTrigger),
       { from, gas: DEFAULT_GAS },
     );
   }
@@ -411,7 +411,7 @@ export class ManagerHelper {
     );
 
     return new RSITrendingTriggerContract(
-      new web3.eth.Contract(trufflePriceTrigger.abi, trufflePriceTrigger.address),
+      getContractInstance(trufflePriceTrigger),
       { from, gas: DEFAULT_GAS },
     );
   }
@@ -442,7 +442,7 @@ export class ManagerHelper {
     );
 
     return new BinaryAllocatorContract(
-      new web3.eth.Contract(truffleAllocationPricer.abi, truffleAllocationPricer.address),
+      getContractInstance(truffleAllocationPricer),
       { from, gas: DEFAULT_GAS },
     );
   }
@@ -463,7 +463,7 @@ export class ManagerHelper {
     );
 
     return new BinaryAllocatorMockContract(
-      new web3.eth.Contract(truffleAllocationPricer.abi, truffleAllocationPricer.address),
+      getContractInstance(truffleAllocationPricer),
       { from, gas: DEFAULT_GAS },
     );
   }

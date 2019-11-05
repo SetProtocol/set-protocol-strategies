@@ -31,7 +31,7 @@ import {
   ONE_DAY_IN_SECONDS,
   ONE_HOUR_IN_SECONDS,
 } from '@utils/constants';
-import { getWeb3 } from '../web3Helper';
+import { getWeb3, getContractInstance, txnFrom } from '../web3Helper';
 import { FeedCreatedArgs } from '../contract_logs/oracle';
 
 const web3 = getWeb3();
@@ -73,13 +73,11 @@ export class OracleHelper {
   public async deployFeedFactoryAsync(
     from: Address = this._contractOwnerAddress
   ): Promise<FeedFactoryContract> {
-    const feedFactory = await FeedFactory.new(
-      { from },
-    );
+    const feedFactory = await FeedFactory.new(txnFrom(from));
 
     return new FeedFactoryContract(
-      new web3.eth.Contract(feedFactory.abi, feedFactory.address),
-      { from },
+      getContractInstance(feedFactory),
+      txnFrom(from),
     );
   }
 
@@ -88,7 +86,7 @@ export class OracleHelper {
     from: Address = this._contractOwnerAddress
   ): Promise<PriceFeedContract> {
     const txHash = await feedFactory.create.sendTransactionAsync(
-      { from },
+      txnFrom(from),
     );
 
     const logs = await setTestUtils.getLogsFromTxHash(txHash);
@@ -98,20 +96,18 @@ export class OracleHelper {
     return await PriceFeedContract.at(
       args.feed,
       web3,
-      { from }
+      txnFrom(from)
     );
   }
 
   public async deployMedianizerAsync(
     from: Address = this._contractOwnerAddress
   ): Promise<MedianContract> {
-    const medianizer = await Median.new(
-      { from },
-    );
+    const medianizer = await Median.new(txnFrom(from));
 
     return new MedianContract(
-      new web3.eth.Contract(medianizer.abi, medianizer.address),
-      { from },
+      getContractInstance(medianizer),
+      txnFrom(from),
     );
   }
 
@@ -129,12 +125,12 @@ export class OracleHelper {
       dataSourceAddress,
       dataDescription,
       seededValues,
-      { from },
+      txnFrom(from),
     );
 
     return new TimeSeriesFeedContract(
-      new web3.eth.Contract(historicalPriceFeed.abi, historicalPriceFeed.address),
-      { from },
+      getContractInstance(historicalPriceFeed),
+      txnFrom(from),
     );
   }
 
@@ -150,12 +146,12 @@ export class OracleHelper {
       nextEarliestUpdate,
       maxDataPoints,
       seededValues,
-      { from },
+      txnFrom(from),
     );
 
     return new TimeSeriesFeedV2MockContract(
-      new web3.eth.Contract(historicalPriceFeed.abi, historicalPriceFeed.address),
-      { from },
+      getContractInstance(historicalPriceFeed),
+      txnFrom(from),
     );
   }
 
@@ -169,12 +165,12 @@ export class OracleHelper {
       updateTolerance,
       medianizerInstance,
       dataDescription,
-      { from },
+      txnFrom(from),
     );
 
     return new LinearizedPriceDataSourceContract(
-      new web3.eth.Contract(linearizedPriceDataSource.abi, linearizedPriceDataSource.address),
-      { from },
+      getContractInstance(linearizedPriceDataSource),
+      txnFrom(from),
     );
   }
 
@@ -198,12 +194,12 @@ export class OracleHelper {
       interpolationThreshold,
       medianizerInstance,
       dataDescription,
-      { from },
+      txnFrom(from),
     );
 
     return new LinearizedEMATimeSeriesFeedContract(
-      new web3.eth.Contract(linearizedEMATimeSeriesFeed.abi, linearizedEMATimeSeriesFeed.address),
-      { from },
+      getContractInstance(linearizedEMATimeSeriesFeed),
+      txnFrom(from),
     );
   }
 
@@ -219,12 +215,12 @@ export class OracleHelper {
       medianizerAddress,
       dataDescription,
       seededValues,
-      { from },
+      txnFrom(from),
     );
 
     return new HistoricalPriceFeedContract(
-      new web3.eth.Contract(historicalPriceFeed.abi, historicalPriceFeed.address),
-      { from },
+      getContractInstance(historicalPriceFeed),
+      txnFrom(from),
     );
   }
 
@@ -236,12 +232,12 @@ export class OracleHelper {
     const movingAverageOracle = await MovingAverageOracle.new(
       priceFeedAddress,
       dataDescription,
-      { from },
+      txnFrom(from),
     );
 
     return new MovingAverageOracleContract(
-      new web3.eth.Contract(movingAverageOracle.abi, movingAverageOracle.address),
-      { from },
+      getContractInstance(movingAverageOracle),
+      txnFrom(from),
     );
   }
 
@@ -251,12 +247,12 @@ export class OracleHelper {
   ): Promise<MovingAverageOracleV1ProxyContract> {
     const movingAverageOracleProxy = await MovingAverageOracleV1Proxy.new(
       metaOracle,
-      { from },
+      txnFrom(from),
     );
 
     return new MovingAverageOracleV1ProxyContract(
-      new web3.eth.Contract(movingAverageOracleProxy.abi, movingAverageOracleProxy.address),
-      { from },
+      getContractInstance(movingAverageOracleProxy),
+      txnFrom(from),
     );
   }
 
@@ -268,12 +264,12 @@ export class OracleHelper {
     const movingAverageOracle = await MovingAverageOracleV2.new(
       timeSeriesFeedAddress,
       dataDescription,
-      { from },
+      txnFrom(from),
     );
 
     return new MovingAverageOracleV2Contract(
-      new web3.eth.Contract(movingAverageOracle.abi, movingAverageOracle.address),
-      { from },
+      getContractInstance(movingAverageOracle),
+      txnFrom(from),
     );
   }
 
@@ -287,12 +283,12 @@ export class OracleHelper {
       timeSeriesFeedAddresses,
       timeSeriesFeedDays,
       dataDescription,
-      { from },
+      txnFrom(from),
     );
 
     return new EMAOracleContract(
-      new web3.eth.Contract(emaOracle.abi, emaOracle.address),
-      { from },
+      getContractInstance(emaOracle),
+      txnFrom(from),
     );
   }
 
@@ -302,12 +298,12 @@ export class OracleHelper {
   ): Promise<LegacyMakerOracleAdapterContract> {
     const legacyMakerOracleAdapter = await LegacyMakerOracleAdapter.new(
       medianizerAddress,
-      { from },
+      txnFrom(from),
     );
 
     return new LegacyMakerOracleAdapterContract(
-      new web3.eth.Contract(legacyMakerOracleAdapter.abi, legacyMakerOracleAdapter.address),
-      { from },
+      getContractInstance(legacyMakerOracleAdapter),
+      txnFrom(from),
     );
   }
 
@@ -317,12 +313,12 @@ export class OracleHelper {
   ): Promise<OracleProxyContract> {
     const oracleProxy = await OracleProxy.new(
       oracleAddress,
-      { from },
+      txnFrom(from),
     );
 
     return new OracleProxyContract(
-      new web3.eth.Contract(oracleProxy.abi, oracleProxy.address),
-      { from },
+      getContractInstance(oracleProxy),
+      txnFrom(from),
     );
   }
 
@@ -332,12 +328,12 @@ export class OracleHelper {
   ): Promise<ConstantPriceOracleContract> {
     const oracle = await ConstantPriceOracle.new(
       constantPrice,
-      { from },
+      txnFrom(from),
     );
 
     return new ConstantPriceOracleContract(
-      new web3.eth.Contract(oracle.abi, oracle.address),
-      { from },
+      getContractInstance(oracle),
+      txnFrom(from),
     );
   }
 
@@ -347,12 +343,12 @@ export class OracleHelper {
   ): Promise<OracleProxyCallerContract> {
     const oracleProxy = await OracleProxyCaller.new(
       oracleAddress,
-      { from },
+      txnFrom(from),
     );
 
     return new OracleProxyCallerContract(
-      new web3.eth.Contract(oracleProxy.abi, oracleProxy.address),
-      { from },
+      getContractInstance(oracleProxy),
+      txnFrom(from),
     );
   }
 
@@ -364,12 +360,12 @@ export class OracleHelper {
     const rsiOracle = await RSIOracle.new(
       timeSeriesFeedAddress,
       dataDescription,
-      { from },
+      txnFrom(from),
     );
 
     return new RSIOracleContract(
-      new web3.eth.Contract(rsiOracle.abi, rsiOracle.address),
-      { from },
+      getContractInstance(rsiOracle),
+      txnFrom(from),
     );
   }
 
@@ -382,7 +378,7 @@ export class OracleHelper {
   ): Promise<string> {
     return await medianizer.lift.sendTransactionAsync(
       priceFeedSigner,
-      { from },
+      txnFrom(from),
     );
   }
 
@@ -395,7 +391,7 @@ export class OracleHelper {
     for (i = 0; i < authorizedAddresses.length; i++) {
       await oracleProxy.addAuthorizedAddress.sendTransactionAsync(
         authorizedAddresses[i],
-        { from },
+        txnFrom(from),
       );
     }
   }
@@ -407,7 +403,7 @@ export class OracleHelper {
   ): Promise<string> {
     return await medianizer.setMin.sendTransactionAsync(
       new BigNumber(minimum),
-      { from },
+      txnFrom(from),
     );
   }
 
@@ -420,7 +416,7 @@ export class OracleHelper {
     return await priceFeed.poke.sendTransactionAsync(
       price,
       timeStamp,
-      { from },
+      txnFrom(from),
     );
   }
 
@@ -452,7 +448,7 @@ export class OracleHelper {
       [new BigNumber(ecSignature.v)],
       [ecSignature.r],
       [ecSignature.s],
-      { from }
+      txnFrom(from)
     );
   }
 

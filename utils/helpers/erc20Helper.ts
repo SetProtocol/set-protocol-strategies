@@ -18,12 +18,10 @@ import {
   UNLIMITED_ALLOWANCE_IN_BASE_UNITS,
 } from '../constants';
 import {
-  getWeb3,
+  getContractInstance,
 } from '../web3Helper';
 
 const USDCMock = artifacts.require('USDCMock');
-
-const web3 = getWeb3();
 
 export class ERC20Helper {
   private _senderAccountAddress: Address;
@@ -117,7 +115,7 @@ export class ERC20Helper {
     const tokenPromises = _.map(
       tokens,
       tokenAddress => new StandardTokenMockContract(
-        new web3.eth.Contract(StandardTokenMock.abi, tokenAddress),
+        getContractInstance(StandardTokenMock, tokenAddress),
         { from: this._senderAccountAddress },
       )
     );
@@ -138,7 +136,7 @@ export class ERC20Helper {
     );
 
     return new USDCMockContract(
-      new web3.eth.Contract(truffleMockToken.abi, truffleMockToken.address),
+      getContractInstance(truffleMockToken),
       { from: this._senderAccountAddress, gas: DEFAULT_GAS },
     );
   }
