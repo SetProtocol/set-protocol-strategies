@@ -6,7 +6,7 @@ import { Address } from 'set-protocol-utils';
 import { SetTokenContract, MedianContract } from 'set-protocol-contracts';
 
 import {
-  TwoAssetStrategyManagerMockContract,
+  TwoAssetStrategyManagerContract,
   BinaryAllocatorContract,
   BinaryAllocatorMockContract,
   BTCETHRebalancingManagerContract,
@@ -20,7 +20,6 @@ import {
   MovingAverageCrossoverTriggerContract,
   RSITrendingTriggerContract,
   TriggerMockContract,
-  TriggerIndexManagerContract,
 } from '../contracts';
 import { BigNumber } from 'bignumber.js';
 
@@ -40,7 +39,7 @@ import { ProtocolHelper } from '@utils/helpers/protocolHelper';
 import { getWeb3, getContractInstance } from '../web3Helper';
 
 const web3 = getWeb3();
-const TwoAssetStrategyManagerMock = artifacts.require('TwoAssetStrategyManagerMock');
+const TwoAssetStrategyManager = artifacts.require('TwoAssetStrategyManager');
 const BinaryAllocator = artifacts.require('BinaryAllocator');
 const BinaryAllocatorMock = artifacts.require('BinaryAllocatorMock');
 const BTCETHRebalancingManager = artifacts.require('BTCETHRebalancingManager');
@@ -54,7 +53,6 @@ const MovingAverageCrossoverTrigger = artifacts.require(
 );
 const RSITrendingTrigger = artifacts.require('RSITrendingTrigger');
 const TriggerMock = artifacts.require('TriggerMock');
-const TriggerIndexManager = artifacts.require('TriggerIndexManager');
 const UintArrayUtilsLibrary = artifacts.require('UintArrayUtilsLibrary');
 
 const { SetProtocolUtils: SetUtils, SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
@@ -278,65 +276,36 @@ export class ManagerHelper {
     );
   }
 
-  public async deployTwoAssetStrategyManagerMockAsync(
+  public async deployTwoAssetStrategyManagerAsync(
     coreInstance: Address,
-    allocationPricerInstance: Address,
+    allocatorInstance: Address,
+    triggerInstance: Address,
     auctionLibraryInstance: Address,
     baseAssetAllocation: BigNumber,
     allocationPrecision: BigNumber = new BigNumber(100),
+    maxBaseAssetAllocation: BigNumber = new BigNumber(100),
     auctionStartPercentage: BigNumber = new BigNumber(2),
     auctionEndPercentage: BigNumber = new BigNumber(10),
     auctionTimeToPivot: BigNumber = ONE_HOUR_IN_SECONDS.mul(4),
+    signalConfirmationMinTime: BigNumber = ONE_HOUR_IN_SECONDS.mul(6),
+    signalConfirmationMaxTime: BigNumber = ONE_HOUR_IN_SECONDS.mul(12),
     from: Address = this._tokenOwnerAddress
-  ): Promise<TwoAssetStrategyManagerMockContract> {
-    const truffleRebalacingTokenManager = await TwoAssetStrategyManagerMock.new(
+  ): Promise<TwoAssetStrategyManagerContract> {
+    const truffleRebalacingTokenManager = await TwoAssetStrategyManager.new(
       coreInstance,
-      allocationPricerInstance,
+      allocatorInstance,
+      triggerInstance,
       auctionLibraryInstance,
       baseAssetAllocation,
       allocationPrecision,
-      auctionStartPercentage,
-      auctionEndPercentage,
+      maxBaseAssetAllocation,
       auctionTimeToPivot,
+      [auctionStartPercentage, auctionEndPercentage],
+      [signalConfirmationMinTime, signalConfirmationMaxTime],
       { from },
     );
 
-    return new TwoAssetStrategyManagerMockContract(
-      getContractInstance(truffleRebalacingTokenManager),
-      { from, gas: DEFAULT_GAS },
-    );
-  }
-
-  public async deployTriggerIndexManagerAsync(
-    coreInstance: Address,
-    allocationPricerInstance: Address,
-    auctionLibraryInstance: Address,
-    baseAssetAllocation: BigNumber,
-    allocationPrecision: BigNumber = new BigNumber(100),
-    auctionStartPercentage: BigNumber = new BigNumber(2),
-    auctionEndPercentage: BigNumber = new BigNumber(10),
-    auctionTimeToPivot: BigNumber = ONE_HOUR_IN_SECONDS.mul(4),
-    priceTriggers: Address[],
-    triggerWeights: BigNumber[],
-    from: Address = this._tokenOwnerAddress
-  ): Promise<TriggerIndexManagerContract> {
-    await this.linkUintArrayUtilsLibraryAsync(TriggerIndexManager);
-
-    const truffleRebalacingTokenManager = await TriggerIndexManager.new(
-      coreInstance,
-      allocationPricerInstance,
-      auctionLibraryInstance,
-      baseAssetAllocation,
-      allocationPrecision,
-      auctionStartPercentage,
-      auctionEndPercentage,
-      auctionTimeToPivot,
-      priceTriggers,
-      triggerWeights,
-      { from },
-    );
-
-    return new TriggerIndexManagerContract(
+    return new TwoAssetStrategyManagerContract(
       getContractInstance(truffleRebalacingTokenManager),
       { from, gas: DEFAULT_GAS },
     );
