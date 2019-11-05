@@ -17,7 +17,7 @@ import {
   MACOStrategyManagerV2Contract,
   MovingAverageOracleContract,
   MovingAverageOracleV2Contract,
-  MovingAverageToAssetPriceCrossoverTriggerContract,
+  MovingAverageCrossoverTriggerContract,
   RSITrendingTriggerContract,
   TriggerMockContract,
   TriggerIndexManagerContract,
@@ -49,8 +49,8 @@ const ETHDaiRebalancingManager = artifacts.require('ETHDaiRebalancingManager');
 const InverseMACOStrategyManager = artifacts.require('InverseMACOStrategyManager');
 const MACOStrategyManager = artifacts.require('MACOStrategyManager');
 const MACOStrategyManagerV2 = artifacts.require('MACOStrategyManagerV2');
-const MovingAverageToAssetPriceCrossoverTrigger = artifacts.require(
-  'MovingAverageToAssetPriceCrossoverTrigger'
+const MovingAverageCrossoverTrigger = artifacts.require(
+  'MovingAverageCrossoverTrigger'
 );
 const RSITrendingTrigger = artifacts.require('RSITrendingTrigger');
 const TriggerMock = artifacts.require('TriggerMock');
@@ -368,26 +368,20 @@ export class ManagerHelper {
   }
 
 
-  public async deployMovingAverageToAssetPriceCrossoverTrigger(
+  public async deployMovingAverageCrossoverTrigger(
     movingAveragePriceFeed: Address,
     assetPairOracle: Address,
     movingAverageDays: BigNumber,
-    initialState: boolean,
-    signalConfirmationMinTime: BigNumber,
-    signalConfirmationMaxTime: BigNumber,
     from: Address = this._tokenOwnerAddress,
-  ): Promise<MovingAverageToAssetPriceCrossoverTriggerContract> {
-    const trufflePriceTrigger = await MovingAverageToAssetPriceCrossoverTrigger.new(
+  ): Promise<MovingAverageCrossoverTriggerContract> {
+    const trufflePriceTrigger = await MovingAverageCrossoverTrigger.new(
       movingAveragePriceFeed,
       assetPairOracle,
       movingAverageDays,
-      signalConfirmationMinTime,
-      signalConfirmationMaxTime,
-      initialState,
       { from }
     );
 
-    return new MovingAverageToAssetPriceCrossoverTriggerContract(
+    return new MovingAverageCrossoverTriggerContract(
       new web3.eth.Contract(trufflePriceTrigger.abi, trufflePriceTrigger.address),
       { from, gas: DEFAULT_GAS },
     );
@@ -398,7 +392,6 @@ export class ManagerHelper {
     lowerBound: BigNumber,
     upperBound: BigNumber,
     rsiTimePeriod: BigNumber,
-    initialTrendState: boolean,
     from: Address = this._tokenOwnerAddress,
   ): Promise<RSITrendingTriggerContract> {
     const trufflePriceTrigger = await RSITrendingTrigger.new(
@@ -406,7 +399,6 @@ export class ManagerHelper {
       lowerBound,
       upperBound,
       rsiTimePeriod,
-      initialTrendState,
       { from }
     );
 
