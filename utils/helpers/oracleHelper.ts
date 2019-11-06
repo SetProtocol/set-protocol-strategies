@@ -24,7 +24,9 @@ import {
   RSIOracleContract,
   TimeSeriesFeedContract,
   TimeSeriesFeedV2Contract,
-  TimeSeriesFeedV2MockContract
+  TimeSeriesFeedV2MockContract,
+  TwoAssetCurrentPriceOracleContract,
+  TwoAssetRatioMovingAverageOracleContract,
 } from '../contracts';
 import {
   DEFAULT_GAS,
@@ -52,6 +54,8 @@ const OracleProxyCaller = artifacts.require('OracleProxyCaller');
 const RSIOracle = artifacts.require('RSIOracle');
 const TimeSeriesFeed = artifacts.require('TimeSeriesFeed');
 const TimeSeriesFeedV2Mock = artifacts.require('TimeSeriesFeedV2Mock');
+const TwoAssetCurrentPriceOracle = artifacts.require('TwoAssetCurrentPriceOracle');
+const TwoAssetRatioMovingAverageOracle = artifacts.require('TwoAssetRatioMovingAverageOracle');
 
 
 const { SetProtocolTestUtils: SetTestUtils, SetProtocolUtils: SetUtils } = setProtocolUtils;
@@ -107,6 +111,25 @@ export class OracleHelper {
 
     return new MedianContract(
       getContractInstance(medianizer),
+      txnFrom(from),
+    );
+  }
+
+  public async deployTwoAssetCurrentPriceOracle(
+    baseTimeSeriesFeedAddress: Address,
+    quoteTimeSeriesFeedAddress: Address,
+    dataDescription: string,
+    from: Address = this._contractOwnerAddress
+  ): Promise<TwoAssetCurrentPriceOracleContract> {
+    const twoAssetCurrentPriceOracle = await TwoAssetCurrentPriceOracle.new(
+      baseTimeSeriesFeedAddress,
+      quoteTimeSeriesFeedAddress,
+      dataDescription,
+      txnFrom(from),
+    );
+
+    return new TwoAssetCurrentPriceOracleContract(
+      getContractInstance(twoAssetCurrentPriceOracle),
       txnFrom(from),
     );
   }
@@ -269,6 +292,25 @@ export class OracleHelper {
 
     return new MovingAverageOracleV2Contract(
       getContractInstance(movingAverageOracle),
+      txnFrom(from),
+    );
+  }
+
+  public async deployTwoAssetRatioMovingAverageOracleAsync(
+    baseTimeSeriesFeedAddress: Address,
+    quoteTimeSeriesFeedAddress: Address,
+    dataDescription: string,
+    from: Address = this._contractOwnerAddress
+  ): Promise<TwoAssetRatioMovingAverageOracleContract> {
+    const twoAssetRatioMovingAverageOracle = await TwoAssetRatioMovingAverageOracle.new(
+      baseTimeSeriesFeedAddress,
+      quoteTimeSeriesFeedAddress,
+      dataDescription,
+      txnFrom(from),
+    );
+
+    return new TwoAssetRatioMovingAverageOracleContract(
+      getContractInstance(twoAssetRatioMovingAverageOracle),
       txnFrom(from),
     );
   }
@@ -494,6 +536,50 @@ export class OracleHelper {
     }
 
     return priceArray;
+  }
+
+  public async updateTimeSeriesFeedsAsync(
+    timeSeriesFeeds: TimeSeriesFeedContract[] | TimeSeriesFeedV2Contract[],
+    medianizers: MedianContract[],
+    prices: BigNumber[],
+    timestamp: number = ONE_DAY_IN_SECONDS.mul(2).toNumber(),
+    from: Address = this._contractOwnerAddress
+  ): Promise<void> {
+    await this._blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS);
+
+    let i: number;
+    for (i = 0; i < timeSeriesFeed.length; i++) {
+      await this.updateMedianizerPriceAsync(
+        medianizers[i],
+        prices[i],
+        SetTestUtils.generateTimestamp(timestamp),
+      );
+
+      await timeSeriesFeeds[i].poke.sendTransactionAsync(
+        { gas: DEFAULT_GAS},
+      );
+    }
+  }
+
+  public async batchUpdateTimeSeriesFeedsAsync(
+    timeSeriesFeeds: TimeSeriesFeedContract[] | TimeSeriesFeedV2Contract[],
+    medianizers: MedianContract[],
+    daysOfData: number,
+    priceArrays: BigNumber[][],
+    from: Address = this._contractOwnerAddress
+  ): Promise<BigNumber[][]> {
+
+    let i: number;
+    for (i = 0; i < daysOfData; i++) {
+      await this.updateTimeSeriesFeedsAsync(
+        timeSeriesFeeds,
+        medianizers,
+        priceArrays[i],
+        ONE_DAY_IN_SECONDS.mul(2 * i + 2).toNumber()
+      );
+    }
+
+    return priceArrays;
   }
 
   public async updateHistoricalPriceFeedAsync(

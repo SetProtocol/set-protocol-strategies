@@ -43,6 +43,10 @@ export { TimeSeriesFeedContract } from '../types/generated/time_series_feed';
 export { TimeSeriesFeedV2Contract } from '../types/generated/time_series_feed_v2';
 export { TimeSeriesFeedV2MockContract } from '../types/generated/time_series_feed_v2_mock';
 export { TriggerIndexManagerContract } from '../types/generated/trigger_index_manager';
+export { TwoAssetCurrentPriceOracleContract } from '../types/generated/two_asset_current_price_oracle';
+export {
+  TwoAssetRatioMovingAverageOracleContract
+} from '../types/generated/two_asset_ratio_moving_average_oracle';
 export {
   TwoAssetStrategyManagerMockContract
 } from '../types/generated/two_asset_strategy_manager_mock';
