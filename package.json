@@ -44,7 +44,7 @@
     "transpile": "tsc",
     "truffle-test-scenarios": "truffle test `find transpiled/test/scenarios -name '*.spec.js'`",
     "truffle-test-integrations": "truffle test `find transpiled/test/integrations -name '*.spec.js'`",
-    "truffle-test-contracts": "truffle test `find transpiled/test/contracts -name 'twoAssetCurrentPriceOracle.spec.js'`",
+    "truffle-test-contracts": "truffle test `find transpiled/test/contracts -name '*.spec.js'`",
     "prepublishOnly": "yarn dist",
     "flatten": "truffle-flattener contracts/[xxx]/[xxx].sol"
   },
