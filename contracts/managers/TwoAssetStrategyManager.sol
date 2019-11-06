@@ -35,7 +35,7 @@ import { ITrigger } from "./triggers/ITrigger.sol";
  *
  * Rebalancing Manager contract for implementing any trading pair strategy. Allocation determinations are made
  * base on output of Trigger contract. Max base asset allocation amount is passed in and used when bullish,
- * allocationPrecision - maxBaseAssetAllocation used when bearish. Additionally, all allocations are priced
+ * allocationPrecision - bullishBaseAssetAllocation used when bearish. Additionally, all allocations are priced
  * using the base contract's Allocator contract.
  */
 contract TwoAssetStrategyManager {
@@ -43,13 +43,13 @@ contract TwoAssetStrategyManager {
 
     /* ============ State Variables ============ */
     ICore public coreInstance;
-    IAuctionPriceCurve public auctionLibraryInstance;
     IAllocator public allocatorInstance;
     ITrigger public triggerInstance;
+    IAuctionPriceCurve public auctionLibraryInstance;
     IRebalancingSetToken public rebalancingSetTokenInstance;
     uint256 public baseAssetAllocation;  // Percent of base asset currently allocated in strategy
     uint256 public allocationPrecision;
-    uint256 public maxBaseAssetAllocation;
+    uint256 public bullishBaseAssetAllocation;
     uint256 public auctionStartPercentage;
     uint256 public auctionEndPercentage;
     uint256 public auctionTimeToPivot;
@@ -71,7 +71,7 @@ contract TwoAssetStrategyManager {
      * @param  _auctionLibraryInstance          The address of auction price curve to use in rebalance
      * @param  _baseAssetAllocation             Starting allocation of the Rebalancing Set in baseAsset amount
      * @param  _allocationPrecision             Precision of allocation percentage
-     * @param  _amaxBaseAssetAllocation         Base asset allocation when trigger is bullish
+     * @param  _bullishBaseAssetAllocation      Base asset allocation when trigger is bullish
      * @param  _auctionTimeToPivot              Time, in seconds, spent between start and pivot price
      * @param  _auctionPriceBounds              The price bounds, in percent below and above fair value, of linear auction
      * @param  _signalConfirmationBounds        The lower and upper bounds of time, in seconds, from initialTrigger to confirm signal
@@ -83,7 +83,7 @@ contract TwoAssetStrategyManager {
         IAuctionPriceCurve _auctionLibraryInstance,
         uint256 _baseAssetAllocation,
         uint256 _allocationPrecision,
-        uint256 _maxBaseAssetAllocation,
+        uint256 _bullishBaseAssetAllocation,
         uint256 _auctionTimeToPivot,
         uint256[2] memory _auctionPriceBounds,
         uint256[2] memory _signalConfirmationBounds
@@ -102,7 +102,7 @@ contract TwoAssetStrategyManager {
         auctionLibraryInstance = _auctionLibraryInstance;
         baseAssetAllocation = _baseAssetAllocation;
         allocationPrecision = _allocationPrecision;
-        maxBaseAssetAllocation = _maxBaseAssetAllocation;
+        bullishBaseAssetAllocation = _bullishBaseAssetAllocation;
         auctionTimeToPivot = _auctionTimeToPivot;
         auctionStartPercentage = _auctionPriceBounds[0];
         auctionEndPercentage = _auctionPriceBounds[1];
@@ -288,7 +288,7 @@ contract TwoAssetStrategyManager {
         view
         returns (uint256)
     {
-        return triggerInstance.isBullish() ? maxBaseAssetAllocation : allocationPrecision.sub(maxBaseAssetAllocation);   
+        return triggerInstance.isBullish() ? bullishBaseAssetAllocation : allocationPrecision.sub(bullishBaseAssetAllocation);   
     }
 
     /*

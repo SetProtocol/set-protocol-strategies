@@ -152,7 +152,7 @@ contract('TwoAssetStrategyManager', accounts => {
     let subjectAuctionLibraryInstance: Address;
     let subjectBaseAssetAllocation: BigNumber;
     let subjectAllocationPrecision: BigNumber;
-    let subjectMaxBaseAssetAllocation: BigNumber;
+    let subjectBullishBaseAssetAllocation: BigNumber;
     let subjectAuctionStartPercentage: BigNumber;
     let subjectAuctionEndPercentage: BigNumber;
     let subjectAuctionTimeToPivot: BigNumber;
@@ -167,7 +167,7 @@ contract('TwoAssetStrategyManager', accounts => {
       subjectAuctionLibraryInstance = linearAuctionPriceCurve.address;
       subjectBaseAssetAllocation = ZERO;
       subjectAllocationPrecision = new BigNumber(100);
-      subjectMaxBaseAssetAllocation = new BigNumber(100);
+      subjectBullishBaseAssetAllocation = new BigNumber(100);
       subjectAuctionStartPercentage = new BigNumber(2);
       subjectAuctionEndPercentage = new BigNumber(10);
       subjectAuctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
@@ -184,7 +184,7 @@ contract('TwoAssetStrategyManager', accounts => {
         subjectAuctionLibraryInstance,
         subjectBaseAssetAllocation,
         subjectAllocationPrecision,
-        subjectMaxBaseAssetAllocation,
+        subjectBullishBaseAssetAllocation,
         subjectAuctionStartPercentage,
         subjectAuctionEndPercentage,
         subjectAuctionTimeToPivot,
@@ -242,12 +242,12 @@ contract('TwoAssetStrategyManager', accounts => {
       expect(actualAllocationPrecision).to.be.bignumber.equal(subjectAllocationPrecision);
     });
 
-    it('sets the correct maxBaseAssetAllocation', async () => {
+    it('sets the correct bullishBaseAssetAllocation', async () => {
       setManager = await subject();
 
-      const actualMaxBaseAssetAllocation = await setManager.maxBaseAssetAllocation.callAsync();
+      const actualBullishBaseAssetAllocation = await setManager.bullishBaseAssetAllocation.callAsync();
 
-      expect(actualMaxBaseAssetAllocation).to.be.bignumber.equal(subjectMaxBaseAssetAllocation);
+      expect(actualBullishBaseAssetAllocation).to.be.bignumber.equal(subjectBullishBaseAssetAllocation);
     });
 
     it('sets the correct auctionStartPercentage', async () => {
