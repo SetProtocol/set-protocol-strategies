@@ -33,9 +33,10 @@ import { ITrigger } from "./triggers/ITrigger.sol";
  * @title TwoAssetStrategyManager
  * @author Set Protocol
  *
- * Base Rebalancing Manager contract for implementing any trading pair strategy. Allocation determinations
- * are implemented in a contract that inherits the functionality of this contract. Additionally, all allocations are
- * priced using the base contracts's Allocator contract.
+ * Rebalancing Manager contract for implementing any trading pair strategy. Allocation determinations are made
+ * base on output of Trigger contract. Max base asset allocation amount is passed in and used when bullish,
+ * allocationPrecision - maxBaseAssetAllocation used when bearish. Additionally, all allocations are priced
+ * using the base contract's Allocator contract.
  */
 contract TwoAssetStrategyManager {
     using SafeMath for uint256;
@@ -192,7 +193,7 @@ contract TwoAssetStrategyManager {
         // Check that new baseAsset allocation amount is different from current allocation amount
         require(
             newBaseAssetAllocation != baseAssetAllocation,
-            "TwoAssetStrategyManager.propose: No change in allocation detected."
+            "TwoAssetStrategyManager.confirmPropose: No change in allocation detected."
         );
 
         // Get current collateral Set
