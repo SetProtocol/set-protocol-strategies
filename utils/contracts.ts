@@ -43,5 +43,6 @@ export { TimeSeriesFeedV2Contract } from '../types/generated/time_series_feed_v2
 export { TimeSeriesFeedV2MockContract } from '../types/generated/time_series_feed_v2_mock';
 export { AssetPairManagerContract } from '../types/generated/asset_pair_manager';
 export { TwoAssetLinearizedTimeSeriesFeedContract } from '../types/generated/two_asset_linearized_time_series_feed';
+export { AssetPairManagerContract } from '../types/generated/asset_pair_manager';
 export { UintArrayUtilsLibraryMockContract } from '../types/generated/uint_array_utils_library_mock';
 export { USDCMockContract } from '../types/generated/u_s_d_c_mock';

@@ -1192,6 +1192,7 @@ contract('AssetPairManager', accounts => {
 
     async function subject(): Promise<boolean> {
       await blockchain.increaseTimeAsync(subjectTimeFastForward);
+      
       await blankTxn(subjectCaller);
       return setManager.canConfirmPropose.callAsync(
         { from: subjectCaller, gas: DEFAULT_GAS}
