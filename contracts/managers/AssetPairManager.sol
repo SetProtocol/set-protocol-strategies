@@ -30,7 +30,7 @@ import { ITrigger } from "./triggers/ITrigger.sol";
 
 
 /**
- * @title TwoAssetStrategyManager
+ * @title AssetPairManager
  * @author Set Protocol
  *
  * Rebalancing Manager contract for implementing any trading pair strategy. Allocation determinations are made
@@ -38,7 +38,7 @@ import { ITrigger } from "./triggers/ITrigger.sol";
  * allocationPrecision - bullishBaseAssetAllocation used when bearish. Additionally, all allocations are priced
  * using the base contract's Allocator contract.
  */
-contract TwoAssetStrategyManager {
+contract AssetPairManager {
     using SafeMath for uint256;
 
     /* ============ State Variables ============ */
@@ -63,7 +63,7 @@ contract TwoAssetStrategyManager {
     address public initializerAddress;
 
     /*
-     * TwoAssetStrategyManager constructor.
+     * AssetPairManager constructor.
      *
      * @param  _coreInstance                    The address of the Core contract
      * @param  _allocatorInstance               The address of the Allocator to be used in the strategy
@@ -93,7 +93,7 @@ contract TwoAssetStrategyManager {
         // Make sure confirmation max time is greater than confirmation min time
         require(
             _signalConfirmationBounds[1] >= _signalConfirmationBounds[0],
-            "TwoAssetStrategyManager.constructor: Confirmation max time must be greater than min time."
+            "AssetPairManager.constructor: Confirmation max time must be greater than min time."
         );
 
         coreInstance = _coreInstance;
@@ -127,13 +127,13 @@ contract TwoAssetStrategyManager {
         // Check that the initializer address is calling function
         require(
             msg.sender == initializerAddress,
-            "TwoAssetStrategyManager.initialize: Only the contract deployer can initialize"
+            "AssetPairManager.initialize: Only the contract deployer can initialize"
         );
 
         // Make sure the rebalancingSetToken is tracked by Core
         require(
             coreInstance.validSets(address(_rebalancingSetTokenInstance)),
-            "TwoAssetStrategyManager.initialize: Invalid or disabled RebalancingSetToken address"
+            "AssetPairManager.initialize: Invalid or disabled RebalancingSetToken address"
         );
 
         rebalancingSetTokenInstance = _rebalancingSetTokenInstance;
@@ -155,7 +155,7 @@ contract TwoAssetStrategyManager {
         // Make sure there is not an existing initial proposal underway
         require(
             hasConfirmationWindowElapsed(),
-            "TwoAssetStrategyManager.initialPropose: Not enough time passed from last proposal."
+            "AssetPairManager.initialPropose: Not enough time passed from last proposal."
         );
 
         // Get new baseAsset allocation amount
@@ -164,10 +164,10 @@ contract TwoAssetStrategyManager {
         // Check that new baseAsset allocation amount is different from current allocation amount
         require(
             newBaseAssetAllocation != baseAssetAllocation,
-            "TwoAssetStrategyManager.initialPropose: Price trigger not met."
+            "AssetPairManager.initialPropose: No change in allocation detected."
         );     
 
-        // Set crossover confirmation timestamp
+        // Set initial trigger timestamp
         lastInitialTriggerTimestamp = block.timestamp;
     }
 
@@ -184,7 +184,7 @@ contract TwoAssetStrategyManager {
         // Make sure in confirmation window
         require(
             inConfirmationWindow(),
-            "TwoAssetStrategyManager.confirmPropose: Confirming signal must be within confirmation window."
+            "AssetPairManager.confirmPropose: Confirming signal must be within confirmation window."
         );
         
         // Get new baseAsset allocation amount
@@ -193,7 +193,7 @@ contract TwoAssetStrategyManager {
         // Check that new baseAsset allocation amount is different from current allocation amount
         require(
             newBaseAssetAllocation != baseAssetAllocation,
-            "TwoAssetStrategyManager.confirmPropose: No change in allocation detected."
+            "AssetPairManager.confirmPropose: No change in allocation detected."
         );
 
         // Get current collateral Set

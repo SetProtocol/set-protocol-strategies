@@ -6,7 +6,7 @@ import { Address } from 'set-protocol-utils';
 import { SetTokenContract, MedianContract } from 'set-protocol-contracts';
 
 import {
-  TwoAssetStrategyManagerContract,
+  AssetPairManagerContract,
   BinaryAllocatorContract,
   BinaryAllocatorMockContract,
   BTCETHRebalancingManagerContract,
@@ -39,7 +39,7 @@ import { ProtocolHelper } from '@utils/helpers/protocolHelper';
 import { getWeb3, getContractInstance } from '../web3Helper';
 
 const web3 = getWeb3();
-const TwoAssetStrategyManager = artifacts.require('TwoAssetStrategyManager');
+const AssetPairManager = artifacts.require('AssetPairManager');
 const BinaryAllocator = artifacts.require('BinaryAllocator');
 const BinaryAllocatorMock = artifacts.require('BinaryAllocatorMock');
 const BTCETHRebalancingManager = artifacts.require('BTCETHRebalancingManager');
@@ -276,7 +276,7 @@ export class ManagerHelper {
     );
   }
 
-  public async deployTwoAssetStrategyManagerAsync(
+  public async deployAssetPairManagerAsync(
     coreInstance: Address,
     allocatorInstance: Address,
     triggerInstance: Address,
@@ -290,8 +290,8 @@ export class ManagerHelper {
     signalConfirmationMinTime: BigNumber = ONE_HOUR_IN_SECONDS.mul(6),
     signalConfirmationMaxTime: BigNumber = ONE_HOUR_IN_SECONDS.mul(12),
     from: Address = this._tokenOwnerAddress
-  ): Promise<TwoAssetStrategyManagerContract> {
-    const truffleRebalacingTokenManager = await TwoAssetStrategyManager.new(
+  ): Promise<AssetPairManagerContract> {
+    const truffleRebalacingTokenManager = await AssetPairManager.new(
       coreInstance,
       allocatorInstance,
       triggerInstance,
@@ -305,7 +305,7 @@ export class ManagerHelper {
       { from },
     );
 
-    return new TwoAssetStrategyManagerContract(
+    return new AssetPairManagerContract(
       getContractInstance(truffleRebalacingTokenManager),
       { from, gas: DEFAULT_GAS },
     );

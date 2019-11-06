@@ -33,7 +33,7 @@ import {
   LinearizedEMATimeSeriesFeedContract,
   MovingAverageCrossoverTriggerContract,
   OracleProxyContract,
-  TwoAssetStrategyManagerContract,
+  AssetPairManagerContract,
   USDCMockContract,
 } from '@utils/contracts';
 
@@ -66,7 +66,7 @@ const blockchain = new Blockchain(web3);
 const { SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
 const setTestUtils = new SetTestUtils(web3);
 
-contract('Integration: TwoAssetStrategyManager', accounts => {
+contract('Integration: AssetPairManager', accounts => {
   const [
     deployerAccount,
   ] = accounts;
@@ -92,7 +92,7 @@ contract('Integration: TwoAssetStrategyManager', accounts => {
   let trigger: MovingAverageCrossoverTriggerContract;
   let allocator: BinaryAllocatorContract;
 
-  let setManager: TwoAssetStrategyManagerContract;
+  let setManager: AssetPairManagerContract;
   let quoteAssetCollateral: SetTokenContract;
   let baseAssetCollateral: SetTokenContract;
 
@@ -243,7 +243,7 @@ contract('Integration: TwoAssetStrategyManager', accounts => {
       const maxBaseAssetAllocation = new BigNumber(100);
       const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
       const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
-      setManager = await managerHelper.deployTwoAssetStrategyManagerAsync(
+      setManager = await managerHelper.deployAssetPairManagerAsync(
         core.address,
         allocator.address,
         trigger.address,

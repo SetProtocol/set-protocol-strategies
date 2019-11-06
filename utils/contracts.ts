@@ -40,6 +40,6 @@ export { RSIOracleContract } from '../types/generated/r_s_i_oracle';
 export { TimeSeriesFeedContract } from '../types/generated/time_series_feed';
 export { TimeSeriesFeedV2Contract } from '../types/generated/time_series_feed_v2';
 export { TimeSeriesFeedV2MockContract } from '../types/generated/time_series_feed_v2_mock';
-export { TwoAssetStrategyManagerContract } from '../types/generated/two_asset_strategy_manager';
+export { AssetPairManagerContract } from '../types/generated/asset_pair_manager';
 export { UintArrayUtilsLibraryMockContract } from '../types/generated/uint_array_utils_library_mock';
 export { USDCMockContract } from '../types/generated/u_s_d_c_mock';

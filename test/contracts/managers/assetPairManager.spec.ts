@@ -24,7 +24,7 @@ import {
   WhiteListContract,
 } from 'set-protocol-contracts';
 import {
-  TwoAssetStrategyManagerContract,
+  AssetPairManagerContract,
   BinaryAllocatorMockContract,
   TriggerMockContract,
   USDCMockContract,
@@ -54,7 +54,7 @@ const web3 = getWeb3();
 const { expect } = chai;
 const blockchain = new Blockchain(web3);
 
-contract('TwoAssetStrategyManager', accounts => {
+contract('AssetPairManager', accounts => {
   const [
     deployerAccount,
     notDeployerAccount,
@@ -74,7 +74,7 @@ contract('TwoAssetStrategyManager', accounts => {
   let allocator: BinaryAllocatorMockContract;
   let trigger: TriggerMockContract;
 
-  let setManager: TwoAssetStrategyManagerContract;
+  let setManager: AssetPairManagerContract;
   let quoteAssetCollateral: SetTokenContract;
   let baseAssetCollateral: SetTokenContract;
 
@@ -176,8 +176,8 @@ contract('TwoAssetStrategyManager', accounts => {
       subjectCaller = deployerAccount;
     });
 
-    async function subject(): Promise<TwoAssetStrategyManagerContract> {
-      return managerHelper.deployTwoAssetStrategyManagerAsync(
+    async function subject(): Promise<AssetPairManagerContract> {
+      return managerHelper.deployAssetPairManagerAsync(
         subjectCoreInstance,
         subjectAllocatorInstance,
         subjectTriggerInstance,
@@ -324,7 +324,7 @@ contract('TwoAssetStrategyManager', accounts => {
       const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
       const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
       subjectCaller = deployerAccount;
-      setManager = await managerHelper.deployTwoAssetStrategyManagerAsync(
+      setManager = await managerHelper.deployAssetPairManagerAsync(
         core.address,
         allocator.address,
         trigger.address,
@@ -430,7 +430,7 @@ contract('TwoAssetStrategyManager', accounts => {
       const maxBaseAssetAllocation = new BigNumber(100);
       const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
       const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
-      setManager = await managerHelper.deployTwoAssetStrategyManagerAsync(
+      setManager = await managerHelper.deployAssetPairManagerAsync(
         core.address,
         allocator.address,
         trigger.address,
@@ -638,7 +638,7 @@ contract('TwoAssetStrategyManager', accounts => {
       const maxBaseAssetAllocation = new BigNumber(100);
       const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
       const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
-      setManager = await managerHelper.deployTwoAssetStrategyManagerAsync(
+      setManager = await managerHelper.deployAssetPairManagerAsync(
         core.address,
         allocator.address,
         trigger.address,
@@ -930,7 +930,7 @@ contract('TwoAssetStrategyManager', accounts => {
       const maxBaseAssetAllocation = new BigNumber(100);
       const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
       const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
-      setManager = await managerHelper.deployTwoAssetStrategyManagerAsync(
+      setManager = await managerHelper.deployAssetPairManagerAsync(
         core.address,
         allocator.address,
         trigger.address,
@@ -1138,7 +1138,7 @@ contract('TwoAssetStrategyManager', accounts => {
       const maxBaseAssetAllocation = new BigNumber(100);
       const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
       const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
-      setManager = await managerHelper.deployTwoAssetStrategyManagerAsync(
+      setManager = await managerHelper.deployAssetPairManagerAsync(
         core.address,
         allocator.address,
         trigger.address,

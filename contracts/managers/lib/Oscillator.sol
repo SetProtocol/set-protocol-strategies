@@ -35,7 +35,7 @@ library Oscillator {
     }
 
     /*
-     * Returns upper of value is greater or equal to upper bound.
+     * Returns upper if value is greater or equal to upper bound.
      * Returns lower if lower than lower bound, and neutral if in between.
      */
     function getState(
