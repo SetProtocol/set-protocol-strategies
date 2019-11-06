@@ -25,7 +25,7 @@ import {
   TimeSeriesFeedContract,
   TimeSeriesFeedV2Contract,
   TimeSeriesFeedV2MockContract,
-  TwoAssetCurrentPriceOracleContract,
+  TwoAssetLastPeriodPriceOracleContract,
   TwoAssetRatioMovingAverageOracleContract,
 } from '../contracts';
 import {
@@ -54,7 +54,7 @@ const OracleProxyCaller = artifacts.require('OracleProxyCaller');
 const RSIOracle = artifacts.require('RSIOracle');
 const TimeSeriesFeed = artifacts.require('TimeSeriesFeed');
 const TimeSeriesFeedV2Mock = artifacts.require('TimeSeriesFeedV2Mock');
-const TwoAssetCurrentPriceOracle = artifacts.require('TwoAssetCurrentPriceOracle');
+const TwoAssetLastPeriodPriceOracle = artifacts.require('TwoAssetLastPeriodPriceOracle');
 const TwoAssetRatioMovingAverageOracle = artifacts.require('TwoAssetRatioMovingAverageOracle');
 
 
@@ -115,21 +115,21 @@ export class OracleHelper {
     );
   }
 
-  public async deployTwoAssetCurrentPriceOracle(
+  public async deployTwoAssetLastPeriodPriceOracle(
     baseTimeSeriesFeedAddress: Address,
     quoteTimeSeriesFeedAddress: Address,
     dataDescription: string,
     from: Address = this._contractOwnerAddress
-  ): Promise<TwoAssetCurrentPriceOracleContract> {
-    const twoAssetCurrentPriceOracle = await TwoAssetCurrentPriceOracle.new(
+  ): Promise<TwoAssetLastPeriodPriceOracleContract> {
+    const twoAssetLastPeriodPriceOracle = await TwoAssetLastPeriodPriceOracle.new(
       baseTimeSeriesFeedAddress,
       quoteTimeSeriesFeedAddress,
       dataDescription,
       txnFrom(from),
     );
 
-    return new TwoAssetCurrentPriceOracleContract(
-      getContractInstance(twoAssetCurrentPriceOracle),
+    return new TwoAssetLastPeriodPriceOracleContract(
+      getContractInstance(twoAssetLastPeriodPriceOracle),
       txnFrom(from),
     );
   }

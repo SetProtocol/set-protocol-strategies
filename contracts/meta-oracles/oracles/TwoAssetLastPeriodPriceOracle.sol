@@ -22,13 +22,13 @@ import { ITimeSeriesFeed } from "../interfaces/ITimeSeriesFeed.sol";
 
 
 /**
- * @title TwoAssetCurrentPriceOracle
+ * @title TwoAssetLastPeriodPriceOracle
  * @author Set Protocol
  *
  * Oracle built to adhere to IOracle interface and returns the ratio of a base
- * to quote asset for the most recent period in a time series feed
+ * to quote asset for the most recent data point in a time series feed
  */
-contract TwoAssetCurrentPriceOracle is
+contract TwoAssetLastPeriodPriceOracle is
     IOracle
 {
     using SafeMath for uint256;

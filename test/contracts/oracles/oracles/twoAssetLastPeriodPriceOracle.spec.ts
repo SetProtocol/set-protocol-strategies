@@ -14,11 +14,11 @@ import { MedianContract } from 'set-protocol-contracts';
 import {
   LegacyMakerOracleAdapterContract,
   LinearizedPriceDataSourceContract,
-  TwoAssetCurrentPriceOracleContract,
+  TwoAssetLastPeriodPriceOracleContract,
   OracleProxyContract,
   TimeSeriesFeedContract
 } from '@utils/contracts';
-import { ONE_DAY_IN_SECONDS } from '@utils/constants';
+import { ONE_DAY_IN_SECONDS, ONE_HOUR_IN_SECONDS } from '@utils/constants';
 import { getWeb3 } from '@utils/web3Helper';
 
 import { OracleHelper } from '@utils/helpers/oracleHelper';
@@ -29,7 +29,7 @@ const web3 = getWeb3();
 const { expect } = chai;
 const blockchain = new Blockchain(web3);
 
-contract('TwoAssetCurrentPriceOracle', accounts => {
+contract('TwoAssetLastPeriodPriceOracle', accounts => {
   const [
     deployerAccount,
   ] = accounts;
@@ -48,7 +48,7 @@ contract('TwoAssetCurrentPriceOracle', accounts => {
 
   let ethTimeSeriesFeed: TimeSeriesFeedContract;
   let btcTimeSeriesFeed: TimeSeriesFeedContract;
-  let twoAssetCurrentPriceOracle: TwoAssetCurrentPriceOracleContract;
+  let twoAssetLastPeriodPriceOracle: TwoAssetLastPeriodPriceOracleContract;
 
   let initialEthPrice: BigNumber;
   let initialBtcPrice: BigNumber;
@@ -108,6 +108,9 @@ contract('TwoAssetCurrentPriceOracle', accounts => {
       ethLinearizedDataSource.address,
       ethSeededValues
     );
+
+    blockchain.increaseTimeAsync(ONE_HOUR_IN_SECONDS);
+
     btcTimeSeriesFeed = await oracleHelper.deployTimeSeriesFeedAsync(
       btcLinearizedDataSource.address,
       btcSeededValues
@@ -129,8 +132,8 @@ contract('TwoAssetCurrentPriceOracle', accounts => {
       subjectDataDescription = 'ETHBTCDailyPrice';
     });
 
-    async function subject(): Promise<TwoAssetCurrentPriceOracleContract> {
-      return oracleHelper.deployTwoAssetCurrentPriceOracle(
+    async function subject(): Promise<TwoAssetLastPeriodPriceOracleContract> {
+      return oracleHelper.deployTwoAssetLastPeriodPriceOracle(
         subjectEthTimeSeriesFeedAddress,
         subjectBtcTimeSeriesFeedAddress,
         subjectDataDescription
@@ -138,25 +141,25 @@ contract('TwoAssetCurrentPriceOracle', accounts => {
     }
 
     it('sets the correct base asset time series feed address', async () => {
-      twoAssetCurrentPriceOracle = await subject();
+      twoAssetLastPeriodPriceOracle = await subject();
 
-      const actualPriceFeedAddress = await twoAssetCurrentPriceOracle.baseTimeSeriesFeedInstance.callAsync();
+      const actualPriceFeedAddress = await twoAssetLastPeriodPriceOracle.baseTimeSeriesFeedInstance.callAsync();
 
       expect(actualPriceFeedAddress).to.equal(subjectEthTimeSeriesFeedAddress);
     });
 
     it('sets the correct quote asset time series feed address', async () => {
-      twoAssetCurrentPriceOracle = await subject();
+      twoAssetLastPeriodPriceOracle = await subject();
 
-      const actualPriceFeedAddress = await twoAssetCurrentPriceOracle.quoteTimeSeriesFeedInstance.callAsync();
+      const actualPriceFeedAddress = await twoAssetLastPeriodPriceOracle.quoteTimeSeriesFeedInstance.callAsync();
 
       expect(actualPriceFeedAddress).to.equal(subjectBtcTimeSeriesFeedAddress);
     });
 
     it('sets the correct data description', async () => {
-      twoAssetCurrentPriceOracle = await subject();
+      twoAssetLastPeriodPriceOracle = await subject();
 
-      const actualDataDescription = await twoAssetCurrentPriceOracle.dataDescription.callAsync();
+      const actualDataDescription = await twoAssetLastPeriodPriceOracle.dataDescription.callAsync();
 
       expect(actualDataDescription).to.equal(subjectDataDescription);
     });
@@ -166,7 +169,7 @@ contract('TwoAssetCurrentPriceOracle', accounts => {
     beforeEach(async () => {
       const dataDescription = 'ETHBTCDailyPrice';
 
-      twoAssetCurrentPriceOracle = await oracleHelper.deployTwoAssetCurrentPriceOracle(
+      twoAssetLastPeriodPriceOracle = await oracleHelper.deployTwoAssetLastPeriodPriceOracle(
         ethTimeSeriesFeed.address,
         btcTimeSeriesFeed.address,
         dataDescription
@@ -174,7 +177,7 @@ contract('TwoAssetCurrentPriceOracle', accounts => {
     });
 
     async function subject(): Promise<BigNumber> {
-      return twoAssetCurrentPriceOracle.read.callAsync();
+      return twoAssetLastPeriodPriceOracle.read.callAsync();
     }
 
     it('returns the correct current price ratio', async () => {
