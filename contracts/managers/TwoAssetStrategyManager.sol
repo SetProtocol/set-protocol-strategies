@@ -71,11 +71,9 @@ contract TwoAssetStrategyManager {
      * @param  _baseAssetAllocation             Starting allocation of the Rebalancing Set in baseAsset amount
      * @param  _allocationPrecision             Precision of allocation percentage
      * @param  _amaxBaseAssetAllocation         Base asset allocation when trigger is bullish
-     * @param  _auctionStartPercentage          The amount below fair value, in percent, to start auction
-     * @param  _auctionEndPercentage            The amount above fair value, in percent, to end auction
      * @param  _auctionTimeToPivot              Time, in seconds, spent between start and pivot price
-     * @param  _signalConfirmationMinTime       The amount of time, in seconds, until start of confirmation period
-     * @param  _signalConfirmationMaxTime       The amount of time, in seconds, until end of confirmation period
+     * @param  _auctionPriceBounds              The price bounds, in percent below and above fair value, of linear auction
+     * @param  _signalConfirmationBounds        The lower and upper bounds of time, in seconds, from initialTrigger to confirm signal
      */
     constructor(
         ICore _coreInstance,
@@ -144,16 +142,16 @@ contract TwoAssetStrategyManager {
 
     /*
      * When allowed on RebalancingSetToken, anyone can call for a new rebalance proposal. Assuming the criteria
-     * have been met, this begins a six hour period where the signal can be confirmed before moving ahead with
-     * the rebalance.
+     * have been met, this begins a waiting period before the confirmation window starts where the signal can be
+     * confirmed.
      */
     function initialPropose()
         external
     {
-        // Create interface to interact with RebalancingSetToken and check enough time has passed for proposal
+        // Check enough time has passed for proposal and RebalancingSetToken in Default state
         FlexibleTimingManagerLibrary.validateManagerPropose(rebalancingSetTokenInstance);
 
-        // Make sure propose in manager hasn't already been initiated
+        // Make sure there is not an existing initial proposal underway
         require(
             hasConfirmationWindowElapsed(),
             "TwoAssetStrategyManager.initialPropose: Not enough time passed from last proposal."
@@ -182,7 +180,7 @@ contract TwoAssetStrategyManager {
         // Check that enough time has passed for the proposal and RebalancingSetToken is in Default state
         FlexibleTimingManagerLibrary.validateManagerPropose(rebalancingSetTokenInstance);
 
-        // Make sure enough time has passed to initiate proposal on Rebalancing Set Token
+        // Make sure in confirmation window
         require(
             inConfirmationWindow(),
             "TwoAssetStrategyManager.confirmPropose: Confirming signal must be within confirmation window."
@@ -244,9 +242,9 @@ contract TwoAssetStrategyManager {
     }
 
     /*
-     * Function returning whether rebalance is ready to go ahead
+     * Function returning whether initialPropose can be called without revert
      *
-     * @return       Whether rebalance is ready to go be proposed
+     * @return       Whether initialPropose can be called without revert
      */
     function canInitialPropose()
         external
@@ -261,9 +259,9 @@ contract TwoAssetStrategyManager {
     }
 
     /*
-     * Function returning whether rebalance is ready to go ahead
+     * Function returning whether confirmPropose can be called without revert
      *
-     * @return       Whether rebalance is ready to go be proposed
+     * @return       Whether confirmPropose can be called without revert
      */
     function canConfirmPropose()
         external
@@ -279,6 +277,11 @@ contract TwoAssetStrategyManager {
 
     /* ============ Internal ============ */
 
+    /*
+     * Calculate base asset allocation given market conditions
+     *
+     * @return       New base asset allocation
+     */
     function calculateBaseAssetAllocation()
         internal
         view
