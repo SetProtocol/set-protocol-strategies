@@ -12,6 +12,7 @@ import {
   EMAOracleContract,
   FeedFactoryContract,
   HistoricalPriceFeedContract,
+  LastPriceOracleContract,
   LegacyMakerOracleAdapterContract,
   LinearizedEMATimeSeriesFeedContract,
   LinearizedPriceDataSourceContract,
@@ -24,7 +25,8 @@ import {
   RSIOracleContract,
   TimeSeriesFeedContract,
   TimeSeriesFeedV2Contract,
-  TimeSeriesFeedV2MockContract
+  TimeSeriesFeedV2MockContract,
+  TwoAssetLinearizedTimeSeriesFeedContract
 } from '../contracts';
 import {
   DEFAULT_GAS,
@@ -40,6 +42,7 @@ const ConstantPriceOracle = artifacts.require('ConstantPriceOracle');
 const EMAOracle = artifacts.require('EMAOracle');
 const FeedFactory = artifacts.require('FeedFactory');
 const HistoricalPriceFeed = artifacts.require('HistoricalPriceFeed');
+const LastPriceOracle = artifacts.require('LastPriceOracle');
 const LegacyMakerOracleAdapter = artifacts.require('LegacyMakerOracleAdapter');
 const LinearizedEMATimeSeriesFeed = artifacts.require('LinearizedEMATimeSeriesFeed');
 const LinearizedPriceDataSource = artifacts.require('LinearizedPriceDataSource');
@@ -52,7 +55,7 @@ const OracleProxyCaller = artifacts.require('OracleProxyCaller');
 const RSIOracle = artifacts.require('RSIOracle');
 const TimeSeriesFeed = artifacts.require('TimeSeriesFeed');
 const TimeSeriesFeedV2Mock = artifacts.require('TimeSeriesFeedV2Mock');
-
+const TwoAssetLinearizedTimeSeriesFeed = artifacts.require('TwoAssetLinearizedTimeSeriesFeed');
 
 const { SetProtocolTestUtils: SetTestUtils, SetProtocolUtils: SetUtils } = setProtocolUtils;
 const setTestUtils = new SetTestUtils(web3);
@@ -220,6 +223,52 @@ export class OracleHelper {
 
     return new HistoricalPriceFeedContract(
       getContractInstance(historicalPriceFeed),
+      txnFrom(from),
+    );
+  }
+
+  public async deployTwoAssetLinearizedTimeSeriesFeedAsync(
+    baseMedianizerInstance: Address,
+    quoteMedianizerInstance: Address,
+    seededValues: BigNumber[],
+    interpolationThreshold: BigNumber = ONE_HOUR_IN_SECONDS.mul(3),
+    updateInterval: BigNumber = ONE_DAY_IN_SECONDS,
+    maxDataPoints: BigNumber = new BigNumber(200),
+    dataDescription: string = '200DailyETHBTCPrice',
+    nextEarliestUpdate: BigNumber = SetTestUtils.generateTimestamp(updateInterval.toNumber() / 60),
+    from: Address = this._contractOwnerAddress
+  ): Promise<TwoAssetLinearizedTimeSeriesFeedContract> {
+    const twoAssetLinearizedTimeSeriesFeed = await TwoAssetLinearizedTimeSeriesFeed.new(
+      updateInterval,
+      nextEarliestUpdate,
+      maxDataPoints,
+      seededValues,
+      interpolationThreshold,
+      baseMedianizerInstance,
+      quoteMedianizerInstance,
+      dataDescription,
+      txnFrom(from),
+    );
+
+    return new TwoAssetLinearizedTimeSeriesFeedContract(
+      getContractInstance(twoAssetLinearizedTimeSeriesFeed),
+      txnFrom(from),
+    );
+  }
+
+  public async deployLastPriceOracleAsync(
+    priceFeedAddress: Address,
+    dataDescription: string,
+    from: Address = this._contractOwnerAddress
+  ): Promise<LastPriceOracleContract> {
+    const lastPriceOracle = await LastPriceOracle.new(
+      priceFeedAddress,
+      dataDescription,
+      txnFrom(from),
+    );
+
+    return new LastPriceOracleContract(
+      getContractInstance(lastPriceOracle),
       txnFrom(from),
     );
   }
@@ -494,6 +543,72 @@ export class OracleHelper {
     }
 
     return priceArray;
+  }
+
+  public async updateTwoAssetTimeSeriesFeedAsync(
+    timeSeriesFeed: TimeSeriesFeedContract | TimeSeriesFeedV2Contract,
+    baseMedianizer: MedianContract,
+    quoteMedianizer: MedianContract,
+    basePrice: BigNumber,
+    quotePrice: BigNumber,
+    timestamp: number = ONE_DAY_IN_SECONDS.mul(2).toNumber(),
+    from: Address = this._contractOwnerAddress
+  ): Promise<void> {
+    await this._blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS);
+    await this.updateMedianizerPriceAsync(
+      baseMedianizer,
+      basePrice,
+      SetTestUtils.generateTimestamp(timestamp),
+    );
+    await this.updateMedianizerPriceAsync(
+      quoteMedianizer,
+      quotePrice,
+      SetTestUtils.generateTimestamp(timestamp),
+    );
+
+    await timeSeriesFeed.poke.sendTransactionAsync(
+      { gas: DEFAULT_GAS},
+    );
+  }
+
+  public async batchUpdateTwoAssetTimeSeriesFeedAsync(
+    timeSeriesFeed: TimeSeriesFeedContract | TimeSeriesFeedV2Contract,
+    baseMedianizer: MedianContract,
+    quoteMedianizer: MedianContract,
+    daysOfData: number,
+    basePriceArray: BigNumber[] = undefined,
+    quotePriceArray: BigNumber[] = undefined,
+    from: Address = this._contractOwnerAddress
+  ): Promise<BigNumber[]> {
+
+    if (!basePriceArray) {
+      basePriceArray = Array.from({length: daysOfData}, () => ether(Math.floor(Math.random() * 100) + 100));
+    }
+    if (!quotePriceArray) {
+      quotePriceArray = Array.from({length: daysOfData}, () => ether(Math.floor(Math.random() * 1000) + 8000));
+    }
+
+    let i: number;
+    const baseQuotePriceArray = [];
+    for (i = 0; i < daysOfData; i++) {
+      // Create ratio array
+      baseQuotePriceArray.push(
+        basePriceArray[i]
+        .mul(10 ** 18)
+        .div(quotePriceArray[i])
+        .round(0, BigNumber.ROUND_DOWN)
+      );
+
+      await this.updateTwoAssetTimeSeriesFeedAsync(
+        timeSeriesFeed,
+        baseMedianizer,
+        quoteMedianizer,
+        basePriceArray[i],
+        quotePriceArray[i],
+        ONE_DAY_IN_SECONDS.mul(2 * i + 2).toNumber()
+      );
+    }
+    return baseQuotePriceArray;
   }
 
   public async updateHistoricalPriceFeedAsync(
