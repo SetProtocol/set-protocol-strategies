@@ -131,7 +131,7 @@ contract AssetPairManager {
         );
 
         // Make sure the rebalancingSetToken is tracked by Core
-        require(
+        require(  // coverage-disable-line
             coreInstance.validSets(address(_rebalancingSetTokenInstance)),
             "AssetPairManager.initialize: Invalid or disabled RebalancingSetToken address"
         );

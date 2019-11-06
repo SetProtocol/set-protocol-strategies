@@ -1219,7 +1219,7 @@ contract('AssetPairManager', accounts => {
           });
         });
 
-        describe('but not enough time has passed from initialTrigger', async () => {
+        describe('but not in confirmation window', async () => {
           beforeEach(async () => {
             subjectTimeFastForward = ZERO;
           });
@@ -1259,12 +1259,12 @@ contract('AssetPairManager', accounts => {
           });
         });
 
-        describe('returns false', async () => {
+        describe('but not in confirmation window', async () => {
           beforeEach(async () => {
             subjectTimeFastForward = ZERO;
           });
 
-          it('should revert', async () => {
+          it('returns false', async () => {
             const canConfirmPropose = await subject();
 
             expect(canConfirmPropose).to.be.false;
