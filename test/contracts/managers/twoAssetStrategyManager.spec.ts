@@ -323,6 +323,7 @@ contract('TwoAssetStrategyManager', accounts => {
       const maxBaseAssetAllocation = new BigNumber(100);
       const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
       const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
+      subjectCaller = deployerAccount;
       setManager = await managerHelper.deployTwoAssetStrategyManagerAsync(
         core.address,
         allocator.address,
@@ -336,7 +337,7 @@ contract('TwoAssetStrategyManager', accounts => {
         auctionTimeToPivot,
         signalConfirmationMinTime,
         signalConfirmationMaxTime,
-        subjectCaller,
+        subjectCaller
       );
 
       proposalPeriod = ONE_DAY_IN_SECONDS;
@@ -349,13 +350,12 @@ contract('TwoAssetStrategyManager', accounts => {
       );
 
       subjectRebalancingSetToken = rebalancingSetToken.address;
-      subjectCaller = deployerAccount;
     });
 
     async function subject(): Promise<string> {
       return setManager.initialize.sendTransactionAsync(
         subjectRebalancingSetToken,
-        { from: subjectCaller, gas: DEFAULT_GAS}
+        { from: subjectCaller, gas: DEFAULT_GAS }
       );
     }
 
