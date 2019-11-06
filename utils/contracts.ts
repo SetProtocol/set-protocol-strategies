@@ -15,6 +15,7 @@ export { FeedFactoryContract } from '../types/generated/feed_factory';
 export { FlexibleTimingManagerLibraryMockContract } from '../types/generated/flexible_timing_manager_library_mock';
 export { HistoricalPriceFeedContract } from '../types/generated/historical_price_feed';
 export { InverseMACOStrategyManagerContract } from '../types/generated/inverse_m_a_c_o_strategy_manager';
+export { LastPriceOracleContract } from '../types/generated/last_price_oracle';
 export { LegacyMakerOracleAdapterContract } from '../types/generated/legacy_maker_oracle_adapter';
 export { LinkedListHelperMockContract } from '../types/generated/linked_list_helper_mock';
 export { LinkedListLibraryMockContract } from '../types/generated/linked_list_library_mock';
@@ -41,5 +42,10 @@ export { TimeSeriesFeedContract } from '../types/generated/time_series_feed';
 export { TimeSeriesFeedV2Contract } from '../types/generated/time_series_feed_v2';
 export { TimeSeriesFeedV2MockContract } from '../types/generated/time_series_feed_v2_mock';
 export { AssetPairManagerContract } from '../types/generated/asset_pair_manager';
+export { TriggerIndexManagerContract } from '../types/generated/trigger_index_manager';
+export {
+  TwoAssetStrategyManagerMockContract
+} from '../types/generated/two_asset_strategy_manager_mock';
+export { TwoAssetLinearizedTimeSeriesFeedContract } from '../types/generated/two_asset_linearized_time_series_feed';
 export { UintArrayUtilsLibraryMockContract } from '../types/generated/uint_array_utils_library_mock';
 export { USDCMockContract } from '../types/generated/u_s_d_c_mock';
