@@ -548,7 +548,7 @@ export class OracleHelper {
     await this._blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS);
 
     let i: number;
-    for (i = 0; i < timeSeriesFeed.length; i++) {
+    for (i = 0; i < timeSeriesFeeds.length; i++) {
       await this.updateMedianizerPriceAsync(
         medianizers[i],
         prices[i],
