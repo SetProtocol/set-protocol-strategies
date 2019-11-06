@@ -24,8 +24,9 @@ import {
   WhiteListContract,
 } from 'set-protocol-contracts';
 import {
-  TwoAssetStrategyManagerMockContract,
+  AssetPairManagerContract,
   BinaryAllocatorMockContract,
+  TriggerMockContract,
   USDCMockContract,
 } from '@utils/contracts';
 
@@ -53,7 +54,7 @@ const web3 = getWeb3();
 const { expect } = chai;
 const blockchain = new Blockchain(web3);
 
-contract('BaseTwoAssetStrategyManager', accounts => {
+contract('AssetPairManager', accounts => {
   const [
     deployerAccount,
     notDeployerAccount,
@@ -71,8 +72,9 @@ contract('BaseTwoAssetStrategyManager', accounts => {
   let wrappedETH: WethMockContract;
 
   let allocator: BinaryAllocatorMockContract;
+  let trigger: TriggerMockContract;
 
-  let setManager: TwoAssetStrategyManagerMockContract;
+  let setManager: AssetPairManagerContract;
   let quoteAssetCollateral: SetTokenContract;
   let baseAssetCollateral: SetTokenContract;
 
@@ -135,6 +137,8 @@ contract('BaseTwoAssetStrategyManager', accounts => {
       baseAssetCollateralValue,
       quoteAssetCollateralValue,
     );
+
+    [trigger] = await managerHelper.deployTriggerMocksAsync(1, [false]);
   });
 
   afterEach(async () => {
@@ -144,36 +148,48 @@ contract('BaseTwoAssetStrategyManager', accounts => {
   describe('#constructor', async () => {
     let subjectCoreInstance: Address;
     let subjectAllocatorInstance: Address;
+    let subjectTriggerInstance: Address;
     let subjectAuctionLibraryInstance: Address;
     let subjectBaseAssetAllocation: BigNumber;
     let subjectAllocationPrecision: BigNumber;
+    let subjectBullishBaseAssetAllocation: BigNumber;
     let subjectAuctionStartPercentage: BigNumber;
     let subjectAuctionEndPercentage: BigNumber;
     let subjectAuctionTimeToPivot: BigNumber;
+    let subjectSignalConfirmationMinTime: BigNumber;
+    let subjectSignalConfirmationMaxTime: BigNumber;
     let subjectCaller: Address;
 
     beforeEach(async () => {
       subjectCoreInstance = core.address;
       subjectAllocatorInstance = allocator.address;
+      subjectTriggerInstance = trigger.address;
       subjectAuctionLibraryInstance = linearAuctionPriceCurve.address;
       subjectBaseAssetAllocation = ZERO;
       subjectAllocationPrecision = new BigNumber(100);
+      subjectBullishBaseAssetAllocation = new BigNumber(100);
       subjectAuctionStartPercentage = new BigNumber(2);
       subjectAuctionEndPercentage = new BigNumber(10);
       subjectAuctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
+      subjectSignalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
+      subjectSignalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
       subjectCaller = deployerAccount;
     });
 
-    async function subject(): Promise<TwoAssetStrategyManagerMockContract> {
-      return managerHelper.deployTwoAssetStrategyManagerMockAsync(
+    async function subject(): Promise<AssetPairManagerContract> {
+      return managerHelper.deployAssetPairManagerAsync(
         subjectCoreInstance,
         subjectAllocatorInstance,
+        subjectTriggerInstance,
         subjectAuctionLibraryInstance,
         subjectBaseAssetAllocation,
         subjectAllocationPrecision,
+        subjectBullishBaseAssetAllocation,
         subjectAuctionStartPercentage,
         subjectAuctionEndPercentage,
         subjectAuctionTimeToPivot,
+        subjectSignalConfirmationMinTime,
+        subjectSignalConfirmationMaxTime,
         subjectCaller,
       );
     }
@@ -192,6 +208,14 @@ contract('BaseTwoAssetStrategyManager', accounts => {
       const actualAllocatorInstance = await setManager.allocatorInstance.callAsync();
 
       expect(actualAllocatorInstance).to.equal(subjectAllocatorInstance);
+    });
+
+    it('sets the correct trigger address', async () => {
+      setManager = await subject();
+
+      const actualTriggerInstance = await setManager.triggerInstance.callAsync();
+
+      expect(actualTriggerInstance).to.equal(subjectTriggerInstance);
     });
 
     it('sets the correct auctionLibrary address', async () => {
@@ -218,6 +242,14 @@ contract('BaseTwoAssetStrategyManager', accounts => {
       expect(actualAllocationPrecision).to.be.bignumber.equal(subjectAllocationPrecision);
     });
 
+    it('sets the correct bullishBaseAssetAllocation', async () => {
+      setManager = await subject();
+
+      const actualBullishBaseAssetAllocation = await setManager.bullishBaseAssetAllocation.callAsync();
+
+      expect(actualBullishBaseAssetAllocation).to.be.bignumber.equal(subjectBullishBaseAssetAllocation);
+    });
+
     it('sets the correct auctionStartPercentage', async () => {
       setManager = await subject();
 
@@ -242,12 +274,38 @@ contract('BaseTwoAssetStrategyManager', accounts => {
       expect(actualAuctionTimeToPivot).to.be.bignumber.equal(subjectAuctionTimeToPivot);
     });
 
+    it('sets the correct signalConfirmationMinTime', async () => {
+      setManager = await subject();
+
+      const actualSignalConfirmationMinTime = await setManager.signalConfirmationMinTime.callAsync();
+
+      expect(actualSignalConfirmationMinTime).to.be.bignumber.equal(subjectSignalConfirmationMinTime);
+    });
+
+    it('sets the correct signalConfirmationMaxTime', async () => {
+      setManager = await subject();
+
+      const actualSignalConfirmationMaxTime = await setManager.signalConfirmationMaxTime.callAsync();
+
+      expect(actualSignalConfirmationMaxTime).to.be.bignumber.equal(subjectSignalConfirmationMaxTime);
+    });
+
     it('sets the correct initializerAddress', async () => {
       setManager = await subject();
 
       const actualInitializerAddress = await setManager.initializerAddress.callAsync();
 
       expect(actualInitializerAddress).to.equal(subjectCaller);
+    });
+
+    describe('but signalConfirmationMinTime is greater than signalConfirmationMaxTime', async () => {
+      beforeEach(async () => {
+        subjectSignalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(5);
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
     });
   });
 
@@ -262,15 +320,24 @@ contract('BaseTwoAssetStrategyManager', accounts => {
       const auctionEndPercentage = new BigNumber(10);
       const auctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
       const allocationPrecision = new BigNumber(100);
-      setManager = await managerHelper.deployTwoAssetStrategyManagerMockAsync(
+      const maxBaseAssetAllocation = new BigNumber(100);
+      const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
+      const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
+      subjectCaller = deployerAccount;
+      setManager = await managerHelper.deployAssetPairManagerAsync(
         core.address,
         allocator.address,
+        trigger.address,
         linearAuctionPriceCurve.address,
         ZERO,
         allocationPrecision,
+        maxBaseAssetAllocation,
         auctionStartPercentage,
         auctionEndPercentage,
         auctionTimeToPivot,
+        signalConfirmationMinTime,
+        signalConfirmationMaxTime,
+        subjectCaller
       );
 
       proposalPeriod = ONE_DAY_IN_SECONDS;
@@ -283,13 +350,12 @@ contract('BaseTwoAssetStrategyManager', accounts => {
       );
 
       subjectRebalancingSetToken = rebalancingSetToken.address;
-      subjectCaller = deployerAccount;
     });
 
     async function subject(): Promise<string> {
       return setManager.initialize.sendTransactionAsync(
         subjectRebalancingSetToken,
-        { from: subjectCaller, gas: DEFAULT_GAS}
+        { from: subjectCaller, gas: DEFAULT_GAS }
       );
     }
 
@@ -343,44 +409,260 @@ contract('BaseTwoAssetStrategyManager', accounts => {
     });
   });
 
-  describe('#propose', async () => {
+  describe('#initialPropose', async () => {
+    let subjectCaller: Address;
+
+    let initialBaseAssetAllocation: BigNumber;
+    let timeJump: BigNumber;
+    let flipTrigger: boolean;
+
+    before(async () => {
+      initialBaseAssetAllocation = new BigNumber(100);
+      flipTrigger = false;
+      timeJump = ONE_DAY_IN_SECONDS;
+    });
+
+    beforeEach(async () => {
+      const auctionStartPercentage = new BigNumber(2);
+      const auctionEndPercentage = new BigNumber(10);
+      const auctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
+      const allocationPrecision = new BigNumber(100);
+      const maxBaseAssetAllocation = new BigNumber(100);
+      const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
+      const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
+      setManager = await managerHelper.deployAssetPairManagerAsync(
+        core.address,
+        allocator.address,
+        trigger.address,
+        linearAuctionPriceCurve.address,
+        initialBaseAssetAllocation,
+        allocationPrecision,
+        maxBaseAssetAllocation,
+        auctionStartPercentage,
+        auctionEndPercentage,
+        auctionTimeToPivot,
+        signalConfirmationMinTime,
+        signalConfirmationMaxTime,
+        subjectCaller,
+      );
+
+      let collateralSetAddress: Address;
+      if (initialBaseAssetAllocation.equals(ZERO)) {
+        collateralSetAddress = quoteAssetCollateral.address;
+        await trigger.confirmTrigger.sendTransactionAsync();
+      } else {
+        collateralSetAddress = baseAssetCollateral.address;
+      }
+
+      const proposalPeriod = ONE_DAY_IN_SECONDS;
+      rebalancingSetToken = await protocolHelper.createDefaultRebalancingSetTokenAsync(
+        core,
+        rebalancingFactory.address,
+        setManager.address,
+        collateralSetAddress,
+        proposalPeriod
+      );
+
+      if (flipTrigger) {
+        await trigger.confirmTrigger.sendTransactionAsync();
+      }
+
+      await setManager.initialize.sendTransactionAsync(
+        rebalancingSetToken.address,
+        { from: subjectCaller, gas: DEFAULT_GAS }
+      );
+
+      await blockchain.increaseTimeAsync(timeJump);
+
+      subjectCaller = deployerAccount;
+    });
+
+    async function subject(): Promise<string> {
+      return setManager.initialPropose.sendTransactionAsync(
+        { from: subjectCaller, gas: DEFAULT_GAS}
+      );
+    }
+
+    describe('when propose is called from the Default state', async () => {
+      describe('and allocating from base asset to quote asset', async () => {
+        it('sets the proposalTimestamp correctly', async () => {
+          await subject();
+
+          const block = await web3.eth.getBlock('latest');
+          const expectedTimestamp = new BigNumber(block.timestamp);
+
+          const actualTimestamp = await setManager.lastInitialTriggerTimestamp.callAsync();
+          expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
+        });
+
+        describe('but allocation has not changed', async () => {
+          before(async () => {
+            flipTrigger = true;
+          });
+
+          after(async () => {
+            flipTrigger = false;
+          });
+
+          it('should revert', async () => {
+            await expectRevertError(subject());
+          });
+        });
+      });
+
+      describe('and allocating from quote asset to base asset', async () => {
+        before(async () => {
+          initialBaseAssetAllocation = ZERO;
+        });
+
+        after(async () => {
+          initialBaseAssetAllocation = new BigNumber(100);
+        });
+
+        it('sets the proposalTimestamp correctly', async () => {
+          await subject();
+
+          const block = await web3.eth.getBlock('latest');
+          const expectedTimestamp = new BigNumber(block.timestamp);
+
+          const actualTimestamp = await setManager.lastInitialTriggerTimestamp.callAsync();
+          expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
+        });
+
+        describe('but allocation has not changed', async () => {
+          before(async () => {
+            flipTrigger = true;
+          });
+
+          after(async () => {
+            flipTrigger = false;
+          });
+
+          it('should revert', async () => {
+            await expectRevertError(subject());
+          });
+        });
+      });
+
+      describe('but not enough time has passed from last initial propose', async () => {
+        beforeEach(async () => {
+          await setManager.initialPropose.sendTransactionAsync();
+        });
+
+        it('should revert', async () => {
+          await expectRevertError(subject());
+        });
+      });
+
+      describe('but rebalance interval has not elapsed', async () => {
+        before(async () => {
+          timeJump = ZERO;
+        });
+
+        after(async () => {
+          timeJump = ONE_DAY_IN_SECONDS;
+        });
+
+        it('should revert', async () => {
+          await expectRevertError(subject());
+        });
+      });
+    });
+
+    describe('when propose is called and rebalancing set token is in Proposal state', async () => {
+      beforeEach(async () => {
+        await setManager.initialPropose.sendTransactionAsync();
+        await blockchain.increaseTimeAsync(ONE_HOUR_IN_SECONDS.mul(6));
+        await setManager.confirmPropose.sendTransactionAsync();
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('when propose is called and rebalancing set token is in Rebalance state', async () => {
+      beforeEach(async () => {
+        // Issue currentSetToken
+        const initialAllocationTokenAddress = await rebalancingSetToken.currentSet.callAsync();
+        const initialAllocationToken = await protocolHelper.getSetTokenAsync(initialAllocationTokenAddress);
+        await core.issue.sendTransactionAsync(
+          initialAllocationToken.address,
+          ether(9),
+          {from: deployerAccount, gas: DEFAULT_GAS},
+        );
+        await erc20Helper.approveTransfersAsync([initialAllocationToken], transferProxy.address);
+
+        // Use issued currentSetToken to issue rebalancingSetToken
+        await core.issue.sendTransactionAsync(
+          rebalancingSetToken.address,
+          ether(7),
+          { from: deployerAccount, gas: DEFAULT_GAS }
+        );
+
+        await setManager.initialPropose.sendTransactionAsync();
+        await blockchain.increaseTimeAsync(ONE_HOUR_IN_SECONDS.mul(6));
+        await setManager.confirmPropose.sendTransactionAsync();
+
+        await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS);
+        await rebalancingSetToken.startRebalance.sendTransactionAsync();
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+  });
+
+  describe('#confirmPropose', async () => {
     let subjectTimeFastForward: BigNumber;
     let subjectCaller: Address;
 
     let initialBaseAssetAllocation: BigNumber;
-    let finalBaseAssetAllocation: BigNumber;
+    let flipTrigger: boolean;
+
     let auctionStartPercentage: BigNumber;
     let auctionEndPercentage: BigNumber;
     let auctionTimeToPivot: BigNumber;
 
-    let collateralSetAddress: Address;
-    let proposalPeriod: BigNumber;
-
     before(async () => {
       initialBaseAssetAllocation = new BigNumber(100);
-      finalBaseAssetAllocation = ZERO;
+      flipTrigger = false;
     });
 
     beforeEach(async () => {
-      const allocationPrecision = new BigNumber(100);
       auctionStartPercentage = new BigNumber(2);
       auctionEndPercentage = new BigNumber(10);
       auctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
-      setManager = await managerHelper.deployTwoAssetStrategyManagerMockAsync(
+      const allocationPrecision = new BigNumber(100);
+      const maxBaseAssetAllocation = new BigNumber(100);
+      const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
+      const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
+      setManager = await managerHelper.deployAssetPairManagerAsync(
         core.address,
         allocator.address,
+        trigger.address,
         linearAuctionPriceCurve.address,
         initialBaseAssetAllocation,
         allocationPrecision,
+        maxBaseAssetAllocation,
         auctionStartPercentage,
         auctionEndPercentage,
         auctionTimeToPivot,
+        signalConfirmationMinTime,
+        signalConfirmationMaxTime,
+        subjectCaller,
       );
 
-      collateralSetAddress = initialBaseAssetAllocation.equals(ZERO) ? quoteAssetCollateral.address
-        : baseAssetCollateral.address;
+      let collateralSetAddress: Address;
+      if (initialBaseAssetAllocation.equals(ZERO)) {
+        collateralSetAddress = quoteAssetCollateral.address;
+        await trigger.confirmTrigger.sendTransactionAsync();
+      } else {
+        collateralSetAddress = baseAssetCollateral.address;
+      }
 
-      proposalPeriod = ONE_DAY_IN_SECONDS;
+      const proposalPeriod = ONE_DAY_IN_SECONDS;
       rebalancingSetToken = await protocolHelper.createDefaultRebalancingSetTokenAsync(
         core,
         rebalancingFactory.address,
@@ -394,21 +676,34 @@ contract('BaseTwoAssetStrategyManager', accounts => {
         { from: subjectCaller, gas: DEFAULT_GAS}
       );
 
-      await setManager.setAllocation.sendTransactionAsync(finalBaseAssetAllocation);
+      await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS);
 
-      subjectTimeFastForward = ONE_DAY_IN_SECONDS.add(1);
+      await setManager.initialPropose.sendTransactionAsync();
+
+      if (flipTrigger) {
+        await trigger.confirmTrigger.sendTransactionAsync();
+      }
+
+      subjectTimeFastForward = ONE_HOUR_IN_SECONDS.mul(7);
       subjectCaller = deployerAccount;
     });
 
     async function subject(): Promise<string> {
       await blockchain.increaseTimeAsync(subjectTimeFastForward);
-      return setManager.propose.sendTransactionAsync(
+      return setManager.confirmPropose.sendTransactionAsync(
         { from: subjectCaller, gas: DEFAULT_GAS}
       );
     }
 
     describe('when propose is called from the Default state', async () => {
       describe('and allocating from base asset to quote asset', async () => {
+        it('updates the baseAssetAllocation correctly', async () => {
+          await subject();
+
+          const actualBaseAssetAllocation = await setManager.baseAssetAllocation.callAsync();
+          expect(actualBaseAssetAllocation).to.be.bignumber.equal(ZERO);
+        });
+
         it('updates to the next set correctly', async () => {
           await subject();
 
@@ -466,11 +761,11 @@ contract('BaseTwoAssetStrategyManager', accounts => {
 
         describe('but allocation has not changed', async () => {
           before(async () => {
-            finalBaseAssetAllocation = new BigNumber(100);
+            flipTrigger = true;
           });
 
           after(async () => {
-            finalBaseAssetAllocation = ZERO;
+            flipTrigger = false;
           });
 
           it('should revert', async () => {
@@ -478,7 +773,7 @@ contract('BaseTwoAssetStrategyManager', accounts => {
           });
         });
 
-        describe('but not enough time has passed from last rebalance', async () => {
+        describe('but not enough time has passed from initialTrigger', async () => {
           beforeEach(async () => {
             subjectTimeFastForward = ZERO;
           });
@@ -492,7 +787,12 @@ contract('BaseTwoAssetStrategyManager', accounts => {
       describe('and allocating from quote asset to base asset', async () => {
         before(async () => {
           initialBaseAssetAllocation = ZERO;
-          finalBaseAssetAllocation = new BigNumber(100);
+        });
+        it('updates the baseAssetAllocation correctly', async () => {
+          await subject();
+
+          const actualBaseAssetAllocation = await setManager.baseAssetAllocation.callAsync();
+          expect(actualBaseAssetAllocation).to.be.bignumber.equal(new BigNumber(100));
         });
 
         it('updates to the next set correctly', async () => {
@@ -552,21 +852,11 @@ contract('BaseTwoAssetStrategyManager', accounts => {
 
         describe('but allocation has not changed', async () => {
           before(async () => {
-            finalBaseAssetAllocation = ZERO;
+            flipTrigger = true;
           });
 
           after(async () => {
-            finalBaseAssetAllocation = new BigNumber(100);
-          });
-
-          it('should revert', async () => {
-            await expectRevertError(subject());
-          });
-        });
-
-        describe('but not enough time has passed from last rebalance', async () => {
-          beforeEach(async () => {
-            subjectTimeFastForward = ZERO;
+            flipTrigger = false;
           });
 
           it('should revert', async () => {
@@ -579,7 +869,7 @@ contract('BaseTwoAssetStrategyManager', accounts => {
     describe('when propose is called and rebalancing set token is in Proposal state', async () => {
       beforeEach(async () => {
         await blockchain.increaseTimeAsync(subjectTimeFastForward);
-        await setManager.propose.sendTransactionAsync();
+        await setManager.confirmPropose.sendTransactionAsync();
       });
 
       it('should revert', async () => {
@@ -606,8 +896,8 @@ contract('BaseTwoAssetStrategyManager', accounts => {
           { from: deployerAccount, gas: DEFAULT_GAS }
         );
 
-        await blockchain.increaseTimeAsync(subjectTimeFastForward);
-        await setManager.propose.sendTransactionAsync();
+        await blockchain.increaseTimeAsync(ONE_HOUR_IN_SECONDS.mul(6));
+        await setManager.confirmPropose.sendTransactionAsync();
 
         await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS);
         await rebalancingSetToken.startRebalance.sendTransactionAsync();
@@ -619,44 +909,260 @@ contract('BaseTwoAssetStrategyManager', accounts => {
     });
   });
 
-  describe('#isReadyToRebalance', async () => {
+  describe('#canInitialPropose', async () => {
+    let subjectCaller: Address;
+
+    let initialBaseAssetAllocation: BigNumber;
+    let timeJump: BigNumber;
+    let flipTrigger: boolean;
+
+    before(async () => {
+      initialBaseAssetAllocation = new BigNumber(100);
+      flipTrigger = false;
+      timeJump = ONE_DAY_IN_SECONDS;
+    });
+
+    beforeEach(async () => {
+      const auctionStartPercentage = new BigNumber(2);
+      const auctionEndPercentage = new BigNumber(10);
+      const auctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
+      const allocationPrecision = new BigNumber(100);
+      const maxBaseAssetAllocation = new BigNumber(100);
+      const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
+      const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
+      setManager = await managerHelper.deployAssetPairManagerAsync(
+        core.address,
+        allocator.address,
+        trigger.address,
+        linearAuctionPriceCurve.address,
+        initialBaseAssetAllocation,
+        allocationPrecision,
+        maxBaseAssetAllocation,
+        auctionStartPercentage,
+        auctionEndPercentage,
+        auctionTimeToPivot,
+        signalConfirmationMinTime,
+        signalConfirmationMaxTime,
+        subjectCaller,
+      );
+
+      let collateralSetAddress: Address;
+      if (initialBaseAssetAllocation.equals(ZERO)) {
+        collateralSetAddress = quoteAssetCollateral.address;
+        await trigger.confirmTrigger.sendTransactionAsync();
+      } else {
+        collateralSetAddress = baseAssetCollateral.address;
+      }
+
+      const proposalPeriod = ONE_DAY_IN_SECONDS;
+      rebalancingSetToken = await protocolHelper.createDefaultRebalancingSetTokenAsync(
+        core,
+        rebalancingFactory.address,
+        setManager.address,
+        collateralSetAddress,
+        proposalPeriod
+      );
+
+      if (flipTrigger) {
+        await trigger.confirmTrigger.sendTransactionAsync();
+      }
+
+      await setManager.initialize.sendTransactionAsync(
+        rebalancingSetToken.address,
+        { from: subjectCaller, gas: DEFAULT_GAS }
+      );
+
+      await blockchain.increaseTimeAsync(timeJump);
+
+      subjectCaller = deployerAccount;
+    });
+
+    async function subject(): Promise<boolean> {
+      return setManager.canInitialPropose.callAsync(
+        { from: subjectCaller, gas: DEFAULT_GAS}
+      );
+    }
+
+    describe('when propose is called from the Default state', async () => {
+      describe('and allocating from base asset to quote asset', async () => {
+        it('should return true', async () => {
+          const canConfirmPropose = await subject();
+
+          expect(canConfirmPropose).to.be.true;
+        });
+
+        describe('but allocation has not changed', async () => {
+          before(async () => {
+            flipTrigger = true;
+          });
+
+          after(async () => {
+            flipTrigger = false;
+          });
+
+          it('return false', async () => {
+            const canConfirmPropose = await subject();
+
+            expect(canConfirmPropose).to.be.false;
+          });
+        });
+      });
+
+      describe('and allocating from quote asset to base asset', async () => {
+        before(async () => {
+          initialBaseAssetAllocation = ZERO;
+        });
+
+        after(async () => {
+          initialBaseAssetAllocation = new BigNumber(100);
+        });
+
+        it('should return true', async () => {
+          const canConfirmPropose = await subject();
+
+          expect(canConfirmPropose).to.be.true;
+        });
+
+        describe('but allocation has not changed', async () => {
+          before(async () => {
+            flipTrigger = true;
+          });
+
+          after(async () => {
+            flipTrigger = false;
+          });
+
+          it('return false', async () => {
+            const canConfirmPropose = await subject();
+
+            expect(canConfirmPropose).to.be.false;
+          });
+        });
+      });
+
+      describe('but not enough time has passed from last initial propose', async () => {
+        beforeEach(async () => {
+          await setManager.initialPropose.sendTransactionAsync();
+        });
+
+        it('returns false', async () => {
+          const canConfirmPropose = await subject();
+
+          expect(canConfirmPropose).to.be.false;
+        });
+      });
+
+      describe('but rebalance interval has not elapsed', async () => {
+        before(async () => {
+          timeJump = ZERO;
+        });
+
+        after(async () => {
+          timeJump = ONE_DAY_IN_SECONDS;
+        });
+
+        it('returns false', async () => {
+          const canConfirmPropose = await subject();
+
+          expect(canConfirmPropose).to.be.false;
+        });
+      });
+    });
+
+    describe('when propose is called and rebalancing set token is in Proposal state', async () => {
+      beforeEach(async () => {
+        await setManager.initialPropose.sendTransactionAsync();
+        await blockchain.increaseTimeAsync(ONE_HOUR_IN_SECONDS.mul(6));
+        await setManager.confirmPropose.sendTransactionAsync();
+      });
+
+      it('returns false', async () => {
+        const canConfirmPropose = await subject();
+
+        expect(canConfirmPropose).to.be.false;
+      });
+    });
+
+    describe('when propose is called and rebalancing set token is in Rebalance state', async () => {
+      beforeEach(async () => {
+        // Issue currentSetToken
+        const initialAllocationTokenAddress = await rebalancingSetToken.currentSet.callAsync();
+        const initialAllocationToken = await protocolHelper.getSetTokenAsync(initialAllocationTokenAddress);
+        await core.issue.sendTransactionAsync(
+          initialAllocationToken.address,
+          ether(9),
+          {from: deployerAccount, gas: DEFAULT_GAS},
+        );
+        await erc20Helper.approveTransfersAsync([initialAllocationToken], transferProxy.address);
+
+        // Use issued currentSetToken to issue rebalancingSetToken
+        await core.issue.sendTransactionAsync(
+          rebalancingSetToken.address,
+          ether(7),
+          { from: deployerAccount, gas: DEFAULT_GAS }
+        );
+
+        await setManager.initialPropose.sendTransactionAsync();
+        await blockchain.increaseTimeAsync(ONE_HOUR_IN_SECONDS.mul(6));
+        await setManager.confirmPropose.sendTransactionAsync();
+
+        await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS);
+        await rebalancingSetToken.startRebalance.sendTransactionAsync();
+      });
+
+      it('returns false', async () => {
+        const canConfirmPropose = await subject();
+
+        expect(canConfirmPropose).to.be.false;
+      });
+    });
+  });
+
+  describe('#canConfirmPropose', async () => {
     let subjectTimeFastForward: BigNumber;
     let subjectCaller: Address;
 
     let initialBaseAssetAllocation: BigNumber;
-    let finalBaseAssetAllocation: BigNumber;
-    let auctionStartPercentage: BigNumber;
-    let auctionEndPercentage: BigNumber;
-    let auctionTimeToPivot: BigNumber;
-
-    let collateralSetAddress: Address;
-    let proposalPeriod: BigNumber;
+    let flipTrigger: boolean;
 
     before(async () => {
       initialBaseAssetAllocation = new BigNumber(100);
-      finalBaseAssetAllocation = ZERO;
+      flipTrigger = false;
     });
 
     beforeEach(async () => {
+      const auctionStartPercentage = new BigNumber(2);
+      const auctionEndPercentage = new BigNumber(10);
+      const auctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
       const allocationPrecision = new BigNumber(100);
-      auctionStartPercentage = new BigNumber(2);
-      auctionEndPercentage = new BigNumber(10);
-      auctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
-      setManager = await managerHelper.deployTwoAssetStrategyManagerMockAsync(
+      const maxBaseAssetAllocation = new BigNumber(100);
+      const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
+      const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
+      setManager = await managerHelper.deployAssetPairManagerAsync(
         core.address,
         allocator.address,
+        trigger.address,
         linearAuctionPriceCurve.address,
         initialBaseAssetAllocation,
         allocationPrecision,
+        maxBaseAssetAllocation,
         auctionStartPercentage,
         auctionEndPercentage,
         auctionTimeToPivot,
+        signalConfirmationMinTime,
+        signalConfirmationMaxTime,
+        subjectCaller,
       );
 
-      collateralSetAddress = initialBaseAssetAllocation.equals(ZERO) ? quoteAssetCollateral.address
-        : baseAssetCollateral.address;
+      let collateralSetAddress: Address;
+      if (initialBaseAssetAllocation.equals(ZERO)) {
+        collateralSetAddress = quoteAssetCollateral.address;
+        await trigger.confirmTrigger.sendTransactionAsync();
+      } else {
+        collateralSetAddress = baseAssetCollateral.address;
+      }
 
-      proposalPeriod = ONE_DAY_IN_SECONDS;
+      const proposalPeriod = ONE_DAY_IN_SECONDS;
       rebalancingSetToken = await protocolHelper.createDefaultRebalancingSetTokenAsync(
         core,
         rebalancingFactory.address,
@@ -670,15 +1176,21 @@ contract('BaseTwoAssetStrategyManager', accounts => {
         { from: subjectCaller, gas: DEFAULT_GAS}
       );
 
-      await setManager.setAllocation.sendTransactionAsync(finalBaseAssetAllocation);
+      await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS);
 
-      subjectTimeFastForward = ONE_DAY_IN_SECONDS.add(1);
+      await setManager.initialPropose.sendTransactionAsync();
+
+      if (flipTrigger) {
+        await trigger.confirmTrigger.sendTransactionAsync();
+      }
+
+      subjectTimeFastForward = ONE_HOUR_IN_SECONDS.mul(7);
       subjectCaller = deployerAccount;
     });
 
     async function subject(): Promise<boolean> {
       await blockchain.increaseTimeAsync(subjectTimeFastForward);
-      return setManager.isReadyToRebalance.callAsync(
+      return setManager.canConfirmPropose.callAsync(
         { from: subjectCaller, gas: DEFAULT_GAS}
       );
     }
@@ -686,36 +1198,36 @@ contract('BaseTwoAssetStrategyManager', accounts => {
     describe('when propose is called from the Default state', async () => {
       describe('and allocating from base asset to quote asset', async () => {
         it('should return true', async () => {
-          const canInitialTrigger = await subject();
+          const canConfirmPropose = await subject();
 
-          expect(canInitialTrigger).to.be.true;
+          expect(canConfirmPropose).to.be.true;
         });
 
         describe('but allocation has not changed', async () => {
           before(async () => {
-            finalBaseAssetAllocation = new BigNumber(100);
+            flipTrigger = true;
           });
 
           after(async () => {
-            finalBaseAssetAllocation = ZERO;
+            flipTrigger = false;
           });
 
           it('return false', async () => {
-            const canInitialTrigger = await subject();
+            const canConfirmPropose = await subject();
 
-            expect(canInitialTrigger).to.be.false;
+            expect(canConfirmPropose).to.be.false;
           });
         });
 
-        describe('but not enough time has passed from last rebalance', async () => {
+        describe('but not in confirmation window', async () => {
           beforeEach(async () => {
             subjectTimeFastForward = ZERO;
           });
 
           it('returns false', async () => {
-            const canInitialTrigger = await subject();
+            const canConfirmPropose = await subject();
 
-            expect(canInitialTrigger).to.be.false;
+            expect(canConfirmPropose).to.be.false;
           });
         });
       });
@@ -723,40 +1235,39 @@ contract('BaseTwoAssetStrategyManager', accounts => {
       describe('and allocating from quote asset to base asset', async () => {
         before(async () => {
           initialBaseAssetAllocation = ZERO;
-          finalBaseAssetAllocation = new BigNumber(100);
         });
 
         it('returns true', async () => {
-          const canInitialTrigger = await subject();
+          const canConfirmPropose = await subject();
 
-          expect(canInitialTrigger).to.be.true;
+          expect(canConfirmPropose).to.be.true;
         });
 
         describe('but allocation has not changed', async () => {
           before(async () => {
-            finalBaseAssetAllocation = ZERO;
+            flipTrigger = true;
           });
 
           after(async () => {
-            finalBaseAssetAllocation = new BigNumber(100);
+            flipTrigger = false;
           });
 
           it('returns false', async () => {
-            const canInitialTrigger = await subject();
+            const canConfirmPropose = await subject();
 
-            expect(canInitialTrigger).to.be.false;
+            expect(canConfirmPropose).to.be.false;
           });
         });
 
-        describe('returns false', async () => {
+        describe('but not in confirmation window', async () => {
           beforeEach(async () => {
             subjectTimeFastForward = ZERO;
           });
 
-          it('should revert', async () => {
-            const canInitialTrigger = await subject();
+          it('returns false', async () => {
+            const canConfirmPropose = await subject();
 
-            expect(canInitialTrigger).to.be.false;
+            expect(canConfirmPropose).to.be.false;
           });
         });
       });
@@ -765,13 +1276,13 @@ contract('BaseTwoAssetStrategyManager', accounts => {
     describe('when propose is called and rebalancing set token is in Proposal state', async () => {
       beforeEach(async () => {
         await blockchain.increaseTimeAsync(subjectTimeFastForward);
-        await setManager.propose.sendTransactionAsync();
+        await setManager.confirmPropose.sendTransactionAsync();
       });
 
       it('returns false', async () => {
-        const canInitialTrigger = await subject();
+        const canConfirmPropose = await subject();
 
-        expect(canInitialTrigger).to.be.false;
+        expect(canConfirmPropose).to.be.false;
       });
     });
 
@@ -795,16 +1306,16 @@ contract('BaseTwoAssetStrategyManager', accounts => {
         );
 
         await blockchain.increaseTimeAsync(subjectTimeFastForward);
-        await setManager.propose.sendTransactionAsync();
+        await setManager.confirmPropose.sendTransactionAsync();
 
         await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS);
         await rebalancingSetToken.startRebalance.sendTransactionAsync();
       });
 
       it('returns false', async () => {
-        const canInitialTrigger = await subject();
+        const canConfirmPropose = await subject();
 
-        expect(canInitialTrigger).to.be.false;
+        expect(canConfirmPropose).to.be.false;
       });
     });
   });

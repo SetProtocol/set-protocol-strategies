@@ -31,9 +31,9 @@ import {
   EMAOracleContract,
   LegacyMakerOracleAdapterContract,
   LinearizedEMATimeSeriesFeedContract,
-  MovingAverageToAssetPriceCrossoverTriggerContract,
+  MovingAverageCrossoverTriggerContract,
   OracleProxyContract,
-  TriggerIndexManagerContract,
+  AssetPairManagerContract,
   USDCMockContract,
 } from '@utils/contracts';
 
@@ -66,7 +66,7 @@ const blockchain = new Blockchain(web3);
 const { SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
 const setTestUtils = new SetTestUtils(web3);
 
-contract('Integration: TriggerIndexManager', accounts => {
+contract('Integration: AssetPairManager', accounts => {
   const [
     deployerAccount,
   ] = accounts;
@@ -89,20 +89,16 @@ contract('Integration: TriggerIndexManager', accounts => {
   let timeSeriesFeed: LinearizedEMATimeSeriesFeedContract;
   let emaOracle: EMAOracleContract;
 
-  let trigger: MovingAverageToAssetPriceCrossoverTriggerContract;
+  let trigger: MovingAverageCrossoverTriggerContract;
   let allocator: BinaryAllocatorContract;
 
-  let setManager: TriggerIndexManagerContract;
+  let setManager: AssetPairManagerContract;
   let quoteAssetCollateral: SetTokenContract;
   let baseAssetCollateral: SetTokenContract;
 
   let initialEthPrice: BigNumber;
   let usdcPrice: BigNumber;
   let timePeriod: BigNumber;
-
-  let signalConfirmationMinTime: BigNumber;
-  let signalConfirmationMaxTime: BigNumber;
-  let initialState: boolean = true;
 
   const protocolHelper = new ProtocolHelper(deployerAccount);
   const erc20Helper = new ERC20Helper(deployerAccount);
@@ -189,15 +185,10 @@ contract('Integration: TriggerIndexManager', accounts => {
       RISK_COLLATERAL_NATURAL_UNIT,
     );
 
-    signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
-    signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
-    trigger = await managerHelper.deployMovingAverageToAssetPriceCrossoverTrigger(
+    trigger = await managerHelper.deployMovingAverageCrossoverTrigger(
       emaOracle.address,
       oracleProxy.address,
       timePeriod,
-      initialState,
-      signalConfirmationMinTime,
-      signalConfirmationMaxTime
     );
 
     allocator = await managerHelper.deployBinaryAllocatorAsync(
@@ -221,11 +212,12 @@ contract('Integration: TriggerIndexManager', accounts => {
     blockchain.revertAsync();
   });
 
-  describe('#propose', async () => {
+  describe('#confirmPropose', async () => {
     let subjectTimeFastForward: BigNumber;
     let subjectCaller: Address;
 
-    let triggerPrice: BigNumber;
+    let crossoverPrice: BigNumber;
+    let confirmPrice: BigNumber;
     let updateMarketState: boolean;
 
     let baseAssetAllocation: BigNumber;
@@ -237,27 +229,33 @@ contract('Integration: TriggerIndexManager', accounts => {
     let proposalPeriod: BigNumber;
 
     before(async () => {
-      triggerPrice = ether(140);
+      crossoverPrice = ether(140);
+      confirmPrice = crossoverPrice;
       baseAssetAllocation = new BigNumber(100);
       updateMarketState = true;
     });
 
     beforeEach(async () => {
-      const allocationPrecision = new BigNumber(100);
       auctionStartPercentage = new BigNumber(2);
       auctionEndPercentage = new BigNumber(10);
       auctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
-      setManager = await  managerHelper.deployTriggerIndexManagerAsync(
+      const allocationPrecision = new BigNumber(100);
+      const maxBaseAssetAllocation = new BigNumber(100);
+      const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
+      const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
+      setManager = await managerHelper.deployAssetPairManagerAsync(
         core.address,
         allocator.address,
+        trigger.address,
         linearAuctionPriceCurve.address,
         baseAssetAllocation,
         allocationPrecision,
+        maxBaseAssetAllocation,
         auctionStartPercentage,
         auctionEndPercentage,
         auctionTimeToPivot,
-        [trigger.address],
-        [new BigNumber(100)],
+        signalConfirmationMinTime,
+        signalConfirmationMaxTime,
         subjectCaller,
       );
 
@@ -278,27 +276,33 @@ contract('Integration: TriggerIndexManager', accounts => {
         { from: subjectCaller, gas: DEFAULT_GAS}
       );
 
+      const lastBlockInfo = await web3.eth.getBlock('latest');
+      await oracleHelper.updateMedianizerPriceAsync(
+        ethMedianizer,
+        crossoverPrice,
+        new BigNumber(lastBlockInfo.timestamp + 1),
+      );
+
+      await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS);
+
+      await setManager.initialPropose.sendTransactionAsync();
+
       if (updateMarketState) {
         const lastBlockInfo = await web3.eth.getBlock('latest');
         await oracleHelper.updateMedianizerPriceAsync(
           ethMedianizer,
-          triggerPrice,
+          confirmPrice,
           new BigNumber(lastBlockInfo.timestamp + 1),
         );
-
-        await trigger.initialTrigger.sendTransactionAsync();
-
-        await blockchain.increaseTimeAsync(signalConfirmationMinTime.add(1));
-        await trigger.confirmTrigger.sendTransactionAsync();
       }
 
-      subjectTimeFastForward = ONE_DAY_IN_SECONDS.add(1);
+      subjectTimeFastForward = ONE_HOUR_IN_SECONDS.mul(7);
       subjectCaller = deployerAccount;
     });
 
     async function subject(): Promise<string> {
       await blockchain.increaseTimeAsync(subjectTimeFastForward);
-      return setManager.propose.sendTransactionAsync(
+      return setManager.confirmPropose.sendTransactionAsync(
         { from: subjectCaller, gas: DEFAULT_GAS}
       );
     }
@@ -332,7 +336,7 @@ contract('Integration: TriggerIndexManager', accounts => {
 
           const baseCollateralValue = await managerHelper.calculateSetTokenValue(
             baseAssetCollateral,
-            [triggerPrice],
+            [confirmPrice],
             [ETH_DECIMALS],
           );
 
@@ -360,7 +364,7 @@ contract('Integration: TriggerIndexManager', accounts => {
 
           const baseCollateralValue = await managerHelper.calculateSetTokenValue(
             baseAssetCollateral,
-            [triggerPrice],
+            [confirmPrice],
             [ETH_DECIMALS],
           );
 
@@ -385,7 +389,13 @@ contract('Integration: TriggerIndexManager', accounts => {
 
         describe('but quote collateral is 4x valuable than base collateral', async () => {
           before(async () => {
-            triggerPrice = ether(25);
+            crossoverPrice = ether(25);
+            confirmPrice = crossoverPrice;
+          });
+
+          after(async () => {
+            crossoverPrice = ether(140);
+            confirmPrice = crossoverPrice;
           });
 
           it('should pass correct next set address', async () => {
@@ -407,7 +417,7 @@ contract('Integration: TriggerIndexManager', accounts => {
 
             const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
               baseAssetCollateral,
-              triggerPrice,
+              confirmPrice,
               usdcPrice,
               ETH_DECIMALS,
               USDC_DECIMALS,
@@ -424,7 +434,7 @@ contract('Integration: TriggerIndexManager', accounts => {
 
             const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
               baseAssetCollateral,
-              triggerPrice,
+              confirmPrice,
               usdcPrice,
               ETH_DECIMALS,
               USDC_DECIMALS,
@@ -452,7 +462,7 @@ contract('Integration: TriggerIndexManager', accounts => {
 
             const baseCollateralValue = await managerHelper.calculateSetTokenValue(
               baseAssetCollateral,
-              [triggerPrice],
+              [confirmPrice],
               [ETH_DECIMALS],
             );
 
@@ -484,7 +494,7 @@ contract('Integration: TriggerIndexManager', accounts => {
 
             const baseCollateralValue = await managerHelper.calculateSetTokenValue(
               baseAssetCollateral,
-              [triggerPrice],
+              [confirmPrice],
               [ETH_DECIMALS],
             );
 
@@ -510,7 +520,13 @@ contract('Integration: TriggerIndexManager', accounts => {
 
         describe('but new stable collateral requires bump in natural unit', async () => {
           before(async () => {
-            triggerPrice = ether(.4);
+            crossoverPrice = ether(.4);
+            confirmPrice = crossoverPrice;
+          });
+
+          after(async () => {
+            crossoverPrice = ether(140);
+            confirmPrice = crossoverPrice;
           });
 
           it('should pass correct next set address', async () => {
@@ -532,7 +548,7 @@ contract('Integration: TriggerIndexManager', accounts => {
 
             const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
               baseAssetCollateral,
-              triggerPrice,
+              confirmPrice,
               usdcPrice,
               ETH_DECIMALS,
               USDC_DECIMALS,
@@ -549,7 +565,7 @@ contract('Integration: TriggerIndexManager', accounts => {
 
             const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
               baseAssetCollateral,
-              triggerPrice,
+              confirmPrice,
               usdcPrice,
               ETH_DECIMALS,
               USDC_DECIMALS,
@@ -577,7 +593,7 @@ contract('Integration: TriggerIndexManager', accounts => {
 
             const baseCollateralValue = await managerHelper.calculateSetTokenValue(
               baseAssetCollateral,
-              [triggerPrice],
+              [confirmPrice],
               [ETH_DECIMALS],
             );
 
@@ -609,7 +625,7 @@ contract('Integration: TriggerIndexManager', accounts => {
 
             const baseCollateralValue = await managerHelper.calculateSetTokenValue(
               baseAssetCollateral,
-              [triggerPrice],
+              [confirmPrice],
               [ETH_DECIMALS],
             );
 
@@ -635,11 +651,11 @@ contract('Integration: TriggerIndexManager', accounts => {
 
         describe('but price has not dipped below MA', async () => {
           before(async () => {
-            updateMarketState = false;
+            confirmPrice = ether(155);
           });
 
           after(async () => {
-            updateMarketState = true;
+            confirmPrice = ether(140);
           });
 
           it('should revert', async () => {
@@ -660,9 +676,15 @@ contract('Integration: TriggerIndexManager', accounts => {
 
       describe('and allocating from quote asset to base asset', async () => {
         before(async () => {
-          initialState = false;
           baseAssetAllocation = ZERO;
-          triggerPrice = ether(170);
+          crossoverPrice = ether(170);
+          confirmPrice = crossoverPrice;
+        });
+
+        after(async () => {
+          baseAssetAllocation = new BigNumber(100);
+          crossoverPrice = ether(140);
+          confirmPrice = crossoverPrice;
         });
 
         it('updates to the next set correctly', async () => {
@@ -692,7 +714,7 @@ contract('Integration: TriggerIndexManager', accounts => {
 
           const baseCollateralValue = await managerHelper.calculateSetTokenValue(
             baseAssetCollateral,
-            [triggerPrice],
+            [confirmPrice],
             [ETH_DECIMALS],
           );
 
@@ -720,7 +742,7 @@ contract('Integration: TriggerIndexManager', accounts => {
 
           const baseCollateralValue = await managerHelper.calculateSetTokenValue(
             baseAssetCollateral,
-            [triggerPrice],
+            [confirmPrice],
             [ETH_DECIMALS],
           );
 
@@ -745,7 +767,13 @@ contract('Integration: TriggerIndexManager', accounts => {
 
         describe('but baseAsset collateral is 4x valuable than quoteAsset collateral', async () => {
           before(async () => {
-            triggerPrice = ether(400);
+            crossoverPrice = ether(400);
+            confirmPrice = crossoverPrice;
+          });
+
+          after(async () => {
+            crossoverPrice = ether(170);
+            confirmPrice = crossoverPrice;
           });
 
           it('should pass correct next set address', async () => {
@@ -768,7 +796,7 @@ contract('Integration: TriggerIndexManager', accounts => {
             const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
               quoteAssetCollateral,
               usdcPrice,
-              triggerPrice,
+              confirmPrice,
               USDC_DECIMALS,
               ETH_DECIMALS,
             );
@@ -785,7 +813,7 @@ contract('Integration: TriggerIndexManager', accounts => {
             const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
               quoteAssetCollateral,
               usdcPrice,
-              triggerPrice,
+              confirmPrice,
               USDC_DECIMALS,
               ETH_DECIMALS,
             );
@@ -812,7 +840,7 @@ contract('Integration: TriggerIndexManager', accounts => {
 
             const baseCollateralValue = await managerHelper.calculateSetTokenValue(
               newSet,
-              [triggerPrice],
+              [confirmPrice],
               [ETH_DECIMALS],
             );
 
@@ -844,7 +872,7 @@ contract('Integration: TriggerIndexManager', accounts => {
 
             const baseCollateralValue = await managerHelper.calculateSetTokenValue(
               newSet,
-              [triggerPrice],
+              [confirmPrice],
               [ETH_DECIMALS],
             );
 
@@ -870,7 +898,13 @@ contract('Integration: TriggerIndexManager', accounts => {
 
         describe('but new risk collateral requires bump in natural unit', async () => {
           before(async () => {
-            triggerPrice = ether(3 * 10 ** 8);
+            crossoverPrice = ether(3 * 10 ** 8);
+            confirmPrice = crossoverPrice;
+          });
+
+          after(async () => {
+            crossoverPrice = ether(170);
+            confirmPrice = crossoverPrice;
           });
 
           it('should pass correct next set address', async () => {
@@ -893,7 +927,7 @@ contract('Integration: TriggerIndexManager', accounts => {
             const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
               quoteAssetCollateral,
               usdcPrice,
-              triggerPrice,
+              confirmPrice,
               USDC_DECIMALS,
               ETH_DECIMALS,
             );
@@ -911,7 +945,7 @@ contract('Integration: TriggerIndexManager', accounts => {
             const expectedNextSetParams = await managerHelper.getExpectedNewBinaryAllocationParametersAsync(
               quoteAssetCollateral,
               usdcPrice,
-              triggerPrice,
+              confirmPrice,
               USDC_DECIMALS,
               ETH_DECIMALS,
             );
@@ -938,7 +972,7 @@ contract('Integration: TriggerIndexManager', accounts => {
 
             const baseCollateralValue = await managerHelper.calculateSetTokenValue(
               newSet,
-              [triggerPrice],
+              [confirmPrice],
               [ETH_DECIMALS],
             );
 
@@ -970,7 +1004,7 @@ contract('Integration: TriggerIndexManager', accounts => {
 
             const baseCollateralValue = await managerHelper.calculateSetTokenValue(
               newSet,
-              [triggerPrice],
+              [confirmPrice],
               [ETH_DECIMALS],
             );
 
@@ -996,11 +1030,11 @@ contract('Integration: TriggerIndexManager', accounts => {
 
         describe('but price has not gone above MA', async () => {
           before(async () => {
-            updateMarketState = false;
+            confirmPrice = ether(140);
           });
 
           after(async () => {
-            updateMarketState = true;
+            confirmPrice = ether(170);
           });
 
           it('should revert', async () => {
@@ -1023,7 +1057,7 @@ contract('Integration: TriggerIndexManager', accounts => {
     describe('when propose is called and rebalancing set token is in Proposal state', async () => {
       beforeEach(async () => {
         await blockchain.increaseTimeAsync(subjectTimeFastForward);
-        await setManager.propose.sendTransactionAsync();
+        await setManager.confirmPropose.sendTransactionAsync();
       });
 
       it('should revert', async () => {
@@ -1051,7 +1085,7 @@ contract('Integration: TriggerIndexManager', accounts => {
         );
 
         await blockchain.increaseTimeAsync(subjectTimeFastForward);
-        await setManager.propose.sendTransactionAsync();
+        await setManager.confirmPropose.sendTransactionAsync();
 
         await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS);
         await rebalancingSetToken.startRebalance.sendTransactionAsync();

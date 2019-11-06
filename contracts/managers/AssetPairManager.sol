@@ -26,63 +26,88 @@ import { RebalancingLibrary } from "set-protocol-contracts/contracts/core/lib/Re
 
 import { FlexibleTimingManagerLibrary } from "./lib/FlexibleTimingManagerLibrary.sol";
 import { IAllocator } from "./allocators/IAllocator.sol";
+import { ITrigger } from "./triggers/ITrigger.sol";
 
 
 /**
- * @title TwoAssetStrategyManager
+ * @title AssetPairManager
  * @author Set Protocol
  *
- * Base Rebalancing Manager contract for implementing any trading pair strategy. Allocation determinations
- * are implemented in a contract that inherits the functionality of this contract. Additionally, all allocations are
- * priced using the base contracts's Allocator contract.
+ * Rebalancing Manager contract for implementing any trading pair strategy. Allocation determinations are made
+ * base on output of Trigger contract. Max base asset allocation amount is passed in and used when bullish,
+ * allocationPrecision - bullishBaseAssetAllocation used when bearish. Additionally, all allocations are priced
+ * using the base contract's Allocator contract.
  */
-contract TwoAssetStrategyManager {
+contract AssetPairManager {
     using SafeMath for uint256;
 
     /* ============ State Variables ============ */
     ICore public coreInstance;
-    IAuctionPriceCurve public auctionLibraryInstance;
     IAllocator public allocatorInstance;
+    ITrigger public triggerInstance;
+    IAuctionPriceCurve public auctionLibraryInstance;
     IRebalancingSetToken public rebalancingSetTokenInstance;
     uint256 public baseAssetAllocation;  // Percent of base asset currently allocated in strategy
     uint256 public allocationPrecision;
+    uint256 public bullishBaseAssetAllocation;
     uint256 public auctionStartPercentage;
     uint256 public auctionEndPercentage;
     uint256 public auctionTimeToPivot;
+
+    // Time to start of confirmation period in seconds
+    uint256 public signalConfirmationMinTime;
+    // Time to end of confirmation period in seconds
+    uint256 public signalConfirmationMaxTime;
+    uint256 public lastInitialTriggerTimestamp;
+
     address public initializerAddress;
 
     /*
-     * TwoAssetStrategyManager constructor.
+     * AssetPairManager constructor.
      *
-     * @param  _coreInstance                    The address of the Core contract       
-     * @param  _allocatorInstance               The address of the Allocator to be used in the strategy        
+     * @param  _coreInstance                    The address of the Core contract
+     * @param  _allocatorInstance               The address of the Allocator to be used in the strategy
+     * @param  _triggerInstance                 The address of the PriceTrigger to be used in the strategy
      * @param  _auctionLibraryInstance          The address of auction price curve to use in rebalance
      * @param  _baseAssetAllocation             Starting allocation of the Rebalancing Set in baseAsset amount
      * @param  _allocationPrecision             Precision of allocation percentage
-     * @param  _auctionStartPercentage          The amount below fair value, in percent, to start auction
-     * @param  _auctionEndPercentage            The amount above fair value, in percent, to end auction
+     * @param  _bullishBaseAssetAllocation      Base asset allocation when trigger is bullish
      * @param  _auctionTimeToPivot              Time, in seconds, spent between start and pivot price
+     * @param  _auctionPriceBounds              The price bounds, in percent below and above fair value, of linear auction
+     * @param  _signalConfirmationBounds        The lower and upper bounds of time, in seconds, from initialTrigger to confirm signal
      */
     constructor(
         ICore _coreInstance,
         IAllocator _allocatorInstance,
+        ITrigger _triggerInstance,
         IAuctionPriceCurve _auctionLibraryInstance,
         uint256 _baseAssetAllocation,
         uint256 _allocationPrecision,
-        uint256 _auctionStartPercentage,
-        uint256 _auctionEndPercentage,
-        uint256 _auctionTimeToPivot
+        uint256 _bullishBaseAssetAllocation,
+        uint256 _auctionTimeToPivot,
+        uint256[2] memory _auctionPriceBounds,
+        uint256[2] memory _signalConfirmationBounds
     )
         public
     {
+        // Make sure confirmation max time is greater than confirmation min time
+        require(
+            _signalConfirmationBounds[1] >= _signalConfirmationBounds[0],
+            "AssetPairManager.constructor: Confirmation max time must be greater than min time."
+        );
+
         coreInstance = _coreInstance;
         allocatorInstance = _allocatorInstance;
+        triggerInstance = _triggerInstance;
         auctionLibraryInstance = _auctionLibraryInstance;
         baseAssetAllocation = _baseAssetAllocation;
         allocationPrecision = _allocationPrecision;
-        auctionStartPercentage = _auctionStartPercentage;
-        auctionEndPercentage = _auctionEndPercentage;
+        bullishBaseAssetAllocation = _bullishBaseAssetAllocation;
         auctionTimeToPivot = _auctionTimeToPivot;
+        auctionStartPercentage = _auctionPriceBounds[0];
+        auctionEndPercentage = _auctionPriceBounds[1];
+        signalConfirmationMinTime = _signalConfirmationBounds[0];
+        signalConfirmationMaxTime = _signalConfirmationBounds[1];
         initializerAddress = msg.sender;
     }
 
@@ -102,13 +127,13 @@ contract TwoAssetStrategyManager {
         // Check that the initializer address is calling function
         require(
             msg.sender == initializerAddress,
-            "TwoAssetStrategyManager.initialize: Only the contract deployer can initialize"
+            "AssetPairManager.initialize: Only the contract deployer can initialize"
         );
 
         // Make sure the rebalancingSetToken is tracked by Core
-        require(
+        require(  // coverage-disable-line
             coreInstance.validSets(address(_rebalancingSetTokenInstance)),
-            "TwoAssetStrategyManager.initialize: Invalid or disabled RebalancingSetToken address"
+            "AssetPairManager.initialize: Invalid or disabled RebalancingSetToken address"
         );
 
         rebalancingSetTokenInstance = _rebalancingSetTokenInstance;
@@ -116,15 +141,51 @@ contract TwoAssetStrategyManager {
         initializerAddress = address(0);
     }
 
+    /*
+     * When allowed on RebalancingSetToken, anyone can call for a new rebalance proposal. Assuming the criteria
+     * have been met, this begins a waiting period before the confirmation window starts where the signal can be
+     * confirmed.
+     */
+    function initialPropose()
+        external
+    {
+        // Check enough time has passed for proposal and RebalancingSetToken in Default state
+        FlexibleTimingManagerLibrary.validateManagerPropose(rebalancingSetTokenInstance);
+
+        // Make sure there is not an existing initial proposal underway
+        require(
+            hasConfirmationWindowElapsed(),
+            "AssetPairManager.initialPropose: Not enough time passed from last proposal."
+        );
+
+        // Get new baseAsset allocation amount
+        uint256 newBaseAssetAllocation = calculateBaseAssetAllocation();
+
+        // Check that new baseAsset allocation amount is different from current allocation amount
+        require(
+            newBaseAssetAllocation != baseAssetAllocation,
+            "AssetPairManager.initialPropose: No change in allocation detected."
+        );     
+
+        // Set initial trigger timestamp
+        lastInitialTriggerTimestamp = block.timestamp;
+    }
+
      /*
      * When allowed on RebalancingSetToken, anyone can call for a new rebalance proposal. Assuming the criteria
      * have been met, determine parameters for the rebalance
      */
-    function propose()
+    function confirmPropose()
         external
     {
         // Check that enough time has passed for the proposal and RebalancingSetToken is in Default state
         FlexibleTimingManagerLibrary.validateManagerPropose(rebalancingSetTokenInstance);
+
+        // Make sure in confirmation window
+        require(
+            inConfirmationWindow(),
+            "AssetPairManager.confirmPropose: Confirming signal must be within confirmation window."
+        );
         
         // Get new baseAsset allocation amount
         uint256 newBaseAssetAllocation = calculateBaseAssetAllocation();
@@ -132,7 +193,7 @@ contract TwoAssetStrategyManager {
         // Check that new baseAsset allocation amount is different from current allocation amount
         require(
             newBaseAssetAllocation != baseAssetAllocation,
-            "TwoAssetStrategyManager.propose: No change in allocation detected."
+            "AssetPairManager.confirmPropose: No change in allocation detected."
         );
 
         // Get current collateral Set
@@ -181,31 +242,54 @@ contract TwoAssetStrategyManager {
         baseAssetAllocation = newBaseAssetAllocation;
     }
 
-     /*
-     * Function returning whether rebalance is ready to go ahead
+    /*
+     * Function returning whether initialPropose can be called without revert
      *
-     * @return       Whether rebalance is ready to go be proposed
+     * @return       Whether initialPropose can be called without revert
      */
-    function isReadyToRebalance()
+    function canInitialPropose()
         external
         view
         returns (bool)
     {
         // If RebalancingSetToken in valid state and new allocation different from last known allocation
         // then return true, else false
-        return rebalancingSetTokenInValidState() && calculateBaseAssetAllocation() != baseAssetAllocation;        
-    } 
+        return rebalancingSetTokenInValidState()
+            && calculateBaseAssetAllocation() != baseAssetAllocation
+            && hasConfirmationWindowElapsed();
+    }
 
-     /*
-     * Unimplemented in this base contract but is used to translate price triggers outputs (boolean)
-     * into an ideal base asset allocation.
+    /*
+     * Function returning whether confirmPropose can be called without revert
+     *
+     * @return       Whether confirmPropose can be called without revert
      */
-    function calculateBaseAssetAllocation()
-        public
+    function canConfirmPropose()
+        external
         view
-        returns (uint256);   
+        returns (bool)
+    {
+        // If RebalancingSetToken in valid state and new allocation different from last known allocation
+        // then return true, else false
+        return rebalancingSetTokenInValidState()
+            && calculateBaseAssetAllocation() != baseAssetAllocation
+            && inConfirmationWindow();
+    }
 
     /* ============ Internal ============ */
+
+    /*
+     * Calculate base asset allocation given market conditions
+     *
+     * @return       New base asset allocation
+     */
+    function calculateBaseAssetAllocation()
+        internal
+        view
+        returns (uint256)
+    {
+        return triggerInstance.isBullish() ? bullishBaseAssetAllocation : allocationPrecision.sub(bullishBaseAssetAllocation);   
+    }
 
     /*
      * Calculates the auction price parameters, targetting 1% slippage every 10 minutes. Range is
@@ -262,5 +346,32 @@ contract TwoAssetStrategyManager {
         // Require that Rebalancing Set Token is in Default state and rebalanceInterval elapsed
         return block.timestamp >= lastRebalanceTimestamp.add(rebalanceInterval) &&
             rebalancingSetTokenInstance.rebalanceState() == RebalancingLibrary.State.Default;        
+    }
+
+    /*
+     * Return if enough time passed since last initialTrigger
+     *
+     * @return       Whether enough time has passed since last initialTrigger
+     */
+    function hasConfirmationWindowElapsed()
+        internal
+        view
+        returns (bool)
+    {
+        return block.timestamp > lastInitialTriggerTimestamp.add(signalConfirmationMaxTime);
+    }
+
+    /*
+     * Return if currently in confirmation window.
+     *
+     * @return       Whether in confirmation window
+     */
+    function inConfirmationWindow()
+        internal
+        view
+        returns (bool)
+    {
+        return block.timestamp >= lastInitialTriggerTimestamp.add(signalConfirmationMinTime) &&
+            block.timestamp <= lastInitialTriggerTimestamp.add(signalConfirmationMaxTime);
     }
 }

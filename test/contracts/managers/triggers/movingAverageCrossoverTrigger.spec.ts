@@ -20,8 +20,8 @@ import {
 import {
   LegacyMakerOracleAdapterContract,
   LinearizedPriceDataSourceContract,
-  RSIOracleContract,
-  RSITrendingTriggerContract,
+  MovingAverageOracleV2Contract,
+  MovingAverageCrossoverTriggerContract,
   OracleProxyContract,
   TimeSeriesFeedContract,
 } from '@utils/contracts';
@@ -31,7 +31,6 @@ import {
   ONE_DAY_IN_SECONDS
 } from '@utils/constants';
 
-import { expectRevertError } from '@utils/tokenAssertions';
 import { getWeb3 } from '@utils/web3Helper';
 
 import { ManagerHelper } from '@utils/helpers/managerHelper';
@@ -41,13 +40,13 @@ import { ProtocolHelper } from '@utils/helpers/protocolHelper';
 BigNumberSetup.configure();
 ChaiSetup.configure();
 
-const RSITrendingTrigger = artifacts.require('RSITrendingTrigger');
+const MovingAverageCrossoverTrigger = artifacts.require('MovingAverageCrossoverTrigger');
 const web3 = getWeb3();
 const { expect } = chai;
 const blockchain = new Blockchain(web3);
 const { SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
 
-contract('RSITrendingTrigger', accounts => {
+contract('MovingAverageCrossoverTrigger', accounts => {
   const [
     deployerAccount,
   ] = accounts;
@@ -57,9 +56,9 @@ contract('RSITrendingTrigger', accounts => {
   let oracleProxy: OracleProxyContract;
   let linearizedDataSource: LinearizedPriceDataSourceContract;
   let timeSeriesFeed: TimeSeriesFeedContract;
-  let rsiOracle: RSIOracleContract;
+  let movingAverageOracle: MovingAverageOracleV2Contract;
 
-  let trigger: RSITrendingTriggerContract;
+  let trigger: MovingAverageCrossoverTriggerContract;
 
   let initialEthPrice: BigNumber;
 
@@ -68,11 +67,11 @@ contract('RSITrendingTrigger', accounts => {
   const protocolHelper = new ProtocolHelper(deployerAccount);
 
   before(async () => {
-    ABIDecoder.addABI(RSITrendingTrigger.abi);
+    ABIDecoder.addABI(MovingAverageCrossoverTrigger.abi);
   });
 
   after(async () => {
-    ABIDecoder.removeABI(RSITrendingTrigger.abi);
+    ABIDecoder.removeABI(MovingAverageCrossoverTrigger.abi);
   });
 
   beforeEach(async () => {
@@ -108,15 +107,14 @@ contract('RSITrendingTrigger', accounts => {
       [linearizedDataSource.address]
     );
 
-    initialEthPrice = ether(150);
-    const seededValues = [initialEthPrice];
+    const seededValues = _.map(new Array(20), function(el, i) {return ether(150 + i); });
     timeSeriesFeed = await oracleHelper.deployTimeSeriesFeedAsync(
       linearizedDataSource.address,
       seededValues
     );
 
-    const dataDescription = 'ETHDailyRSI';
-    rsiOracle = await oracleHelper.deployRSIOracleAsync(
+    const dataDescription = 'ETH20dayMA';
+    movingAverageOracle = await oracleHelper.deployMovingAverageOracleV2Async(
       timeSeriesFeed.address,
       dataDescription
     );
@@ -127,68 +125,46 @@ contract('RSITrendingTrigger', accounts => {
   });
 
   describe('#constructor', async () => {
-    let subjectRSIOracleInstance: Address;
-    let subjectLowerBound: BigNumber;
-    let subjectUpperBound: BigNumber;
-    let subjectRSITimePeriod: BigNumber;
+    let subjectMovingAveragePriceFeedInstance: Address;
+    let subjectAssetPairOracleInstance: Address;
+    let subjectMovingAverageDays: BigNumber;
 
     beforeEach(async () => {
-      subjectLowerBound = new BigNumber(40);
-      subjectUpperBound = new BigNumber(60);
-      subjectRSIOracleInstance = rsiOracle.address;
-      subjectRSITimePeriod = new BigNumber(14);
+      subjectMovingAveragePriceFeedInstance = movingAverageOracle.address;
+      subjectAssetPairOracleInstance = oracleProxy.address;
+      subjectMovingAverageDays = new BigNumber(20);
     });
 
-    async function subject(): Promise<RSITrendingTriggerContract> {
-      return managerHelper.deployRSITrendingTrigger(
-        subjectRSIOracleInstance,
-        subjectLowerBound,
-        subjectUpperBound,
-        subjectRSITimePeriod,
+    async function subject(): Promise<MovingAverageCrossoverTriggerContract> {
+      return managerHelper.deployMovingAverageCrossoverTrigger(
+        subjectMovingAveragePriceFeedInstance,
+        subjectAssetPairOracleInstance,
+        subjectMovingAverageDays,
       );
     }
 
-    it('sets the correct RSI oracle address', async () => {
+    it('sets the correct moving average oracle address', async () => {
       trigger = await subject();
 
-      const actualRSIOracleAddress = await trigger.rsiOracle.callAsync();
+      const actualMovingAveragePriceFeedAddress = await trigger.movingAveragePriceFeedInstance.callAsync();
 
-      expect(actualRSIOracleAddress).to.equal(subjectRSIOracleInstance);
+      expect(actualMovingAveragePriceFeedAddress).to.equal(subjectMovingAveragePriceFeedInstance);
     });
 
-    it('sets the correct lower bound', async () => {
+    it('sets the correct asset pair oracle address', async () => {
       trigger = await subject();
 
-      const [actualRSILowerBound] = await trigger.bounds.callAsync();
+      const actualAssetPairOracleAddress = await trigger.assetPairOracleInstance.callAsync();
 
-      expect(actualRSILowerBound).to.be.bignumber.equal(subjectLowerBound);
+      expect(actualAssetPairOracleAddress).to.equal(subjectAssetPairOracleInstance);
     });
 
-    it('sets the correct upper bound', async () => {
+    it('sets the correct moving average days', async () => {
       trigger = await subject();
 
-      const [, actualRSIUpperBound] = await trigger.bounds.callAsync();
+      const actualMovingAverageDays = await trigger.movingAverageDays.callAsync();
 
-      expect(actualRSIUpperBound).to.be.bignumber.equal(subjectUpperBound);
-    });
-
-    it('sets the correct RSI days', async () => {
-      trigger = await subject();
-
-      const actualRSITimePeriod = await trigger.rsiTimePeriod.callAsync();
-
-      expect(actualRSITimePeriod).to.be.bignumber.equal(subjectRSITimePeriod);
-    });
-
-    describe('when lower bound is higher than upper bound', async () => {
-      beforeEach(async () => {
-        subjectLowerBound = new BigNumber(60);
-        subjectUpperBound = new BigNumber(40);
-      });
-
-      it('should revert', async () => {
-        await expectRevertError(subject());
-      });
+      expect(actualMovingAverageDays).to.be.bignumber.equal(subjectMovingAverageDays);
     });
   });
 
@@ -196,32 +172,37 @@ contract('RSITrendingTrigger', accounts => {
     let subjectCaller: Address;
 
     let updatedValues: BigNumber[];
+    let lastPrice: BigNumber;
 
     before(async () => {
-      // Prices are increasing each day
-      updatedValues = _.map(new Array(15), function(el, i) {return ether(150 + i); });
+      lastPrice = ether(170);
+      updatedValues = _.map(new Array(19), function(el, i) {return ether(150 + i); });
     });
 
     beforeEach(async () => {
-      const rsiTimePeriod = new BigNumber(14);
-      const lowerBound = new BigNumber(40);
-      const upperBound = new BigNumber(60);
-
-      trigger = await managerHelper.deployRSITrendingTrigger(
-        rsiOracle.address,
-        lowerBound,
-        upperBound,
-        rsiTimePeriod,
+      const movingAverageDays = new BigNumber(20);
+      trigger = await managerHelper.deployMovingAverageCrossoverTrigger(
+        movingAverageOracle.address,
+        oracleProxy.address,
+        movingAverageDays,
       );
       await oracleHelper.addAuthorizedAddressesToOracleProxy(
         oracleProxy,
         [trigger.address]
       );
+
       await oracleHelper.batchUpdateTimeSeriesFeedAsync(
         timeSeriesFeed,
         ethMedianizer,
         updatedValues.length,
         updatedValues
+      );
+
+      const lastBlockInfo = await web3.eth.getBlock('latest');
+      await oracleHelper.updateMedianizerPriceAsync(
+        ethMedianizer,
+        lastPrice,
+        new BigNumber(lastBlockInfo.timestamp + 1),
       );
 
       subjectCaller = deployerAccount;
@@ -233,49 +214,26 @@ contract('RSITrendingTrigger', accounts => {
       );
     }
 
-    it('when RSI over 60 it returns true', async () => {
+    it('returns true', async () => {
       const result = await subject();
       expect(result).to.be.true;
     });
 
-    describe('when RSI is below 40', async () => {
+    describe('price going from bullish to bearish', async () => {
       before(async () => {
-        // Prices are decreasing each day
-        updatedValues = _.map(new Array(15), function(el, i) {return ether(170 - i); });
+        lastPrice = ether(130);
+        updatedValues = _.map(new Array(19), function(el, i) {return ether(150 - i); });
+      });
+
+      after(async () => {
+        lastPrice = ether(170);
+        updatedValues = _.map(new Array(19), function(el, i) {return ether(150 + i); });
       });
 
       it('returns false', async () => {
         const result = await subject();
-      expect(result).to.be.false;
-      });
-    });
-
-    describe('when RSI is between 40 and 60', async () => {
-      before(async () => {
-        // Prices are alternating each day
-        updatedValues = [
-          ether(170),
-          ether(150),
-          ether(170),
-          ether(150),
-          ether(170),
-          ether(150),
-          ether(170),
-          ether(150),
-          ether(170),
-          ether(150),
-          ether(170),
-          ether(150),
-          ether(170),
-          ether(150),
-          ether(170),
-        ];
-      });
-
-      it('should revert', async () => {
-        await expectRevertError(subject());
+        expect(result).to.be.false;
       });
     });
   });
-
 });

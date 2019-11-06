@@ -6,7 +6,7 @@ import { Address } from 'set-protocol-utils';
 import { SetTokenContract, MedianContract } from 'set-protocol-contracts';
 
 import {
-  TwoAssetStrategyManagerMockContract,
+  AssetPairManagerContract,
   BinaryAllocatorContract,
   BinaryAllocatorMockContract,
   BTCETHRebalancingManagerContract,
@@ -17,10 +17,9 @@ import {
   MACOStrategyManagerV2Contract,
   MovingAverageOracleContract,
   MovingAverageOracleV2Contract,
-  MovingAverageToAssetPriceCrossoverTriggerContract,
+  MovingAverageCrossoverTriggerContract,
   RSITrendingTriggerContract,
   TriggerMockContract,
-  TriggerIndexManagerContract,
 } from '../contracts';
 import { BigNumber } from 'bignumber.js';
 
@@ -40,7 +39,7 @@ import { ProtocolHelper } from '@utils/helpers/protocolHelper';
 import { getWeb3, getContractInstance } from '../web3Helper';
 
 const web3 = getWeb3();
-const TwoAssetStrategyManagerMock = artifacts.require('TwoAssetStrategyManagerMock');
+const AssetPairManager = artifacts.require('AssetPairManager');
 const BinaryAllocator = artifacts.require('BinaryAllocator');
 const BinaryAllocatorMock = artifacts.require('BinaryAllocatorMock');
 const BTCETHRebalancingManager = artifacts.require('BTCETHRebalancingManager');
@@ -49,12 +48,11 @@ const ETHDaiRebalancingManager = artifacts.require('ETHDaiRebalancingManager');
 const InverseMACOStrategyManager = artifacts.require('InverseMACOStrategyManager');
 const MACOStrategyManager = artifacts.require('MACOStrategyManager');
 const MACOStrategyManagerV2 = artifacts.require('MACOStrategyManagerV2');
-const MovingAverageToAssetPriceCrossoverTrigger = artifacts.require(
-  'MovingAverageToAssetPriceCrossoverTrigger'
+const MovingAverageCrossoverTrigger = artifacts.require(
+  'MovingAverageCrossoverTrigger'
 );
 const RSITrendingTrigger = artifacts.require('RSITrendingTrigger');
 const TriggerMock = artifacts.require('TriggerMock');
-const TriggerIndexManager = artifacts.require('TriggerIndexManager');
 const UintArrayUtilsLibrary = artifacts.require('UintArrayUtilsLibrary');
 
 const { SetProtocolUtils: SetUtils, SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
@@ -278,65 +276,36 @@ export class ManagerHelper {
     );
   }
 
-  public async deployTwoAssetStrategyManagerMockAsync(
+  public async deployAssetPairManagerAsync(
     coreInstance: Address,
-    allocationPricerInstance: Address,
+    allocatorInstance: Address,
+    triggerInstance: Address,
     auctionLibraryInstance: Address,
     baseAssetAllocation: BigNumber,
     allocationPrecision: BigNumber = new BigNumber(100),
+    maxBaseAssetAllocation: BigNumber = new BigNumber(100),
     auctionStartPercentage: BigNumber = new BigNumber(2),
     auctionEndPercentage: BigNumber = new BigNumber(10),
     auctionTimeToPivot: BigNumber = ONE_HOUR_IN_SECONDS.mul(4),
+    signalConfirmationMinTime: BigNumber = ONE_HOUR_IN_SECONDS.mul(6),
+    signalConfirmationMaxTime: BigNumber = ONE_HOUR_IN_SECONDS.mul(12),
     from: Address = this._tokenOwnerAddress
-  ): Promise<TwoAssetStrategyManagerMockContract> {
-    const truffleRebalacingTokenManager = await TwoAssetStrategyManagerMock.new(
+  ): Promise<AssetPairManagerContract> {
+    const truffleRebalacingTokenManager = await AssetPairManager.new(
       coreInstance,
-      allocationPricerInstance,
+      allocatorInstance,
+      triggerInstance,
       auctionLibraryInstance,
       baseAssetAllocation,
       allocationPrecision,
-      auctionStartPercentage,
-      auctionEndPercentage,
+      maxBaseAssetAllocation,
       auctionTimeToPivot,
+      [auctionStartPercentage, auctionEndPercentage],
+      [signalConfirmationMinTime, signalConfirmationMaxTime],
       { from },
     );
 
-    return new TwoAssetStrategyManagerMockContract(
-      getContractInstance(truffleRebalacingTokenManager),
-      { from, gas: DEFAULT_GAS },
-    );
-  }
-
-  public async deployTriggerIndexManagerAsync(
-    coreInstance: Address,
-    allocationPricerInstance: Address,
-    auctionLibraryInstance: Address,
-    baseAssetAllocation: BigNumber,
-    allocationPrecision: BigNumber = new BigNumber(100),
-    auctionStartPercentage: BigNumber = new BigNumber(2),
-    auctionEndPercentage: BigNumber = new BigNumber(10),
-    auctionTimeToPivot: BigNumber = ONE_HOUR_IN_SECONDS.mul(4),
-    priceTriggers: Address[],
-    triggerWeights: BigNumber[],
-    from: Address = this._tokenOwnerAddress
-  ): Promise<TriggerIndexManagerContract> {
-    await this.linkUintArrayUtilsLibraryAsync(TriggerIndexManager);
-
-    const truffleRebalacingTokenManager = await TriggerIndexManager.new(
-      coreInstance,
-      allocationPricerInstance,
-      auctionLibraryInstance,
-      baseAssetAllocation,
-      allocationPrecision,
-      auctionStartPercentage,
-      auctionEndPercentage,
-      auctionTimeToPivot,
-      priceTriggers,
-      triggerWeights,
-      { from },
-    );
-
-    return new TriggerIndexManagerContract(
+    return new AssetPairManagerContract(
       getContractInstance(truffleRebalacingTokenManager),
       { from, gas: DEFAULT_GAS },
     );
@@ -368,26 +337,20 @@ export class ManagerHelper {
   }
 
 
-  public async deployMovingAverageToAssetPriceCrossoverTrigger(
+  public async deployMovingAverageCrossoverTrigger(
     movingAveragePriceFeed: Address,
     assetPairOracle: Address,
     movingAverageDays: BigNumber,
-    initialState: boolean,
-    signalConfirmationMinTime: BigNumber,
-    signalConfirmationMaxTime: BigNumber,
     from: Address = this._tokenOwnerAddress,
-  ): Promise<MovingAverageToAssetPriceCrossoverTriggerContract> {
-    const trufflePriceTrigger = await MovingAverageToAssetPriceCrossoverTrigger.new(
+  ): Promise<MovingAverageCrossoverTriggerContract> {
+    const trufflePriceTrigger = await MovingAverageCrossoverTrigger.new(
       movingAveragePriceFeed,
       assetPairOracle,
       movingAverageDays,
-      signalConfirmationMinTime,
-      signalConfirmationMaxTime,
-      initialState,
       { from }
     );
 
-    return new MovingAverageToAssetPriceCrossoverTriggerContract(
+    return new MovingAverageCrossoverTriggerContract(
       getContractInstance(trufflePriceTrigger),
       { from, gas: DEFAULT_GAS },
     );
@@ -398,7 +361,6 @@ export class ManagerHelper {
     lowerBound: BigNumber,
     upperBound: BigNumber,
     rsiTimePeriod: BigNumber,
-    initialTrendState: boolean,
     from: Address = this._tokenOwnerAddress,
   ): Promise<RSITrendingTriggerContract> {
     const trufflePriceTrigger = await RSITrendingTrigger.new(
@@ -406,7 +368,6 @@ export class ManagerHelper {
       lowerBound,
       upperBound,
       rsiTimePeriod,
-      initialTrendState,
       { from }
     );
 
