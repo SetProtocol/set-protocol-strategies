@@ -22,13 +22,13 @@ import { ITimeSeriesFeed } from "../interfaces/ITimeSeriesFeed.sol";
 
 
 /**
- * @title LastPriceOracle
+ * @title LastValueOracle
  * @author Set Protocol
  *
  * Oracle built to adhere to IOracle interface and returns the most recent data point
  * in a time series feed
  */
-contract LastPriceOracle is
+contract LastValueOracle is
     IOracle
 {
     using SafeMath for uint256;

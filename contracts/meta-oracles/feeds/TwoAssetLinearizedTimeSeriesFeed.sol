@@ -18,7 +18,7 @@ pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import { TimeLockUpgrade } from "set-protocol-contracts/contracts/lib/TimeLockUpgrade.sol";
+import { TimeLockUpgradeV2 } from "set-protocol-contracts/contracts/lib/TimeLockUpgradeV2.sol";
 
 import { DataSourceLinearInterpolationLibrary } from "../lib/DataSourceLinearInterpolationLibrary.sol";
 import { IOracle } from "../interfaces/IOracle.sol";
@@ -36,7 +36,7 @@ import { TimeSeriesFeedV2 } from "../lib/TimeSeriesFeedV2.sol";
  */
 contract TwoAssetLinearizedTimeSeriesFeed is
     TimeSeriesFeedV2,
-    TimeLockUpgrade
+    TimeLockUpgradeV2
 {
     using SafeMath for uint256;
     using LinkedListLibraryV3 for LinkedListLibraryV3.LinkedList;
@@ -109,8 +109,7 @@ contract TwoAssetLinearizedTimeSeriesFeed is
         IOracle _newBaseOracleAddress
     )
         external
-        onlyOwner
-        timeLockUpgrade // Must be placed after onlyOwner
+        timeLockUpgrade
     {
         // Check to make sure new base oracle address is passed
         require(
@@ -133,8 +132,7 @@ contract TwoAssetLinearizedTimeSeriesFeed is
         IOracle _newQuoteOracleAddress
     )
         external
-        onlyOwner
-        timeLockUpgrade // Must be placed after onlyOwner
+        timeLockUpgrade
     {
         // Check to make sure new quote oracle address is passed
         require(

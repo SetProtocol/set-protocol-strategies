@@ -12,7 +12,7 @@ import {
   EMAOracleContract,
   FeedFactoryContract,
   HistoricalPriceFeedContract,
-  LastPriceOracleContract,
+  LastValueOracleContract,
   LegacyMakerOracleAdapterContract,
   LinearizedEMATimeSeriesFeedContract,
   LinearizedPriceDataSourceContract,
@@ -42,7 +42,7 @@ const ConstantPriceOracle = artifacts.require('ConstantPriceOracle');
 const EMAOracle = artifacts.require('EMAOracle');
 const FeedFactory = artifacts.require('FeedFactory');
 const HistoricalPriceFeed = artifacts.require('HistoricalPriceFeed');
-const LastPriceOracle = artifacts.require('LastPriceOracle');
+const LastValueOracle = artifacts.require('LastValueOracle');
 const LegacyMakerOracleAdapter = artifacts.require('LegacyMakerOracleAdapter');
 const LinearizedEMATimeSeriesFeed = artifacts.require('LinearizedEMATimeSeriesFeed');
 const LinearizedPriceDataSource = artifacts.require('LinearizedPriceDataSource');
@@ -256,19 +256,19 @@ export class OracleHelper {
     );
   }
 
-  public async deployLastPriceOracleAsync(
+  public async deployLastValueOracleAsync(
     priceFeedAddress: Address,
     dataDescription: string,
     from: Address = this._contractOwnerAddress
-  ): Promise<LastPriceOracleContract> {
-    const lastPriceOracle = await LastPriceOracle.new(
+  ): Promise<LastValueOracleContract> {
+    const lastValueOracle = await LastValueOracle.new(
       priceFeedAddress,
       dataDescription,
       txnFrom(from),
     );
 
-    return new LastPriceOracleContract(
-      getContractInstance(lastPriceOracle),
+    return new LastValueOracleContract(
+      getContractInstance(lastValueOracle),
       txnFrom(from),
     );
   }

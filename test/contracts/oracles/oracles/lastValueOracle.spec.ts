@@ -14,7 +14,7 @@ import { MedianContract } from 'set-protocol-contracts';
 import {
   LegacyMakerOracleAdapterContract,
   LinearizedPriceDataSourceContract,
-  LastPriceOracleContract,
+  LastValueOracleContract,
   OracleProxyContract,
   TimeSeriesFeedContract
 } from '@utils/contracts';
@@ -29,7 +29,7 @@ const web3 = getWeb3();
 const { expect } = chai;
 const blockchain = new Blockchain(web3);
 
-contract('LastPriceOracle', accounts => {
+contract('LastValueOracle', accounts => {
   const [
     deployerAccount,
   ] = accounts;
@@ -40,7 +40,7 @@ contract('LastPriceOracle', accounts => {
   let linearizedDataSource: LinearizedPriceDataSourceContract;
   let timeSeriesFeed: TimeSeriesFeedContract;
 
-  let lastPriceOracle: LastPriceOracleContract;
+  let lastValueOracle: LastValueOracleContract;
 
   let initialPrice: BigNumber;
 
@@ -94,25 +94,25 @@ contract('LastPriceOracle', accounts => {
       subjectDataDescription = 'ETHDailyPrice';
     });
 
-    async function subject(): Promise<LastPriceOracleContract> {
-      return oracleHelper.deployLastPriceOracleAsync(
+    async function subject(): Promise<LastValueOracleContract> {
+      return oracleHelper.deployLastValueOracleAsync(
         subjectTimeSeriesFeedAddress,
         subjectDataDescription
       );
     }
 
     it('sets the correct base asset time series feed address', async () => {
-      lastPriceOracle = await subject();
+      lastValueOracle = await subject();
 
-      const actualPriceFeedAddress = await lastPriceOracle.timeSeriesFeedInstance.callAsync();
+      const actualPriceFeedAddress = await lastValueOracle.timeSeriesFeedInstance.callAsync();
 
       expect(actualPriceFeedAddress).to.equal(subjectTimeSeriesFeedAddress);
     });
 
     it('sets the correct data description', async () => {
-      lastPriceOracle = await subject();
+      lastValueOracle = await subject();
 
-      const actualDataDescription = await lastPriceOracle.dataDescription.callAsync();
+      const actualDataDescription = await lastValueOracle.dataDescription.callAsync();
 
       expect(actualDataDescription).to.equal(subjectDataDescription);
     });
@@ -122,14 +122,14 @@ contract('LastPriceOracle', accounts => {
     beforeEach(async () => {
       const dataDescription = 'ETHDailyPrice';
 
-      lastPriceOracle = await oracleHelper.deployLastPriceOracleAsync(
+      lastValueOracle = await oracleHelper.deployLastValueOracleAsync(
         timeSeriesFeed.address,
         dataDescription
       );
     });
 
     async function subject(): Promise<BigNumber> {
-      return lastPriceOracle.read.callAsync();
+      return lastValueOracle.read.callAsync();
     }
 
     it('returns the correct most recent price on the feed', async () => {
