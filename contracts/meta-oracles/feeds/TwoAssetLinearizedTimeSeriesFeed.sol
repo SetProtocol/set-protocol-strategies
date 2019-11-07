@@ -117,6 +117,9 @@ contract TwoAssetLinearizedTimeSeriesFeed is
             "TwoAssetLinearizedTimeSeriesFeed.changeBaseOracle: Must give new base oracle address."
         );
 
+        // Check if address is an oracle
+        _newBaseOracleAddress.read();
+
         baseOracleInstance = _newBaseOracleAddress;
 
         emit LogOracleUpdated(address(_newBaseOracleAddress));
@@ -140,6 +143,9 @@ contract TwoAssetLinearizedTimeSeriesFeed is
             "TwoAssetLinearizedTimeSeriesFeed.changeQuoteOracle: Must give new quote oracle address."
         );
 
+        // Check if address is an oracle
+        _newQuoteOracleAddress.read();
+
         quoteOracleInstance = _newQuoteOracleAddress;
 
         emit LogOracleUpdated(address(_newQuoteOracleAddress));
@@ -159,7 +165,6 @@ contract TwoAssetLinearizedTimeSeriesFeed is
      * exactly on nextAvailableUpdate do not compound as they would if it was required that poke is called
      * an updateInterval amount of time after the last poke.
      *
-     * @param  _timeSeriesState         Struct of TimeSeriesFeed state
      * @returns                         Returns the datapoint from the oracle contract
      */
     function calculateNextValue()

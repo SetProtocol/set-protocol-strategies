@@ -42,6 +42,7 @@ contract LastValueOracle is
      * Set price oracle is made to return
      *
      * @param  _timeSeriesFeedInstance    The address of base asset price feed
+     * @param  _dataDescription           Description of contract for Etherscan / other applications
      */
     constructor(
         ITimeSeriesFeed _timeSeriesFeedInstance,
