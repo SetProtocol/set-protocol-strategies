@@ -2,6 +2,7 @@ export { AssetPairManager } from './ts/AssetPairManager';
 export { BinaryAllocator } from './ts/BinaryAllocator';
 export { BTCDaiRebalancingManager } from './ts/BTCDaiRebalancingManager';
 export { BTCETHRebalancingManager } from './ts/BTCETHRebalancingManager';
+export { ConstantPriceOracle } from './ts/ConstantPriceOracle';
 export { ETHDaiRebalancingManager } from './ts/ETHDaiRebalancingManager';
 export { EMAOracle } from './ts/EMAOracle';
 export { FeedFactory } from './ts/FeedFactory';
@@ -30,6 +31,7 @@ export {
 	BinaryAllocatorContract,
 	BTCDaiRebalancingManagerContract,
 	BTCETHRebalancingManagerContract,
+	ConstantPriceOracleContract,
 	ETHDaiRebalancingManagerContract,
 	EMAOracleContract,
 	FeedFactoryContract,
