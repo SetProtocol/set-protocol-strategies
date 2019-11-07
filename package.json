@@ -47,7 +47,7 @@
     "truffle-test-integrations": "truffle test `find transpiled/test/integrations -name '*.spec.js'`",
     "truffle-test-contracts": "truffle test `find transpiled/test/contracts -name '*.spec.js'`",
     "prepublishOnly": "yarn dist",
-    "flatten": "truffle-flattener contracts/[xxx]/[xxx].sol"
+    "flatten": "truffle-flattener contracts/[xxxx]/[xxx].sol"
   },
   "repository": "git@github.com:SetProtocol/set-protocol-strategies.git",
   "author": "Justin Chen <justin@setprotocol.com>",
