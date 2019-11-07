@@ -42,7 +42,7 @@ import {
 } from '@utils/constants';
 
 import { expectRevertError } from '@utils/tokenAssertions';
-import { getWeb3 } from '@utils/web3Helper';
+import { getWeb3, blankTxn } from '@utils/web3Helper';
 
 import { ERC20Helper } from '@utils/helpers/erc20Helper';
 import { ManagerHelper } from '@utils/helpers/managerHelper';
@@ -473,6 +473,7 @@ contract('AssetPairManager', accounts => {
       );
 
       await blockchain.increaseTimeAsync(timeJump);
+      await blankTxn(deployerAccount);
 
       subjectCaller = deployerAccount;
     });
@@ -973,6 +974,7 @@ contract('AssetPairManager', accounts => {
       );
 
       await blockchain.increaseTimeAsync(timeJump);
+      await blankTxn(deployerAccount);
 
       subjectCaller = deployerAccount;
     });
@@ -1190,6 +1192,7 @@ contract('AssetPairManager', accounts => {
 
     async function subject(): Promise<boolean> {
       await blockchain.increaseTimeAsync(subjectTimeFastForward);
+      await blankTxn(subjectCaller);
       return setManager.canConfirmPropose.callAsync(
         { from: subjectCaller, gas: DEFAULT_GAS}
       );
