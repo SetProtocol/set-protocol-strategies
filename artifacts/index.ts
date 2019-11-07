@@ -1,3 +1,4 @@
+export { AssetPairManager } from './ts/AssetPairManager';
 export { BinaryAllocator } from './ts/BinaryAllocator';
 export { BTCDaiRebalancingManager } from './ts/BTCDaiRebalancingManager';
 export { BTCETHRebalancingManager } from './ts/BTCETHRebalancingManager';
@@ -15,16 +16,16 @@ export { ManagerLibraryMock } from './ts/ManagerLibraryMock';
 export { MovingAverageOracle } from './ts/MovingAverageOracle';
 export { MovingAverageOracleV1Proxy } from './ts/MovingAverageOracleV1Proxy';
 export { MovingAverageOracleV2 } from './ts/MovingAverageOracleV2';
-export { MovingAverageToAssetPriceCrossoverTrigger } from './ts/MovingAverageToAssetPriceCrossoverTrigger';
+export { MovingAverageCrossoverTrigger } from './ts/MovingAverageCrossoverTrigger';
 export { OracleProxy } from './ts/OracleProxy';
 export { PriceFeed } from './ts/PriceFeed';
 export { RSIOracle } from './ts/RSIOracle';
 export { RSITrendingTrigger } from './ts/RSITrendingTrigger';
 export { TimeSeriesFeed } from './ts/TimeSeriesFeed';
-export { TriggerIndexManager } from './ts/TriggerIndexManager';
 
 // Export abi-gen contract wrappers
 export {
+	AssetPairManagerContract,
 	BaseContract,
 	BinaryAllocatorContract,
 	BTCDaiRebalancingManagerContract,
@@ -44,11 +45,10 @@ export {
 	MovingAverageOracleContract,
 	MovingAverageOracleV1ProxyContract,
 	MovingAverageOracleV2Contract,
-	MovingAverageToAssetPriceCrossoverTriggerContract,
+	MovingAverageCrossoverTriggerContract,
 	OracleProxyContract,
 	PriceFeedContract,
 	RSIOracleContract,
 	RSITrendingTriggerContract,
 	TimeSeriesFeedContract,
-	TriggerIndexManagerContract,
 } from "../utils/contracts";
