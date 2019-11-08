@@ -9,6 +9,7 @@ import { ether } from '@utils/units';
 
 import {
   ConstantPriceOracleContract,
+  CTokenOracleContract,
   EMAOracleContract,
   FeedFactoryContract,
   HistoricalPriceFeedContract,
@@ -37,6 +38,7 @@ import { FeedCreatedArgs } from '../contract_logs/oracle';
 const web3 = getWeb3();
 
 const ConstantPriceOracle = artifacts.require('ConstantPriceOracle');
+const CTokenOracle = artifacts.require('CTokenOracle');
 const EMAOracle = artifacts.require('EMAOracle');
 const FeedFactory = artifacts.require('FeedFactory');
 const HistoricalPriceFeed = artifacts.require('HistoricalPriceFeed');
@@ -365,6 +367,25 @@ export class OracleHelper {
 
     return new RSIOracleContract(
       getContractInstance(rsiOracle),
+      txnFrom(from),
+    );
+  }
+
+  public async deployCTokenOracleAsync(
+    cToken: Address,
+    underlyingOracle: Address,
+    dataDescription: string = 'CToken',
+    from: Address = this._contractOwnerAddress
+  ): Promise<CTokenOracleContract> {
+    const cTokenOracle = await CTokenOracle.new(
+      cToken,
+      underlyingOracle,
+      dataDescription,
+      txnFrom(from),
+    );
+
+    return new CTokenOracleContract(
+      getContractInstance(cTokenOracle),
       txnFrom(from),
     );
   }
