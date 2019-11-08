@@ -5041,10 +5041,10 @@ set-immediate-shim@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/set-immediate-shim/-/set-immediate-shim-1.0.1.tgz#4b2b1b27eb808a9f8dcc481a58e5e56f599f3f61"
 
-set-protocol-contracts@^1.2.3:
-  version "1.2.3"
-  resolved "https://registry.yarnpkg.com/set-protocol-contracts/-/set-protocol-contracts-1.2.3.tgz#dd19da3b8cc40653dc2e09ced4bb42149c73b27b"
-  integrity sha512-4YCV+jzzFGjHiApN+QwT3Eyx/+kxlT8lc7e6WNPnm9GaaJDtk9EpAf+B46B53m89mf6hooADnq+ISJ34SQ5GWQ==
+set-protocol-contracts@^1.2.9:
+  version "1.2.9"
+  resolved "https://registry.yarnpkg.com/set-protocol-contracts/-/set-protocol-contracts-1.2.9.tgz#92ec40eab0ca019dd2cc36b210b00b8ed232f30d"
+  integrity sha512-EcXWh7yJgHqr5qrR/PGTurtORvDd5QRGvf6c5tomYB7/WTFu5ielQDHjM2T7InyG80OOrsNsYdNJhsVS3ZSndQ==
   dependencies:
     bn-chai "^1.0.1"
     canonical-weth "^1.3.1"
@@ -5057,17 +5057,19 @@ set-protocol-contracts@^1.2.3:
     lint-staged "^7.2.0"
     module-alias "^2.1.0"
     openzeppelin-solidity "^2.2"
-    set-protocol-utils "^1.0.0-beta.32"
+    set-protocol-utils "^1.0.0-beta.41"
     tiny-promisify "^1.0.0"
+    truffle-flattener "^1.4.0"
     ts-mocha "^6.0.0"
     ts-node "^8.0.2"
     tslint-eslint-rules "^5.3.1"
     web3 "1.0.0-beta.36"
     web3-utils "1.0.0-beta.36"
 
-set-protocol-utils@^1.0.0-beta.32:
-  version "1.0.0-beta.32"
-  resolved "https://registry.yarnpkg.com/set-protocol-utils/-/set-protocol-utils-1.0.0-beta.32.tgz#8f4d630987655a1b67fb5bf302d8a5789109b166"
+set-protocol-utils@^1.0.0-beta.39:
+  version "1.0.0-beta.39"
+  resolved "https://registry.yarnpkg.com/set-protocol-utils/-/set-protocol-utils-1.0.0-beta.39.tgz#44d3b0c786cf5c22000a43297f281cb2f9627a3a"
+  integrity sha512-zlxFlyrwc2iKuzLJdwvOzp17is7WPlRvi1soH+6BTEw4Z+Ujtd2PhHsjtaSq+MiIYNzDsbH0LELOMGe5MRBVlw==
   dependencies:
     "@0xproject/base-contract" "^1.0.4"
     "@0xproject/order-utils" "^1.0.1"
@@ -5096,10 +5098,10 @@ set-protocol-utils@^1.0.0-beta.32:
     web3 "1.0.0-beta.36"
     web3-utils "1.0.0-beta.36"
 
-set-protocol-utils@^1.0.0-beta.39:
-  version "1.0.0-beta.39"
-  resolved "https://registry.yarnpkg.com/set-protocol-utils/-/set-protocol-utils-1.0.0-beta.39.tgz#44d3b0c786cf5c22000a43297f281cb2f9627a3a"
-  integrity sha512-zlxFlyrwc2iKuzLJdwvOzp17is7WPlRvi1soH+6BTEw4Z+Ujtd2PhHsjtaSq+MiIYNzDsbH0LELOMGe5MRBVlw==
+set-protocol-utils@^1.0.0-beta.41:
+  version "1.0.0-beta.41"
+  resolved "https://registry.yarnpkg.com/set-protocol-utils/-/set-protocol-utils-1.0.0-beta.41.tgz#06c119d58100a9518973fb76795499570be66446"
+  integrity sha512-zvx80SpogL/rElGhCYPMWba6X6SYtHQ28Yqsq6FLcmNnrnTtCKwQhrvRusgjxXT3d3OZy+CSnGOVQ+91uLC/FA==
   dependencies:
     "@0xproject/base-contract" "^1.0.4"
     "@0xproject/order-utils" "^1.0.1"
@@ -5784,7 +5786,7 @@ trim@0.0.1:
   version "0.0.1"
   resolved "https://registry.yarnpkg.com/trim/-/trim-0.0.1.tgz#5858547f6b290757ee95cccc666fb50084c460dd"
 
-truffle-flattener@^1.4.2:
+truffle-flattener@^1.4.0, truffle-flattener@^1.4.2:
   version "1.4.2"
   resolved "https://registry.yarnpkg.com/truffle-flattener/-/truffle-flattener-1.4.2.tgz#7460d0eec88ac67b150e8de3476f55d4420a4ba0"
   integrity sha512-7qUIzaW8a4vI4nui14wsytht2oaqvqnZ1Iet2wRq2T0bCJ0wb6HByMKQhZKpU46R+n5BMTY4K5n+0ITyeNlmuQ==
