@@ -137,6 +137,7 @@ export class CompoundHelper {
     return instance.options.address;
   }
 
+  // Underlying to cToken scaled by 10 ** 18
   public async getExchangeRate(
     cToken: Address,
   ): Promise<BigNumber> {
