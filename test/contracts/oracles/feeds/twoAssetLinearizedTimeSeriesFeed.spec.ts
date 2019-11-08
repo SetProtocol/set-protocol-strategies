@@ -41,7 +41,7 @@ const setTestUtils = new SetTestUtils(web3);
 contract('TwoAssetLinearizedTimeSeriesFeed', accounts => {
   const [
     deployerAccount,
-    nonOracleAddress,
+    oracleAccount,
     nonOwnerAccount,
   ] = accounts;
 
@@ -487,25 +487,10 @@ contract('TwoAssetLinearizedTimeSeriesFeed', accounts => {
   });
 
   describe('#changeBaseOracle', async () => {
-    let ethPrice: BigNumber;
-    let btcPrice: BigNumber;
-
     let subjectNewBaseOracle: Address;
     let subjectCaller: Address;
 
     beforeEach(async () => {
-      ethPrice = ether(150.125);
-      btcPrice = ether(8200.567);
-      await oracleHelper.updateMedianizerPriceAsync(
-        ethMedianizer,
-        ethPrice,
-        SetTestUtils.generateTimestamp(1000),
-      );
-      await oracleHelper.updateMedianizerPriceAsync(
-        btcMedianizer,
-        btcPrice,
-        SetTestUtils.generateTimestamp(1000),
-      );
       const ethOracleAddress = ethOracleProxy.address;
       const btcOracleAddress = btcOracleProxy.address;
       const seededValues = [ether(0.013)];
@@ -515,16 +500,7 @@ contract('TwoAssetLinearizedTimeSeriesFeed', accounts => {
         seededValues
       );
 
-      await oracleHelper.addAuthorizedAddressesToOracleProxy(
-        ethOracleProxy,
-        [ethBtcTimeSeriesFeed.address]
-      );
-      await oracleHelper.addAuthorizedAddressesToOracleProxy(
-        btcOracleProxy,
-        [ethBtcTimeSeriesFeed.address]
-      );
-
-      subjectNewBaseOracle = btcOracleAddress;
+      subjectNewBaseOracle = oracleAccount;
       subjectCaller = deployerAccount;
     });
 
@@ -577,38 +553,13 @@ contract('TwoAssetLinearizedTimeSeriesFeed', accounts => {
         await expectRevertError(subject());
       });
     });
-
-    describe('when passed address is not an oracle address', async () => {
-      beforeEach(async () => {
-        subjectNewBaseOracle = nonOracleAddress;
-      });
-
-      it('should revert', async () => {
-        await expectRevertError(subject());
-      });
-    });
   });
 
   describe('#changeQuoteOracle', async () => {
-    let ethPrice: BigNumber;
-    let btcPrice: BigNumber;
-
     let subjectNewQuoteOracle: Address;
     let subjectCaller: Address;
 
     beforeEach(async () => {
-      ethPrice = ether(150.125);
-      btcPrice = ether(8200.567);
-      await oracleHelper.updateMedianizerPriceAsync(
-        ethMedianizer,
-        ethPrice,
-        SetTestUtils.generateTimestamp(1000),
-      );
-      await oracleHelper.updateMedianizerPriceAsync(
-        btcMedianizer,
-        btcPrice,
-        SetTestUtils.generateTimestamp(1000),
-      );
       const ethOracleAddress = ethOracleProxy.address;
       const btcOracleAddress = btcOracleProxy.address;
       const seededValues = [ether(0.013)];
@@ -618,16 +569,7 @@ contract('TwoAssetLinearizedTimeSeriesFeed', accounts => {
         seededValues
       );
 
-      await oracleHelper.addAuthorizedAddressesToOracleProxy(
-        ethOracleProxy,
-        [ethBtcTimeSeriesFeed.address]
-      );
-      await oracleHelper.addAuthorizedAddressesToOracleProxy(
-        btcOracleProxy,
-        [ethBtcTimeSeriesFeed.address]
-      );
-
-      subjectNewQuoteOracle = ethOracleAddress;
+      subjectNewQuoteOracle = oracleAccount;
       subjectCaller = deployerAccount;
     });
 
@@ -674,16 +616,6 @@ contract('TwoAssetLinearizedTimeSeriesFeed', accounts => {
     describe('when passed address is not new', async () => {
       beforeEach(async () => {
         subjectNewQuoteOracle = btcOracleProxy.address;
-      });
-
-      it('should revert', async () => {
-        await expectRevertError(subject());
-      });
-    });
-
-    describe('when passed address is not oracle address', async () => {
-      beforeEach(async () => {
-        subjectNewQuoteOracle = nonOracleAddress;
       });
 
       it('should revert', async () => {

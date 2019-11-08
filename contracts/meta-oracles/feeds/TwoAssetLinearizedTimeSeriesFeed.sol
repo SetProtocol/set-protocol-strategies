@@ -117,9 +117,6 @@ contract TwoAssetLinearizedTimeSeriesFeed is
             "TwoAssetLinearizedTimeSeriesFeed.changeBaseOracle: Must give new base oracle address."
         );
 
-        // Check if address is an oracle
-        _newBaseOracleAddress.read();
-
         baseOracleInstance = _newBaseOracleAddress;
 
         emit LogOracleUpdated(address(_newBaseOracleAddress));
@@ -142,9 +139,6 @@ contract TwoAssetLinearizedTimeSeriesFeed is
             address(_newQuoteOracleAddress) != address(quoteOracleInstance),
             "TwoAssetLinearizedTimeSeriesFeed.changeQuoteOracle: Must give new quote oracle address."
         );
-
-        // Check if address is an oracle
-        _newQuoteOracleAddress.read();
 
         quoteOracleInstance = _newQuoteOracleAddress;
 
