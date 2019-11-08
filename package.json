@@ -45,7 +45,7 @@
     "transpile": "tsc",
     "truffle-test-scenarios": "truffle test `find transpiled/test/scenarios -name '*.spec.js'`",
     "truffle-test-integrations": "truffle test `find transpiled/test/integrations -name '*.spec.js'`",
-    "truffle-test-contracts": "truffle test `find transpiled/test/contracts -name '*.spec.js'`",
+    "truffle-test-contracts": "truffle test `find transpiled/test/contracts -name 'cTokenOracle.spec.js'`",
     "prepublishOnly": "yarn dist",
     "flatten": "truffle-flattener contracts/[xxx]/[xxx].sol"
   },
@@ -82,7 +82,7 @@
     "lodash": "^4.17.13",
     "set-abi-gen": "1.1.0-beta.1",
     "solc": "^0.5.4",
-    "solidity-coverage": "https://github.com/leapdao/solidity-coverage#master",
+    "solidity-coverage": "^0.6.3",
     "truffle": "^5.0.37",
     "tslint": "^5.8.0",
     "tslint-no-unused-expression-chai": "0.0.3",
