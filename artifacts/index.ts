@@ -8,6 +8,7 @@ export { EMAOracle } from './ts/EMAOracle';
 export { FeedFactory } from './ts/FeedFactory';
 export { HistoricalPriceFeed } from './ts/HistoricalPriceFeed';
 export { InverseMACOStrategyManager } from './ts/InverseMACOStrategyManager';
+export { LastValueOracle } from './ts/LastValueOracle';
 export { LegacyMakerOracleAdapter } from './ts/LegacyMakerOracleAdapter';
 export { LinearizedEMATimeSeriesFeed } from './ts/LinearizedEMATimeSeriesFeed';
 export { LinearizedPriceDataSource } from './ts/LinearizedPriceDataSource';
@@ -23,6 +24,7 @@ export { PriceFeed } from './ts/PriceFeed';
 export { RSIOracle } from './ts/RSIOracle';
 export { RSITrendingTrigger } from './ts/RSITrendingTrigger';
 export { TimeSeriesFeed } from './ts/TimeSeriesFeed';
+export { TwoAssetLinearizedTimeSeriesFeed } from './ts/TwoAssetLinearizedTimeSeriesFeed';
 
 // Export abi-gen contract wrappers
 export {
@@ -37,6 +39,7 @@ export {
 	FeedFactoryContract,
 	HistoricalPriceFeedContract,
 	InverseMACOStrategyManagerContract,
+	LastValueOracleContract,
 	LegacyMakerOracleAdapterContract,
 	LinkedListLibraryMockContract,
 	LinearizedEMATimeSeriesFeedContract,
@@ -53,4 +56,5 @@ export {
 	RSIOracleContract,
 	RSITrendingTriggerContract,
 	TimeSeriesFeedContract,
+	TwoAssetLinearizedTimeSeriesFeedContract,
 } from "../utils/contracts";
