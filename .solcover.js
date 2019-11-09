@@ -10,5 +10,6 @@ module.exports = {
     'meta-oracles/interfaces',
     'meta-oracles/lib/LinkedListLibraryV2.sol', // There are issues with testing of LinkedListLibrary
     'meta-oracles/lib/LinkedListLibraryV3.sol', // There are issues with testing of LinkedListLibrary
+    'meta-oracles/oracles/CTokenOracle.sol', // Temporarily remove
   ],
 };
