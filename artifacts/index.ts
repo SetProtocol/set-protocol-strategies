@@ -24,6 +24,7 @@ export { PriceFeed } from './ts/PriceFeed';
 export { RSIOracle } from './ts/RSIOracle';
 export { RSITrendingTrigger } from './ts/RSITrendingTrigger';
 export { TimeSeriesFeed } from './ts/TimeSeriesFeed';
+export { TwoAssetLinearizedTimeSeriesFeed } from './ts/TwoAssetLinearizedTimeSeriesFeed';
 
 // Export abi-gen contract wrappers
 export {
