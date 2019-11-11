@@ -18,53 +18,62 @@ pragma solidity 0.5.7;
 
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { IOracle } from "../interfaces/IOracle.sol";
-import { ITimeSeriesFeed } from "../interfaces/ITimeSeriesFeed.sol";
 
 
 /**
- * @title LastValueOracle
+ * @title TwoAssetRatioOracle
  * @author Set Protocol
  *
- * Oracle built to adhere to IOracle interface and returns the most recent data point
- * in a time series feed
+ * Oracle built to adhere to IOracle interface and returns the ratio of a base asset data point
+ * divided by a quote asset data point
  */
-contract LastValueOracle is
+contract TwoAssetRatioOracle is
     IOracle
 {
     using SafeMath for uint256;
 
     /* ============ State Variables ============ */
-    ITimeSeriesFeed public timeSeriesFeedInstance;
+    IOracle public baseOracleInstance;
+    IOracle public quoteOracleInstance;
     string public dataDescription;
+
+    // Ratio values are scaled by 1e18
+    uint256 internal constant scalingFactor = 10 ** 18;
 
     /* ============ Constructor ============ */
     /*
      * Set price oracle is made to return
      *
-     * @param  _timeSeriesFeedInstance    The address of base asset price feed
+     * @param  _baseOracleInstance        The address of base asset oracle
+     * @param  _quoteOracleInstance       The address of quote asset oracle
      * @param  _dataDescription           Description of contract for Etherscan / other applications
      */
     constructor(
-        ITimeSeriesFeed _timeSeriesFeedInstance,
+        IOracle _baseOracleInstance,
+        IOracle _quoteOracleInstance,
         string memory _dataDescription
     )
         public
     {
-        timeSeriesFeedInstance = _timeSeriesFeedInstance;
+        baseOracleInstance = _baseOracleInstance;
+        quoteOracleInstance = _quoteOracleInstance;
         dataDescription = _dataDescription;
     }
 
     /**
-     * Returns the most recent price in the price feed
+     * Returns the ratio of base to quote data point scaled by 10 ** 18
      *
-     * @return   Most recent price in uint256
+     * @return   Ratio of base to quote data point in uint256
      */
     function read()
         external
         view
         returns (uint256)
     {
+        uint256 baseOracleValue = baseOracleInstance.read();
+        uint256 quoteOracleValue = quoteOracleInstance.read();
+
         // Return most recent data from time series feed
-        return timeSeriesFeedInstance.read(1)[0];
+        return baseOracleValue.mul(scalingFactor).div(quoteOracleValue);
     }
 } 
