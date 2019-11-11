@@ -8,7 +8,7 @@ export { EMAOracle } from './ts/EMAOracle';
 export { FeedFactory } from './ts/FeedFactory';
 export { HistoricalPriceFeed } from './ts/HistoricalPriceFeed';
 export { InverseMACOStrategyManager } from './ts/InverseMACOStrategyManager';
-export { LastValueOracle } from './ts/LastValueOracle';
+export { TwoAssetRatioOracle } from './ts/TwoAssetRatioOracle';
 export { LegacyMakerOracleAdapter } from './ts/LegacyMakerOracleAdapter';
 export { LinearizedEMATimeSeriesFeed } from './ts/LinearizedEMATimeSeriesFeed';
 export { LinearizedPriceDataSource } from './ts/LinearizedPriceDataSource';
@@ -39,7 +39,7 @@ export {
 	FeedFactoryContract,
 	HistoricalPriceFeedContract,
 	InverseMACOStrategyManagerContract,
-	LastValueOracleContract,
+	TwoAssetRatioOracleContract,
 	LegacyMakerOracleAdapterContract,
 	LinkedListLibraryMockContract,
 	LinearizedEMATimeSeriesFeedContract,
