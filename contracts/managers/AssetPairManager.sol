@@ -56,14 +56,14 @@ contract AssetPairManager {
     IAuctionPriceCurve public auctionLibrary;
     IRebalancingSetToken public rebalancingSetToken;
     uint256 public baseAssetAllocation;  // Percent of base asset currently allocated in strategy
-    uint256 public allocationDenominator;  //    
+    uint256 public allocationDenominator;    
     uint256 public bullishBaseAssetAllocation;
     uint256 public bearishBaseAssetAllocation;
     uint256 public auctionStartPercentage; // Percent below fair value to start linear auction
     uint256 public auctionPivotPercentage;  // Percent above fair value to end linear auction
     uint256 public auctionTimeToPivot;
 
-    // Time until start of confirmation period after intialPropse called, in seconds
+    // Time until start of confirmation period after initialPropse called, in seconds
     uint256 public signalConfirmationMinTime;
     // Time until end of confirmation period after intialPropse called, in seconds
     uint256 public signalConfirmationMaxTime;

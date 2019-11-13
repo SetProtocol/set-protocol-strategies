@@ -98,8 +98,8 @@ contract BinaryAllocator is
         address[] memory quoteAssetCollateralComponents = _quoteAssetCollateral.getComponents();
 
         // Check that component arrays only have one component
-        componentArrayContainsOneComponent(baseAssetCollateralComponents);
-        componentArrayContainsOneComponent(quoteAssetCollateralComponents);
+        validateSingleItemArray(baseAssetCollateralComponents);
+        validateSingleItemArray(quoteAssetCollateralComponents);
 
         // Make sure collateral instances are using the correct base and quote asset
         require(
@@ -216,7 +216,7 @@ contract BinaryAllocator is
         address[] memory setComponents = _collateralSet.getComponents();
 
         // Check that setComponents only has one component
-        componentArrayContainsOneComponent(setComponents);
+        validateSingleItemArray(setComponents);
 
         return calculateCollateralSetValueInternal(
             address(_collateralSet),
@@ -513,7 +513,7 @@ contract BinaryAllocator is
      *
      * @param  _array     Array to be evaluated
      */
-    function componentArrayContainsOneComponent(
+    function validateSingleItemArray(
         address[] memory _array
     )
         internal
@@ -521,7 +521,7 @@ contract BinaryAllocator is
     {
         require(
             _array.length == 1,
-            "BinaryAllocator.componentArrayContainsOneComponent: Array contains more than one component."
+            "BinaryAllocator.validateSingleItemArray: Array contains more than one component."
         );
     }
 }
