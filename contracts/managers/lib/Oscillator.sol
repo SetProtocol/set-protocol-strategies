@@ -26,7 +26,7 @@ pragma experimental "ABIEncoderV2";
  */
 library Oscillator {
     
-    enum State { UPPER, LOWER, NEUTRAL }
+    enum State { NEUTRAL, UPPER, LOWER }
 
     // Oscillator bounds typically between 0 and 100
     struct Bounds {
@@ -37,6 +37,8 @@ library Oscillator {
     /*
      * Returns upper if value is greater or equal to upper bound.
      * Returns lower if lower than lower bound, and neutral if in between.
+     * Asymmetric bounds are due to rounding in solidity and not wanting 40.1
+     * to register in LOWER state, for example.
      */
     function getState(
         Bounds storage _bounds,

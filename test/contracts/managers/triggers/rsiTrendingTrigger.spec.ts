@@ -28,7 +28,8 @@ import {
 
 import {
   DEFAULT_GAS,
-  ONE_DAY_IN_SECONDS
+  ONE_DAY_IN_SECONDS,
+  ZERO,
 } from '@utils/constants';
 
 import { expectRevertError } from '@utils/tokenAssertions';
@@ -184,6 +185,26 @@ contract('RSITrendingTrigger', accounts => {
       beforeEach(async () => {
         subjectLowerBound = new BigNumber(60);
         subjectUpperBound = new BigNumber(40);
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('when time period is 0', async () => {
+      beforeEach(async () => {
+        subjectRSITimePeriod = ZERO;
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('when upper bound is greater than 100', async () => {
+      beforeEach(async () => {
+        subjectUpperBound = new BigNumber(100);
       });
 
       it('should revert', async () => {

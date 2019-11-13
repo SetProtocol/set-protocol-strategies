@@ -51,7 +51,7 @@ contract RSITrendingTrigger is
     /*
      * RSITrendingTrigger constructor.
      *
-     * @param  _rsiOracle       The address of RSI oracle
+     * @param  _rsiOracle               The address of RSI oracle
      * @param  _lowerBound              Lower bound of RSI to trigger a rebalance
      * @param  _upperBound              Upper bound of RSI to trigger a rebalance
      * @param  _rsiTimePeriod           The amount of days to use in RSI calculation
@@ -66,7 +66,20 @@ contract RSITrendingTrigger is
     {
         require(
             _upperBound >= _lowerBound,
-            "Constructor: Upper bound must be greater than lower bound"
+            "RSITrendingTrigger.constructor: Upper bound must be greater than lower bound."
+        );
+
+        // If upper bound less than 100 and above inequality holds then lowerBound
+        // also guaranteed to be between 0 and 100.
+        require(
+            _upperBound < 100,
+            "RSITrendingTrigger.constructor: Bounds must be between 0 and 100."
+        );
+
+        // RSI time period must be greater than 0
+        require(
+            _rsiTimePeriod > 0,
+            "RSITrendingTrigger.constructor: RSI time period must be greater than 0."
         );
 
         rsiOracle = _rsiOracle;

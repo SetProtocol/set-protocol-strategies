@@ -47,93 +47,97 @@ contract BinaryAllocator is
 
     /* ============ Events ============ */
 
-    event NewCollateralLogged(
-        bytes32 indexed _hashId,
-        address _collateralAddress
+    event NewCollateralTracked(
+        bytes32 indexed _hash,
+        address indexed _collateralAddress
     );
 
     /* ============ Constants ============ */
-    uint256 constant MINIMUM_COLLATERAL_NATURAL_UNIT_DECIMALS = 6;
+    uint256 constant public MINIMUM_COLLATERAL_NATURAL_UNIT_DECIMALS = 6;
 
     /* ============ State Variables ============ */
-    ICore public coreInstance;
-    address public setTokenFactoryAddress;
+    ICore public core;
+    address public setTokenFactory;
 
-    ERC20Detailed public baseAssetInstance;
-    ERC20Detailed public quoteAssetInstance;
-    IOracle public baseAssetOracleInstance;
-    IOracle public quoteAssetOracleInstance;  
+    ERC20Detailed public baseAsset;
+    ERC20Detailed public quoteAsset;
+    IOracle public baseAssetOracle;
+    IOracle public quoteAssetOracle;  
     uint8 public baseAssetDecimals;
     uint8 public quoteAssetDecimals;
 
-    mapping(bytes32 => address) public storedCollateral;
+    // Hash of collateral units, naturalUnit, and component maps to collateral address
+    mapping(bytes32 => ISetToken) public storedCollateral;
 
     /*
      * BinaryAllocator constructor.
      *
-     * @param  _baseAssetInstance                   The baseAsset address
-     * @param  _quoteAssetInstance                  The quoteAsset address
-     * @param  _baseAssetOracleInstance             The baseAsset oracle
-     * @param  _quoteAssetOracleInstance            The quoteAsset oracle
-     * @param  _baseAssetCollateralInstance         The baseAsset collateral Set
-     * @param  _quoteAssetCollateralInstance        The quoteAsset collateral Set
-     * @param  _coreInstance                        The address of the Core contract
-     * @param  _setTokenFactoryAddress              The address of SetTokenFactory used to create
-     *                                              new collateral
+     * @param  _baseAsset                   The baseAsset address
+     * @param  _quoteAsset                  The quoteAsset address
+     * @param  _baseAssetOracle             The baseAsset oracle
+     * @param  _quoteAssetOracle            The quoteAsset oracle
+     * @param  _baseAssetCollateral         The baseAsset collateral Set
+     * @param  _quoteAssetCollateral        The quoteAsset collateral Set
+     * @param  _core                        The address of the Core contract
+     * @param  _setTokenFactory             The address of SetTokenFactory used to create new collateral
      */
     constructor(
-        ERC20Detailed _baseAssetInstance,
-        ERC20Detailed _quoteAssetInstance,
-        IOracle _baseAssetOracleInstance,
-        IOracle _quoteAssetOracleInstance,
-        ISetToken _baseAssetCollateralInstance,
-        ISetToken _quoteAssetCollateralInstance,
-        ICore _coreInstance,
-        address _setTokenFactoryAddress
+        ERC20Detailed _baseAsset,
+        ERC20Detailed _quoteAsset,
+        IOracle _baseAssetOracle,
+        IOracle _quoteAssetOracle,
+        ISetToken _baseAssetCollateral,
+        ISetToken _quoteAssetCollateral,
+        ICore _core,
+        address _setTokenFactory
     )
         public
     {
         // Get components of collateral instances
-        address[] memory baseAssetCollateralComponents = _baseAssetCollateralInstance.getComponents();
-        address[] memory quoteAssetCollateralComponents = _quoteAssetCollateralInstance.getComponents();
+        address[] memory baseAssetCollateralComponents = _baseAssetCollateral.getComponents();
+        address[] memory quoteAssetCollateralComponents = _quoteAssetCollateral.getComponents();
+
+        // Check that component arrays only have one component
+        validateSingleItemArray(baseAssetCollateralComponents);
+        validateSingleItemArray(quoteAssetCollateralComponents);
 
         // Make sure collateral instances are using the correct base and quote asset
         require(
-            baseAssetCollateralComponents[0] == address(_baseAssetInstance),
+            baseAssetCollateralComponents[0] == address(_baseAsset),
             "BinaryAllocator.constructor: Base collateral component must match base asset."
         );
 
         require(
-            quoteAssetCollateralComponents[0] == address(_quoteAssetInstance),
+            quoteAssetCollateralComponents[0] == address(_quoteAsset),
             "BinaryAllocator.constructor: Quote collateral component must match quote asset."
         );
 
-        baseAssetInstance = _baseAssetInstance;
-        quoteAssetInstance = _quoteAssetInstance;
+        baseAsset = _baseAsset;
+        quoteAsset = _quoteAsset;
 
-        baseAssetOracleInstance = _baseAssetOracleInstance;
-        quoteAssetOracleInstance = _quoteAssetOracleInstance;
+        baseAssetOracle = _baseAssetOracle;
+        quoteAssetOracle = _quoteAssetOracle;
 
         // Query decimals of base and quote assets
-        baseAssetDecimals = _baseAssetInstance.decimals();
-        quoteAssetDecimals = _quoteAssetInstance.decimals();
+        baseAssetDecimals = _baseAsset.decimals();
+        quoteAssetDecimals = _quoteAsset.decimals();
 
         // Set Core and setTokenFactory
-        coreInstance = _coreInstance;
-        setTokenFactoryAddress = _setTokenFactoryAddress;
+        core = _core;
+        setTokenFactory = _setTokenFactory;
 
         // Store passed in collateral in mapping
         bytes32 baseCollateralHash = calculateCollateralIDHashFromSet(
-            _baseAssetCollateralInstance
+            _baseAssetCollateral
         );
         bytes32 quoteCollateralHash = calculateCollateralIDHashFromSet(
-            _quoteAssetCollateralInstance
+            _quoteAssetCollateral
         );
-        storedCollateral[baseCollateralHash] = address(_baseAssetCollateralInstance);
-        storedCollateral[quoteCollateralHash] = address(_quoteAssetCollateralInstance);
+        storedCollateral[baseCollateralHash] = _baseAssetCollateral;
+        storedCollateral[quoteCollateralHash] = _quoteAssetCollateral;
 
-        emit NewCollateralLogged(baseCollateralHash, address(_baseAssetCollateralInstance));
-        emit NewCollateralLogged(quoteCollateralHash, address(_quoteAssetCollateralInstance));
+        emit NewCollateralTracked(baseCollateralHash, address(_baseAssetCollateral));
+        emit NewCollateralTracked(quoteCollateralHash, address(_quoteAssetCollateral));
     }
 
     /* ============ External ============ */
@@ -154,7 +158,7 @@ contract BinaryAllocator is
         ISetToken _currentCollateralSet
     )
         external
-        returns (address)
+        returns (ISetToken)
     {
         require(
             _targetBaseAssetAllocation == _allocationPrecision || _targetBaseAssetAllocation == 0,
@@ -169,7 +173,8 @@ contract BinaryAllocator is
             toBaseAsset
         );
 
-        // Create struct that holds relevant information for the currentSet
+        // Calculate currentSetValue, toBaseAsset inverted here because calculating currentSet value which would be
+        // using opposite collateral asset of toBaseAsset
         uint256 currentSetValue = calculateCollateralSetValueInternal(
             address(_currentCollateralSet),
             !toBaseAsset
@@ -186,19 +191,19 @@ contract BinaryAllocator is
             toBaseAsset
         );
 
-        address nextSetAddress = createOrSelectNextSet(
+        ISetToken nextSet = createOrSelectNextSet(
             nextSetComponent,
             nextSetUnit,
             nextSetNaturalUnit
         );
 
-        return nextSetAddress;
+        return nextSet;
     }
 
     /*
      * Calculate value of passed collateral set.
      *
-     * @param  _collateralSet        Instance of current set collateralizing RebalancingSetToken
+     * @param  _collateralSet         of current set collateralizing RebalancingSetToken
      * @return uint256               USD value of passed Set
      */
     function calculateCollateralSetValue(
@@ -210,8 +215,13 @@ contract BinaryAllocator is
     {
         address[] memory setComponents = _collateralSet.getComponents();
 
-        return setComponents[0] == address(baseAssetInstance) ? calculateCollateralSetValueInternal(address(_collateralSet), true) :
-            calculateCollateralSetValueInternal(address(_collateralSet), false);
+        // Check that setComponents only has one component
+        validateSingleItemArray(setComponents);
+
+        return calculateCollateralSetValueInternal(
+            address(_collateralSet),
+            setComponents[0] == address(baseAsset)
+        );
     }
 
     /* ============ Internal ============ */
@@ -232,7 +242,7 @@ contract BinaryAllocator is
         uint256 _nextSetNaturalUnit
     )
         internal
-        returns (address)
+        returns (ISetToken)
     {
         // Create collateralIDHash 
         bytes32 collateralIDHash = calculateCollateralIDHash(
@@ -243,14 +253,14 @@ contract BinaryAllocator is
         
         // If collateralIDHash exists then use existing collateral set otherwise create new collateral and
         // store in mapping
-        if (storedCollateral[collateralIDHash] != address(0)) {
+        if (address(storedCollateral[collateralIDHash]) != address(0)) {
             return storedCollateral[collateralIDHash];
         } else {
             // Determine new collateral name and symbol
             (
                 bytes32 nextCollateralName,
                 bytes32 nextCollateralSymbol
-            ) = _nextSetComponent == baseAssetInstance ? (bytes32("BaseAssetCollateral"), bytes32("BACOL")) :
+            ) = _nextSetComponent == baseAsset ? (bytes32("BaseAssetCollateral"), bytes32("BACOL")) :
                 (bytes32("QuoteAssetCollateral"), bytes32("QACOL"));
 
             // Create unit and component arrays for SetToken creation
@@ -260,8 +270,8 @@ contract BinaryAllocator is
             nextSetComponents[0] = address(_nextSetComponent);
 
             // Create new collateral set with passed components, units, and naturalUnit
-            address nextSetAddress = coreInstance.createSet(
-                setTokenFactoryAddress,
+            address nextSetAddress = core.createSet(
+                setTokenFactory,
                 nextSetComponents,
                 nextSetUnits,
                 _nextSetNaturalUnit,
@@ -271,11 +281,11 @@ contract BinaryAllocator is
             );
 
             // Store new collateral in mapping
-            storedCollateral[collateralIDHash] = nextSetAddress;
+            storedCollateral[collateralIDHash] = ISetToken(nextSetAddress);
 
-            emit NewCollateralLogged(collateralIDHash, nextSetAddress);
+            emit NewCollateralTracked(collateralIDHash, nextSetAddress);
 
-            return nextSetAddress;
+            return ISetToken(nextSetAddress);
         }
     }
 
@@ -296,7 +306,7 @@ contract BinaryAllocator is
     {
         // Make sure passed currentSet was created by Core
         require(
-            coreInstance.validSets(address(_currentCollateralSet)),
+            core.validSets(address(_currentCollateralSet)),
             "BinaryAllocator.validateCurrentCollateralSet: Passed collateralSet must be tracked by Core."
         );
 
@@ -310,7 +320,7 @@ contract BinaryAllocator is
         );
 
         // Make sure that currentSet component is opposite of expected component to be rebalanced into
-        address requiredComponent = _toBaseAsset ? address(quoteAssetInstance) : address(baseAssetInstance);
+        address requiredComponent = _toBaseAsset ? address(quoteAsset) : address(baseAsset);
         require(
             currentSetComponents[0] == requiredComponent,
             "BinaryAllocator.validateCurrentCollateralSet: New allocation doesn't match currentSet component."
@@ -397,10 +407,10 @@ contract BinaryAllocator is
         );
 
         // Intermediate step to calculate kTwo
-        uint256 intermediate = (uint256(10) ** uint256(18 - nextSetComponentDecimals))
-            .mul(nextSetComponentPrice)
-            .div(_currentSetValue)
-            .add(1);
+        uint256 intermediate = AllocatorMathLibrary.roundUpDivision(
+            CommonMath.safePower(uint256(10), uint256(18).sub(nextSetComponentDecimals)).mul(nextSetComponentPrice),
+            _currentSetValue
+        );
 
         // Complete kTwo calculation by taking ceil(log10()) of intermediate
         uint256 kTwo = AllocatorMathLibrary.ceilLog10(intermediate);
@@ -419,7 +429,7 @@ contract BinaryAllocator is
         );
 
         // Get nextSetComponent
-        ERC20Detailed nextSetComponent = _toBaseAsset ? baseAssetInstance : quoteAssetInstance;  
+        ERC20Detailed nextSetComponent = _toBaseAsset ? baseAsset : quoteAsset;  
 
         return (nextSetComponent, nextSetUnit, CommonMath.safePower(10, k));
     }
@@ -440,9 +450,9 @@ contract BinaryAllocator is
     {
         // If using base asset return baseAsset price and decimals and vice versa
         if (_usingBaseAsset) {
-            return (baseAssetOracleInstance.read(), baseAssetDecimals);
+            return (baseAssetOracle.read(), baseAssetDecimals);
         } else {
-            return (quoteAssetOracleInstance.read(), quoteAssetDecimals);
+            return (quoteAssetOracle.read(), quoteAssetDecimals);
         }        
     }
 
@@ -495,6 +505,23 @@ contract BinaryAllocator is
                 _naturalUnit,
                 _component
             )
+        );
+    }
+
+    /*
+     * Check that passed component array contains one component, else revert.
+     *
+     * @param  _array     Array to be evaluated
+     */
+    function validateSingleItemArray(
+        address[] memory _array
+    )
+        internal
+        pure
+    {
+        require(
+            _array.length == 1,
+            "BinaryAllocator.validateSingleItemArray: Array contains more than one component."
         );
     }
 }

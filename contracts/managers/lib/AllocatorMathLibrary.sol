@@ -42,27 +42,21 @@ library AllocatorMathLibrary {
         pure
         returns (uint256)
     {
-        // Make sure passed value is greater than 0
-        require (
-            _value > 0,
-            "AllocatorMathLibrary.roundToNearestPowerOfTwo: Value must be greater than zero."
-        );
-
         // Multiply by 1.5 to roughly approximate sqrt(2). Needed to round to nearest power of two. 
-        uint256 scaledValue = _value.mul(3).div(2);
-        uint256 power = 0;
+        uint256 scaledValue = _value.mul(3) >> 1;
+        uint256 nearestValue = 1;
 
         // Calculate nearest power of two
-        if (scaledValue >= 0x100000000000000000000000000000000) { scaledValue >>= 128; power += 128; }
-        if (scaledValue >= 0x10000000000000000) { scaledValue >>= 64; power += 64; }
-        if (scaledValue >= 0x100000000) { scaledValue >>= 32; power += 32; }
-        if (scaledValue >= 0x10000) { scaledValue >>= 16; power += 16; }
-        if (scaledValue >= 0x100) { scaledValue >>= 8; power += 8; }
-        if (scaledValue >= 0x10) { scaledValue >>= 4; power += 4; }
-        if (scaledValue >= 0x4) { scaledValue >>= 2; power += 2; }
-        if (scaledValue >= 0x2) power += 1; // No need to shift x anymore
+        if (scaledValue >= 0x100000000000000000000000000000000) { scaledValue >>= 128; nearestValue <<= 128; }
+        if (scaledValue >= 0x10000000000000000) { scaledValue >>= 64; nearestValue <<= 64; }
+        if (scaledValue >= 0x100000000) { scaledValue >>= 32; nearestValue <<= 32; }
+        if (scaledValue >= 0x10000) { scaledValue >>= 16; nearestValue <<= 16; }
+        if (scaledValue >= 0x100) { scaledValue >>= 8; nearestValue <<= 8; }
+        if (scaledValue >= 0x10) { scaledValue >>= 4; nearestValue <<= 4; }
+        if (scaledValue >= 0x4) { scaledValue >>= 2; nearestValue <<= 2; }
+        if (scaledValue >= 0x2) nearestValue <<= 1; // No need to shift x anymore
 
-        return 2 ** power;
+        return nearestValue;
     }
 
     /*
@@ -92,24 +86,24 @@ library AllocatorMathLibrary {
 
         uint256 result = 0;
 
-        if (x >= 10000000000000000000000000000000000000000000000000000000000000000) {
-            x /= 10000000000000000000000000000000000000000000000000000000000000000;
+        if (x >= 10 ** 64) {
+            x /= 10 ** 64;
             result += 64;
         }
-        if (x >= 100000000000000000000000000000000) {
-            x /= 100000000000000000000000000000000;
+        if (x >= 10 ** 32) {
+            x /= 10 ** 32;
             result += 32;
         }
-        if (x >= 10000000000000000) {
-            x /= 10000000000000000;
+        if (x >= 10 ** 16) {
+            x /= 10 ** 16;
             result += 16;
         }
-        if (x >= 100000000) {
-            x /= 100000000;
+        if (x >= 10 ** 8) {
+            x /= 10 ** 8;
             result += 8;
         }
-        if (x >= 10000) {
-            x /= 10000;
+        if (x >= 10 ** 4) {
+            x /= 10 ** 4;
             result += 4;
         }
         if (x >= 100) {
@@ -117,10 +111,27 @@ library AllocatorMathLibrary {
             result += 2;
         }
         if (x >= 10) {
-            x /= 10;
             result += 1;
         }
 
         return result + 1;
+    }
+
+    /*
+     * Round up division by subtracting one from numerator, dividing, then adding one.
+     *
+     * @param  _numerator         Numerator of expression
+     * @param  _denominator       Denominator of expression
+     * @return uint256            Output value
+     */    
+    function roundUpDivision(
+        uint256 _numerator,
+        uint256 _denominator
+    )
+        internal
+        pure
+        returns (uint256)
+    {
+        return _numerator.sub(1).div(_denominator).add(1);
     }
 }

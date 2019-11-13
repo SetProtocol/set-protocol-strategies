@@ -56,12 +56,12 @@ contract BinaryAllocatorMock is
         ISetToken _currentCollateralSet
     )
         external
-        returns (address)
+        returns (ISetToken)
     {
         if (_targetBaseAssetAllocation == _allocationPrecision) {
-            return address(baseAssetCollateralInstance);
+            return baseAssetCollateralInstance;
         } else {
-            return address(quoteAssetCollateralInstance);
+            return quoteAssetCollateralInstance;
         }
     }
 

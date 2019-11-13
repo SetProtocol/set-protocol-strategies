@@ -1,8 +1,7 @@
-
 import { Address, Log } from 'set-protocol-utils';
 
 interface NewCollateralArgs {
-    _hashId: Address;
+    _hash: Address;
     _collateralAddress: Address;
 }
 
@@ -14,5 +13,20 @@ export function extractNewCollateralFromLogs(
   const createLog = logs[logs.length - 1];
   const args: NewCollateralArgs = createLog.args;
 
-  return [args._hashId, args._collateralAddress];
+  return [args._hash, args._collateralAddress];
+}
+
+export function LogNewCollateralTracked(
+  _hash: string,
+  _collateralAddress: Address,
+  _contractAddress: Address,
+): Log[] {
+  return [{
+    event: 'NewCollateralTracked',
+    address: _contractAddress,
+    args: {
+      _hash,
+      _collateralAddress,
+    },
+  }];
 }
