@@ -75,6 +75,7 @@ contract('BinaryAllocator', accounts => {
 
   let baseAssetCollateral: SetTokenContract;
   let quoteAssetCollateral: SetTokenContract;
+  let multiAssetCollateral: SetTokenContract;
 
   let allocator: BinaryAllocatorContract;
 
@@ -145,6 +146,14 @@ contract('BinaryAllocator', accounts => {
       factory.address,
       [usdcMock.address],
       [new BigNumber(2 ** 7)],  // 128
+      STABLE_COLLATERAL_NATURAL_UNIT,
+    );
+
+    multiAssetCollateral = await protocolHelper.createSetTokenAsync(
+      core,
+      factory.address,
+      [usdcMock.address, wrappedETH.address],
+      [new BigNumber(2 ** 7), new BigNumber(2 ** 20)],  // 128
       STABLE_COLLATERAL_NATURAL_UNIT,
     );
   });
@@ -300,6 +309,26 @@ contract('BinaryAllocator', accounts => {
     describe('but risk asset address does not match risk collateral component', async () => {
       beforeEach(async () => {
         subjectQuoteAsset = randomTokenAddress;
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('but passed baseCollateral has two components', async () => {
+      beforeEach(async () => {
+        subjectBaseAssetCollateral = multiAssetCollateral.address;
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('but passed quoteCollateral has two components', async () => {
+      beforeEach(async () => {
+        subjectQuoteAssetCollateral = multiAssetCollateral.address;
       });
 
       it('should revert', async () => {
@@ -843,6 +872,16 @@ contract('BinaryAllocator', accounts => {
         );
 
         expect(actualSetValue).to.bignumber.equal(expectedSetValue);
+      });
+    });
+
+    describe('but passed collateral set has two components', async () => {
+      beforeEach(async () => {
+        subjectCollateralSet = multiAssetCollateral.address;
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
       });
     });
   });
