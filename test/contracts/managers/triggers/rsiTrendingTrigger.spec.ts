@@ -204,7 +204,7 @@ contract('RSITrendingTrigger', accounts => {
 
     describe('when upper bound is greater than 100', async () => {
       beforeEach(async () => {
-        subjectUpperBound = new BigNumber(10);
+        subjectUpperBound = new BigNumber(100);
       });
 
       it('should revert', async () => {
