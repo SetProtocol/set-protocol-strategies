@@ -41,7 +41,7 @@ interface IAllocator {
         ISetToken _currentCollateralSet
     )
         external
-        returns (address);
+        returns (ISetToken);
 
     /*
      * Calculate value of passed collateral set.

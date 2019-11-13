@@ -3,6 +3,7 @@ require('module-alias/register');
 import * as _ from 'lodash';
 import * as ABIDecoder from 'abi-decoder';
 import * as chai from 'chai';
+import * as setProtocolUtils from 'set-protocol-utils';
 
 import { Address } from 'set-protocol-utils';
 import { BigNumber } from 'bignumber.js';
@@ -42,6 +43,7 @@ import {
 } from '@utils/constants';
 
 import { expectRevertError } from '@utils/tokenAssertions';
+import { LogInitialProposeCalled } from '@utils/contract_logs/assetPairManager';
 import { getWeb3, blankTxn } from '@utils/web3Helper';
 
 import { ERC20Helper } from '@utils/helpers/erc20Helper';
@@ -51,8 +53,11 @@ import { ProtocolHelper } from '@utils/helpers/protocolHelper';
 BigNumberSetup.configure();
 ChaiSetup.configure();
 const web3 = getWeb3();
+const AssetPairManager = artifacts.require('AssetPairManager');
 const { expect } = chai;
 const blockchain = new Blockchain(web3);
+const { SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
+const setTestUtils = new SetTestUtils(web3);
 
 contract('AssetPairManager', accounts => {
   const [
@@ -87,10 +92,12 @@ contract('AssetPairManager', accounts => {
 
   before(async () => {
     ABIDecoder.addABI(Core.abi);
+    ABIDecoder.addABI(AssetPairManager.abi);
   });
 
   after(async () => {
     ABIDecoder.removeABI(Core.abi);
+    ABIDecoder.removeABI(AssetPairManager.abi);
   });
 
   beforeEach(async () => {
@@ -146,30 +153,30 @@ contract('AssetPairManager', accounts => {
   });
 
   describe('#constructor', async () => {
-    let subjectCoreInstance: Address;
-    let subjectAllocatorInstance: Address;
-    let subjectTriggerInstance: Address;
-    let subjectAuctionLibraryInstance: Address;
+    let subjectCore: Address;
+    let subjectAllocator: Address;
+    let subjectTrigger: Address;
+    let subjectAuctionLibrary: Address;
     let subjectBaseAssetAllocation: BigNumber;
-    let subjectAllocationPrecision: BigNumber;
+    let subjectAllocationDenominator: BigNumber;
     let subjectBullishBaseAssetAllocation: BigNumber;
     let subjectAuctionStartPercentage: BigNumber;
-    let subjectAuctionEndPercentage: BigNumber;
+    let subjectAuctionPivotPercentage: BigNumber;
     let subjectAuctionTimeToPivot: BigNumber;
     let subjectSignalConfirmationMinTime: BigNumber;
     let subjectSignalConfirmationMaxTime: BigNumber;
     let subjectCaller: Address;
 
     beforeEach(async () => {
-      subjectCoreInstance = core.address;
-      subjectAllocatorInstance = allocator.address;
-      subjectTriggerInstance = trigger.address;
-      subjectAuctionLibraryInstance = linearAuctionPriceCurve.address;
+      subjectCore = core.address;
+      subjectAllocator = allocator.address;
+      subjectTrigger = trigger.address;
+      subjectAuctionLibrary = linearAuctionPriceCurve.address;
       subjectBaseAssetAllocation = ZERO;
-      subjectAllocationPrecision = new BigNumber(100);
+      subjectAllocationDenominator = new BigNumber(100);
       subjectBullishBaseAssetAllocation = new BigNumber(100);
       subjectAuctionStartPercentage = new BigNumber(2);
-      subjectAuctionEndPercentage = new BigNumber(10);
+      subjectAuctionPivotPercentage = new BigNumber(10);
       subjectAuctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
       subjectSignalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
       subjectSignalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
@@ -178,15 +185,15 @@ contract('AssetPairManager', accounts => {
 
     async function subject(): Promise<AssetPairManagerContract> {
       return managerHelper.deployAssetPairManagerAsync(
-        subjectCoreInstance,
-        subjectAllocatorInstance,
-        subjectTriggerInstance,
-        subjectAuctionLibraryInstance,
+        subjectCore,
+        subjectAllocator,
+        subjectTrigger,
+        subjectAuctionLibrary,
         subjectBaseAssetAllocation,
-        subjectAllocationPrecision,
+        subjectAllocationDenominator,
         subjectBullishBaseAssetAllocation,
         subjectAuctionStartPercentage,
-        subjectAuctionEndPercentage,
+        subjectAuctionPivotPercentage,
         subjectAuctionTimeToPivot,
         subjectSignalConfirmationMinTime,
         subjectSignalConfirmationMaxTime,
@@ -197,33 +204,33 @@ contract('AssetPairManager', accounts => {
     it('sets the correct core address', async () => {
       setManager = await subject();
 
-      const actualCoreInstance = await setManager.coreInstance.callAsync();
+      const actualCore = await setManager.core.callAsync();
 
-      expect(actualCoreInstance).to.equal(subjectCoreInstance);
+      expect(actualCore).to.equal(subjectCore);
     });
 
     it('sets the correct allocator address', async () => {
       setManager = await subject();
 
-      const actualAllocatorInstance = await setManager.allocatorInstance.callAsync();
+      const actualAllocator = await setManager.allocator.callAsync();
 
-      expect(actualAllocatorInstance).to.equal(subjectAllocatorInstance);
+      expect(actualAllocator).to.equal(subjectAllocator);
     });
 
     it('sets the correct trigger address', async () => {
       setManager = await subject();
 
-      const actualTriggerInstance = await setManager.triggerInstance.callAsync();
+      const actualTrigger = await setManager.trigger.callAsync();
 
-      expect(actualTriggerInstance).to.equal(subjectTriggerInstance);
+      expect(actualTrigger).to.equal(subjectTrigger);
     });
 
     it('sets the correct auctionLibrary address', async () => {
       setManager = await subject();
 
-      const actualAuctionLibraryInstance = await setManager.auctionLibraryInstance.callAsync();
+      const actualAuctionLibrary = await setManager.auctionLibrary.callAsync();
 
-      expect(actualAuctionLibraryInstance).to.equal(subjectAuctionLibraryInstance);
+      expect(actualAuctionLibrary).to.equal(subjectAuctionLibrary);
     });
 
     it('sets the correct baseAssetAllocation', async () => {
@@ -234,12 +241,12 @@ contract('AssetPairManager', accounts => {
       expect(actualBaseAssetAllocation).to.be.bignumber.equal(subjectBaseAssetAllocation);
     });
 
-    it('sets the correct allocationPrecision', async () => {
+    it('sets the correct allocationDenominator', async () => {
       setManager = await subject();
 
-      const actualAllocationPrecision = await setManager.allocationPrecision.callAsync();
+      const actualAllocationDenominator = await setManager.allocationDenominator.callAsync();
 
-      expect(actualAllocationPrecision).to.be.bignumber.equal(subjectAllocationPrecision);
+      expect(actualAllocationDenominator).to.be.bignumber.equal(subjectAllocationDenominator);
     });
 
     it('sets the correct bullishBaseAssetAllocation', async () => {
@@ -250,6 +257,14 @@ contract('AssetPairManager', accounts => {
       expect(actualBullishBaseAssetAllocation).to.be.bignumber.equal(subjectBullishBaseAssetAllocation);
     });
 
+    it('sets the correct bearishBaseAssetAllocation', async () => {
+      setManager = await subject();
+
+      const actualBearishBaseAssetAllocation = await setManager.bearishBaseAssetAllocation.callAsync();
+      const expectedBearishBaseAssetAllocation = subjectAllocationDenominator.sub(subjectBullishBaseAssetAllocation);
+      expect(actualBearishBaseAssetAllocation).to.be.bignumber.equal(expectedBearishBaseAssetAllocation);
+    });
+
     it('sets the correct auctionStartPercentage', async () => {
       setManager = await subject();
 
@@ -258,12 +273,12 @@ contract('AssetPairManager', accounts => {
       expect(actualAuctionStartPercentage).to.be.bignumber.equal(subjectAuctionStartPercentage);
     });
 
-    it('sets the correct auctionEndPercentage', async () => {
+    it('sets the correct auctionPivotPercentage', async () => {
       setManager = await subject();
 
-      const actualAuctionEndPercentage = await setManager.auctionEndPercentage.callAsync();
+      const actualAuctionPivotPercentage = await setManager.auctionPivotPercentage.callAsync();
 
-      expect(actualAuctionEndPercentage).to.be.bignumber.equal(subjectAuctionEndPercentage);
+      expect(actualAuctionPivotPercentage).to.be.bignumber.equal(subjectAuctionPivotPercentage);
     });
 
     it('sets the correct auctionTimeToPivot', async () => {
@@ -307,6 +322,26 @@ contract('AssetPairManager', accounts => {
         await expectRevertError(subject());
       });
     });
+
+    describe('but bullishBaseAssetAllocation exceeds than allocationDenominator', async () => {
+      beforeEach(async () => {
+        subjectBullishBaseAssetAllocation = subjectAllocationDenominator.add(1);
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('but baseAssetAllocation does not equal bullish or bearish asset allocation', async () => {
+      beforeEach(async () => {
+        subjectBaseAssetAllocation = new BigNumber(50);
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
   });
 
   describe('#initialize', async () => {
@@ -317,9 +352,9 @@ contract('AssetPairManager', accounts => {
 
     beforeEach(async () => {
       const auctionStartPercentage = new BigNumber(2);
-      const auctionEndPercentage = new BigNumber(10);
+      const auctionPivotPercentage = new BigNumber(10);
       const auctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
-      const allocationPrecision = new BigNumber(100);
+      const allocationDenominator = new BigNumber(100);
       const maxBaseAssetAllocation = new BigNumber(100);
       const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
       const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
@@ -330,10 +365,10 @@ contract('AssetPairManager', accounts => {
         trigger.address,
         linearAuctionPriceCurve.address,
         ZERO,
-        allocationPrecision,
+        allocationDenominator,
         maxBaseAssetAllocation,
         auctionStartPercentage,
-        auctionEndPercentage,
+        auctionPivotPercentage,
         auctionTimeToPivot,
         signalConfirmationMinTime,
         signalConfirmationMaxTime,
@@ -362,9 +397,9 @@ contract('AssetPairManager', accounts => {
     it('sets the rebalancing set token address', async () => {
       await subject();
 
-      const actualRebalancingSetTokenInstance = await setManager.rebalancingSetTokenInstance.callAsync();
+      const actualRebalancingSetToken = await setManager.rebalancingSetToken.callAsync();
 
-      expect(actualRebalancingSetTokenInstance).to.equal(subjectRebalancingSetToken);
+      expect(actualRebalancingSetToken).to.equal(subjectRebalancingSetToken);
     });
 
     it('sets the intializer address to zero', async () => {
@@ -415,18 +450,20 @@ contract('AssetPairManager', accounts => {
     let initialBaseAssetAllocation: BigNumber;
     let timeJump: BigNumber;
     let flipTrigger: boolean;
+    let shouldInitialize: boolean;
 
     before(async () => {
       initialBaseAssetAllocation = new BigNumber(100);
       flipTrigger = false;
       timeJump = ONE_DAY_IN_SECONDS;
+      shouldInitialize = true;
     });
 
     beforeEach(async () => {
       const auctionStartPercentage = new BigNumber(2);
-      const auctionEndPercentage = new BigNumber(10);
+      const auctionPivotPercentage = new BigNumber(10);
       const auctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
-      const allocationPrecision = new BigNumber(100);
+      const allocationDenominator = new BigNumber(100);
       const maxBaseAssetAllocation = new BigNumber(100);
       const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
       const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
@@ -436,10 +473,10 @@ contract('AssetPairManager', accounts => {
         trigger.address,
         linearAuctionPriceCurve.address,
         initialBaseAssetAllocation,
-        allocationPrecision,
+        allocationDenominator,
         maxBaseAssetAllocation,
         auctionStartPercentage,
-        auctionEndPercentage,
+        auctionPivotPercentage,
         auctionTimeToPivot,
         signalConfirmationMinTime,
         signalConfirmationMaxTime,
@@ -467,10 +504,12 @@ contract('AssetPairManager', accounts => {
         await trigger.confirmTrigger.sendTransactionAsync();
       }
 
-      await setManager.initialize.sendTransactionAsync(
-        rebalancingSetToken.address,
-        { from: subjectCaller, gas: DEFAULT_GAS }
-      );
+      if (shouldInitialize) {
+        await setManager.initialize.sendTransactionAsync(
+          rebalancingSetToken.address,
+          { from: subjectCaller, gas: DEFAULT_GAS }
+        );
+      }
 
       await blockchain.increaseTimeAsync(timeJump);
       await blankTxn(deployerAccount);
@@ -492,8 +531,20 @@ contract('AssetPairManager', accounts => {
           const block = await web3.eth.getBlock('latest');
           const expectedTimestamp = new BigNumber(block.timestamp);
 
-          const actualTimestamp = await setManager.lastInitialTriggerTimestamp.callAsync();
+          const actualTimestamp = await setManager.recentInitialProposeTimestamp.callAsync();
           expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
+        });
+
+        it('it emits InitialProposeCalled event', async () => {
+          const txHash = await subject();
+
+          const formattedLogs = await setTestUtils.getLogsFromTxHash(txHash);
+          const expectedLogs = LogInitialProposeCalled(
+            rebalancingSetToken.address,
+            setManager.address
+          );
+
+          await SetTestUtils.assertLogEquivalence(formattedLogs, expectedLogs);
         });
 
         describe('but allocation has not changed', async () => {
@@ -503,6 +554,20 @@ contract('AssetPairManager', accounts => {
 
           after(async () => {
             flipTrigger = false;
+          });
+
+          it('should revert', async () => {
+            await expectRevertError(subject());
+          });
+        });
+
+        describe('but manager not initialized', async () => {
+          before(async () => {
+            shouldInitialize = false;
+          });
+
+          after(async () => {
+            shouldInitialize = true;
           });
 
           it('should revert', async () => {
@@ -526,7 +591,7 @@ contract('AssetPairManager', accounts => {
           const block = await web3.eth.getBlock('latest');
           const expectedTimestamp = new BigNumber(block.timestamp);
 
-          const actualTimestamp = await setManager.lastInitialTriggerTimestamp.callAsync();
+          const actualTimestamp = await setManager.recentInitialProposeTimestamp.callAsync();
           expect(actualTimestamp).to.be.bignumber.equal(expectedTimestamp);
         });
 
@@ -621,21 +686,23 @@ contract('AssetPairManager', accounts => {
 
     let initialBaseAssetAllocation: BigNumber;
     let flipTrigger: boolean;
+    let shouldInitialize: boolean;
 
     let auctionStartPercentage: BigNumber;
-    let auctionEndPercentage: BigNumber;
+    let auctionPivotPercentage: BigNumber;
     let auctionTimeToPivot: BigNumber;
 
     before(async () => {
+      shouldInitialize = true;
       initialBaseAssetAllocation = new BigNumber(100);
       flipTrigger = false;
     });
 
     beforeEach(async () => {
       auctionStartPercentage = new BigNumber(2);
-      auctionEndPercentage = new BigNumber(10);
+      auctionPivotPercentage = new BigNumber(10);
       auctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
-      const allocationPrecision = new BigNumber(100);
+      const allocationDenominator = new BigNumber(100);
       const maxBaseAssetAllocation = new BigNumber(100);
       const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
       const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
@@ -645,10 +712,10 @@ contract('AssetPairManager', accounts => {
         trigger.address,
         linearAuctionPriceCurve.address,
         initialBaseAssetAllocation,
-        allocationPrecision,
+        allocationDenominator,
         maxBaseAssetAllocation,
         auctionStartPercentage,
-        auctionEndPercentage,
+        auctionPivotPercentage,
         auctionTimeToPivot,
         signalConfirmationMinTime,
         signalConfirmationMaxTime,
@@ -672,14 +739,16 @@ contract('AssetPairManager', accounts => {
         proposalPeriod
       );
 
-      await setManager.initialize.sendTransactionAsync(
-        rebalancingSetToken.address,
-        { from: subjectCaller, gas: DEFAULT_GAS}
-      );
+      if (shouldInitialize) {
+        await setManager.initialize.sendTransactionAsync(
+          rebalancingSetToken.address,
+          { from: subjectCaller, gas: DEFAULT_GAS}
+        );
 
-      await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS);
+        await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS);
 
-      await setManager.initialPropose.sendTransactionAsync();
+        await setManager.initialPropose.sendTransactionAsync();
+      }
 
       if (flipTrigger) {
         await trigger.confirmTrigger.sendTransactionAsync();
@@ -735,7 +804,7 @@ contract('AssetPairManager', accounts => {
             baseAssetCollateralValue,
             quoteAssetCollateralValue,
             auctionStartPercentage,
-            auctionEndPercentage
+            auctionPivotPercentage
           );
 
           const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
@@ -751,7 +820,7 @@ contract('AssetPairManager', accounts => {
             baseAssetCollateralValue,
             quoteAssetCollateralValue,
             auctionStartPercentage,
-            auctionEndPercentage
+            auctionPivotPercentage
           );
 
           const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
@@ -777,6 +846,20 @@ contract('AssetPairManager', accounts => {
         describe('but not enough time has passed from initialTrigger', async () => {
           beforeEach(async () => {
             subjectTimeFastForward = ZERO;
+          });
+
+          it('should revert', async () => {
+            await expectRevertError(subject());
+          });
+        });
+
+        describe('but manager not initialized', async () => {
+          before(async () => {
+            shouldInitialize = false;
+          });
+
+          after(async () => {
+            shouldInitialize = true;
           });
 
           it('should revert', async () => {
@@ -826,7 +909,7 @@ contract('AssetPairManager', accounts => {
             quoteAssetCollateralValue,
             baseAssetCollateralValue,
             auctionStartPercentage,
-            auctionEndPercentage
+            auctionPivotPercentage
           );
 
           const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
@@ -842,7 +925,7 @@ contract('AssetPairManager', accounts => {
             quoteAssetCollateralValue,
             baseAssetCollateralValue,
             auctionStartPercentage,
-            auctionEndPercentage
+            auctionPivotPercentage
           );
 
           const newAuctionParameters = await rebalancingSetToken.auctionPriceParameters.callAsync();
@@ -925,9 +1008,9 @@ contract('AssetPairManager', accounts => {
 
     beforeEach(async () => {
       const auctionStartPercentage = new BigNumber(2);
-      const auctionEndPercentage = new BigNumber(10);
+      const auctionPivotPercentage = new BigNumber(10);
       const auctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
-      const allocationPrecision = new BigNumber(100);
+      const allocationDenominator = new BigNumber(100);
       const maxBaseAssetAllocation = new BigNumber(100);
       const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
       const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
@@ -937,10 +1020,10 @@ contract('AssetPairManager', accounts => {
         trigger.address,
         linearAuctionPriceCurve.address,
         initialBaseAssetAllocation,
-        allocationPrecision,
+        allocationDenominator,
         maxBaseAssetAllocation,
         auctionStartPercentage,
-        auctionEndPercentage,
+        auctionPivotPercentage,
         auctionTimeToPivot,
         signalConfirmationMinTime,
         signalConfirmationMaxTime,
@@ -1134,9 +1217,9 @@ contract('AssetPairManager', accounts => {
 
     beforeEach(async () => {
       const auctionStartPercentage = new BigNumber(2);
-      const auctionEndPercentage = new BigNumber(10);
+      const auctionPivotPercentage = new BigNumber(10);
       const auctionTimeToPivot = ONE_HOUR_IN_SECONDS.mul(4);
-      const allocationPrecision = new BigNumber(100);
+      const allocationDenominator = new BigNumber(100);
       const maxBaseAssetAllocation = new BigNumber(100);
       const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
       const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
@@ -1146,10 +1229,10 @@ contract('AssetPairManager', accounts => {
         trigger.address,
         linearAuctionPriceCurve.address,
         initialBaseAssetAllocation,
-        allocationPrecision,
+        allocationDenominator,
         maxBaseAssetAllocation,
         auctionStartPercentage,
-        auctionEndPercentage,
+        auctionPivotPercentage,
         auctionTimeToPivot,
         signalConfirmationMinTime,
         signalConfirmationMaxTime,

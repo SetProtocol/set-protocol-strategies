@@ -154,69 +154,69 @@ contract('BinaryAllocator', accounts => {
   });
 
   describe('#constructor', async () => {
-    let subjectBaseAssetInstance: Address;
-    let subjectQuoteAssetInstance: Address;
-    let subjectBaseAssetOracleInstance: Address;
-    let subjectQuoteAssetOracleInstance: Address;
-    let subjectBaseAssetCollateralInstance: Address;
-    let subjectQuoteAssetCollateralInstance: Address;
-    let subjectCoreInstance: Address;
-    let subjectSetTokenFactoryAddress: Address;
+    let subjectBaseAsset: Address;
+    let subjectQuoteAsset: Address;
+    let subjectBaseAssetOracle: Address;
+    let subjectQuoteAssetOracle: Address;
+    let subjectBaseAssetCollateral: Address;
+    let subjectQuoteAssetCollateral: Address;
+    let subjectCore: Address;
+    let subjectSetTokenFactory: Address;
 
     beforeEach(async () => {
-      subjectBaseAssetInstance = wrappedETH.address;
-      subjectQuoteAssetInstance = usdcMock.address;
-      subjectBaseAssetOracleInstance = oracleProxy.address;
-      subjectQuoteAssetOracleInstance = usdcOracle.address;
-      subjectBaseAssetCollateralInstance = baseAssetCollateral.address;
-      subjectQuoteAssetCollateralInstance = quoteAssetCollateral.address;
-      subjectCoreInstance = core.address;
-      subjectSetTokenFactoryAddress = factory.address;
+      subjectBaseAsset = wrappedETH.address;
+      subjectQuoteAsset = usdcMock.address;
+      subjectBaseAssetOracle = oracleProxy.address;
+      subjectQuoteAssetOracle = usdcOracle.address;
+      subjectBaseAssetCollateral = baseAssetCollateral.address;
+      subjectQuoteAssetCollateral = quoteAssetCollateral.address;
+      subjectCore = core.address;
+      subjectSetTokenFactory = factory.address;
     });
 
     async function subject(): Promise<BinaryAllocatorContract> {
       return managerHelper.deployBinaryAllocatorAsync(
-        subjectBaseAssetInstance,
-        subjectQuoteAssetInstance,
-        subjectBaseAssetOracleInstance,
-        subjectQuoteAssetOracleInstance,
-        subjectBaseAssetCollateralInstance,
-        subjectQuoteAssetCollateralInstance,
-        subjectCoreInstance,
-        subjectSetTokenFactoryAddress
+        subjectBaseAsset,
+        subjectQuoteAsset,
+        subjectBaseAssetOracle,
+        subjectQuoteAssetOracle,
+        subjectBaseAssetCollateral,
+        subjectQuoteAssetCollateral,
+        subjectCore,
+        subjectSetTokenFactory
       );
     }
 
     it('sets the correct base asset address', async () => {
       allocator = await subject();
 
-      const actualBaseAssetInstance = await allocator.baseAssetInstance.callAsync();
+      const actualBaseAsset = await allocator.baseAsset.callAsync();
 
-      expect(actualBaseAssetInstance).to.equal(subjectBaseAssetInstance);
+      expect(actualBaseAsset).to.equal(subjectBaseAsset);
     });
 
     it('sets the correct quote asset address', async () => {
       allocator = await subject();
 
-      const actualQuoteAssetInstance = await allocator.quoteAssetInstance.callAsync();
+      const actualQuoteAsset = await allocator.quoteAsset.callAsync();
 
-      expect(actualQuoteAssetInstance).to.equal(subjectQuoteAssetInstance);
+      expect(actualQuoteAsset).to.equal(subjectQuoteAsset);
     });
 
     it('sets the correct base asset oracle address', async () => {
       allocator = await subject();
 
-      const actualBaseAssetOracleInstance = await allocator.baseAssetOracleInstance.callAsync();
+      const actualBaseAssetOracle = await allocator.baseAssetOracle.callAsync();
 
-      expect(actualBaseAssetOracleInstance).to.equal(subjectBaseAssetOracleInstance);
+      expect(actualBaseAssetOracle).to.equal(subjectBaseAssetOracle);
     });
 
     it('sets the correct quote asset oracle address', async () => {
       allocator = await subject();
 
-      const actualQuoteAssetOracleInstance = await allocator.quoteAssetOracleInstance.callAsync();
+      const actualQuoteAssetOracle = await allocator.quoteAssetOracle.callAsync();
 
-      expect(actualQuoteAssetOracleInstance).to.equal(subjectQuoteAssetOracleInstance);
+      expect(actualQuoteAssetOracle).to.equal(subjectQuoteAssetOracle);
     });
 
     it('adds the correct base collateral address to storedCollateral mapping', async () => {
@@ -233,7 +233,7 @@ contract('BinaryAllocator', accounts => {
 
       const actualStoredBaseAddress = await allocator.storedCollateral.callAsync(baseCollateralHash);
 
-      expect(actualStoredBaseAddress).to.equal(subjectBaseAssetCollateralInstance);
+      expect(actualStoredBaseAddress).to.equal(subjectBaseAssetCollateral);
     });
 
     it('adds the correct quote collateral address to storedCollateral mapping', async () => {
@@ -250,23 +250,23 @@ contract('BinaryAllocator', accounts => {
 
       const actualStoredQuoteAddress = await allocator.storedCollateral.callAsync(quoteCollateralHash);
 
-      expect(actualStoredQuoteAddress).to.equal(subjectQuoteAssetCollateralInstance);
+      expect(actualStoredQuoteAddress).to.equal(subjectQuoteAssetCollateral);
     });
 
     it('sets the correct core address', async () => {
       allocator = await subject();
 
-      const actualCoreAddress = await allocator.coreInstance.callAsync();
+      const actualCoreAddress = await allocator.core.callAsync();
 
-      expect(actualCoreAddress).to.equal(subjectCoreInstance);
+      expect(actualCoreAddress).to.equal(subjectCore);
     });
 
     it('sets the correct set token factory address', async () => {
       allocator = await subject();
 
-      const actualSetTokenFactoryAddress = await allocator.setTokenFactoryAddress.callAsync();
+      const actualSetTokenFactory = await allocator.setTokenFactory.callAsync();
 
-      expect(actualSetTokenFactoryAddress).to.equal(subjectSetTokenFactoryAddress);
+      expect(actualSetTokenFactory).to.equal(subjectSetTokenFactory);
     });
 
     it('sets the correct base asset decimals', async () => {
@@ -289,7 +289,7 @@ contract('BinaryAllocator', accounts => {
 
     describe('but stable asset address does not match stable collateral component', async () => {
       beforeEach(async () => {
-        subjectBaseAssetInstance = randomTokenAddress;
+        subjectBaseAsset = randomTokenAddress;
       });
 
       it('should revert', async () => {
@@ -299,7 +299,7 @@ contract('BinaryAllocator', accounts => {
 
     describe('but risk asset address does not match risk collateral component', async () => {
       beforeEach(async () => {
-        subjectQuoteAssetInstance = randomTokenAddress;
+        subjectQuoteAsset = randomTokenAddress;
       });
 
       it('should revert', async () => {

@@ -85,16 +85,6 @@ contract('AllocatorMathLibrary', accounts => {
         expect(actualOutput.toNumber()).to.equal(1);
       });
     });
-
-    describe('but value is 0', async () => {
-      beforeEach(async () => {
-        subjectValue = 0;
-      });
-
-      it('should revert', async () => {
-        await expectRevertError(subject());
-      });
-    });
   });
 
   describe('#ceilLog10', async () => {
