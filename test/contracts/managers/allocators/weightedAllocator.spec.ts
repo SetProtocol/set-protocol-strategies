@@ -237,7 +237,7 @@ contract('WeightedAllocator', accounts => {
     });
   });
 
-  describe.only('#determineNewAllocation', async () => {
+  describe('#determineNewAllocation', async () => {
     let subjectTargetBaseAssetAllocation: BigNumber;
     let subjectAllocationPrecision: BigNumber;
     let subjectCollateralSet: Address;
@@ -408,7 +408,7 @@ contract('WeightedAllocator', accounts => {
     });
   });
 
-  describe.only('#calculateCollateralSetValue', async () => {
+  describe('#calculateCollateralSetValue', async () => {
     let subjectCollateralSet: Address;
 
     let units: BigNumber[];
