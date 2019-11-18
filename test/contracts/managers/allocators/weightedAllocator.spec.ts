@@ -142,13 +142,14 @@ contract('WeightedAllocator', accounts => {
     blockchain.revertAsync();
   });
 
-  describe('#constructor', async () => {
+  describe.only('#constructor', async () => {
     let subjectBaseAsset: Address;
     let subjectQuoteAsset: Address;
     let subjectBaseAssetOracle: Address;
     let subjectQuoteAssetOracle: Address;
     let subjectCore: Address;
     let subjectSetTokenFactory: Address;
+    let subjectPricePrecision: BigNumber;
 
     beforeEach(async () => {
       subjectBaseAsset = wrappedETH.address;
@@ -157,6 +158,7 @@ contract('WeightedAllocator', accounts => {
       subjectQuoteAssetOracle = btcOracleProxy.address;
       subjectCore = core.address;
       subjectSetTokenFactory = factory.address;
+      subjectPricePrecision = new BigNumber(100);
     });
 
     async function subject(): Promise<WeightedAllocatorContract> {
@@ -166,7 +168,8 @@ contract('WeightedAllocator', accounts => {
         subjectBaseAssetOracle,
         subjectQuoteAssetOracle,
         subjectCore,
-        subjectSetTokenFactory
+        subjectSetTokenFactory,
+        subjectPricePrecision,
       );
     }
 
@@ -218,6 +221,14 @@ contract('WeightedAllocator', accounts => {
       expect(actualSetTokenFactory).to.equal(subjectSetTokenFactory);
     });
 
+    it('sets the correct price precision', async () => {
+      allocator = await subject();
+
+      const actualPricePrecision = await allocator.pricePrecision.callAsync();
+
+      expect(actualPricePrecision).to.be.bignumber.equal(subjectPricePrecision);
+    });
+
     it('sets the correct base asset decimals', async () => {
       allocator = await subject();
 
@@ -237,7 +248,7 @@ contract('WeightedAllocator', accounts => {
     });
   });
 
-  describe('#determineNewAllocation', async () => {
+  describe.only('#determineNewAllocation', async () => {
     let subjectTargetBaseAssetAllocation: BigNumber;
     let subjectAllocationPrecision: BigNumber;
     let subjectCollateralSet: Address;

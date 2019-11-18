@@ -50,7 +50,7 @@ contract WeightedAllocator is
     );
 
     /* ============ Constants ============ */
-    uint256 constant public PRICE_PRECISION = 100;
+    uint256 constant private ONE = 1;
 
     /* ============ State Variables ============ */
     ICore public core;
@@ -63,6 +63,7 @@ contract WeightedAllocator is
     uint8 public baseAssetDecimals;
     uint8 public quoteAssetDecimals;
 
+    uint256 public pricePrecision;
     uint256 public collateralNaturalUnit;
     address[] public nextSetComponents;
     uint256 public baseAssetDecimalDifference;
@@ -77,6 +78,7 @@ contract WeightedAllocator is
      * @param  _quoteAssetOracle            The quoteAsset oracle
      * @param  _core                        The address of the Core contract
      * @param  _setTokenFactory             The address of SetTokenFactory used to create new collateral
+     * @param  _pricePrecision              Amount of significant figures kept in determining new units
      */
     constructor(
         ERC20Detailed _baseAsset,
@@ -84,7 +86,8 @@ contract WeightedAllocator is
         IOracle _baseAssetOracle,
         IOracle _quoteAssetOracle,
         ICore _core,
-        address _setTokenFactory
+        address _setTokenFactory,
+        uint256 _pricePrecision
     )
         public
     {
@@ -98,19 +101,22 @@ contract WeightedAllocator is
         baseAssetDecimals = _baseAsset.decimals();
         quoteAssetDecimals = _quoteAsset.decimals();
 
-        // Set Core and setTokenFactory
         core = _core;
         setTokenFactory = _setTokenFactory;
+        pricePrecision = _pricePrecision;
 
         // Calculate constants that will be used in calculations
         uint256 minDecimals = Math.min(baseAssetDecimals, quoteAssetDecimals);
 
-        collateralNaturalUnit = CommonMath.safePower(10, uint256(18).sub(minDecimals))
-            .mul(PRICE_PRECISION);
-
+        // Decimal difference for asset a1 is 10 ** (a1Decimals - min(a1Decimals, a2Decimals))
         baseAssetDecimalDifference = CommonMath.safePower(10, uint256(baseAssetDecimals).sub(minDecimals));
         quoteAssetDecimalDifference = CommonMath.safePower(10, uint256(quoteAssetDecimals).sub(minDecimals));
 
+        // NaturalUnit is equal to max(a1DecimalDifference, a2DecimalDifference) * pricePrecision
+        collateralNaturalUnit = Math.max(baseAssetDecimalDifference, quoteAssetDecimalDifference)
+            .mul(pricePrecision);
+
+        // Next set components will always be in order of base asset first
         nextSetComponents = [address(baseAsset), address(quoteAsset)];
     }
 
@@ -133,7 +139,7 @@ contract WeightedAllocator is
         returns (ISetToken)
     {
         // Determine nextSet units
-        uint256[] memory nextSetUnits = calculateNextSetParameters(
+        uint256[] memory nextSetUnits = calculateNextSetUnits(
             _targetBaseAssetAllocation,
             _allocationPrecision
         );
@@ -190,11 +196,13 @@ contract WeightedAllocator is
             address(_collateralSet)
         );
 
+        // Get components prices and decimals
         (
             uint256[] memory componentPrices,
             uint256[] memory componentDecimals
         ) = fetchComponentsPriceAndDecimal(setDetails.components);
 
+        // Calculate and return Set value
         return FlexibleTimingManagerLibrary.calculateSetTokenDollarValue(
             componentPrices,
             setDetails.naturalUnit,
@@ -203,7 +211,24 @@ contract WeightedAllocator is
         );
     }
 
-    function calculateNextSetParameters(
+    /*
+     * Calculate units of next Set. Calculating the units for asset 1 (a1) is as follows:
+     *      a1DecimalDifference * a1Multiplier * (Pa2*pricePrecision/Pa1)
+     *
+     * Where DecimalDifference is defined as such (set in constructor):
+     *      10 ** (a1Decimals - min(a1Decimals, a2Decimals))
+     *
+     * Multiplier is defined as:
+     *      max(a1Allocation/a2Allocation, 1)
+     *
+     * And Pa1 is price of asset 1 and Pa2 is price of asset 2
+     *
+     * This results in a Set Token that's value is max(Pa1, Pa2) * (a1Multiplier + a2Multiplier)
+     *
+     * @param  _currentCollateralSet        Instance of current set collateralizing RebalancingSetToken
+     * @return uint256                      USD value of passed Set
+     */
+    function calculateNextSetUnits(
         uint256 _targetBaseAssetAllocation,
         uint256 _allocationPrecision
     )
@@ -211,43 +236,53 @@ contract WeightedAllocator is
         view
         returns (uint256[] memory)
     {
+        // Get quote asset allocation
         uint256 quoteAssetAllocation = _allocationPrecision.sub(_targetBaseAssetAllocation);
-        uint256 baseAssetMultiplier = 1;
-        uint256 quoteAssetMultiplier = 1;
-        if (_targetBaseAssetAllocation > quoteAssetAllocation) {
-            baseAssetMultiplier = _targetBaseAssetAllocation.div(quoteAssetAllocation);
-        } else {
-            quoteAssetMultiplier = quoteAssetAllocation.div(_targetBaseAssetAllocation);
-        }
 
+        // Calculate multiplier for quote and base asset. Multiplier is just the amount of highest
+        // allocation divided by lowest allocation. Asset that has lowest allocation will have
+        // multiplier set to 1.
+        uint256 baseAssetMultiplier = Math.max(_targetBaseAssetAllocation.div(quoteAssetAllocation), ONE);
+        uint256 quoteAssetMultiplier = Math.max(quoteAssetAllocation.div(_targetBaseAssetAllocation), ONE);
+
+        // Get prices
         uint256 baseAssetPrice = baseAssetOracle.read();
         uint256 quoteAssetPrice = quoteAssetOracle.read();
 
         uint256[] memory units = new uint256[](2);
         // Get baseAsset units
         units[0] = baseAssetDecimalDifference.mul(baseAssetMultiplier).mul(
-            Math.max(quoteAssetPrice.mul(PRICE_PRECISION).div(baseAssetPrice), PRICE_PRECISION)
+            Math.max(quoteAssetPrice.mul(pricePrecision).div(baseAssetPrice), pricePrecision)
         );
 
         // Get quote asset units
         units[1] = quoteAssetDecimalDifference.mul(quoteAssetMultiplier).mul(
-            Math.max(baseAssetPrice.mul(PRICE_PRECISION).div(quoteAssetPrice), PRICE_PRECISION)
+            Math.max(baseAssetPrice.mul(pricePrecision).div(quoteAssetPrice), pricePrecision)
         );
 
         return units;
     }
 
+    /*
+     * Get prices and decimals information for passed two component array. Arrays returned will be in
+     * order of components passed.
+     *
+     * @param  _componentArray        Array of component addresses to get price and decimal info
+     * @return uint256[]              Price of components
+     * @return uint256[]              Decimals of components
+     */
     function fetchComponentsPriceAndDecimal(
-        address[] memory componentArray
+        address[] memory _componentArray
     )
         internal
         view
         returns (uint256[] memory, uint256[] memory)
     {
-        uint256[] memory componentPrices = new uint256[](componentArray.length);
-        uint256[] memory componentDecimals = new uint256[](componentArray.length);
+        uint256[] memory componentPrices = new uint256[](_componentArray.length);
+        uint256[] memory componentDecimals = new uint256[](_componentArray.length);
 
-        if (componentArray[0] == address(baseAsset)) {
+        // Create price and decimal arrays, order is based on which component is passed first
+        if (_componentArray[0] == address(baseAsset)) {
             componentPrices[0] = baseAssetOracle.read();
             componentPrices[1] = quoteAssetOracle.read();
             componentDecimals[0] = baseAssetDecimals;

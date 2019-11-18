@@ -438,6 +438,7 @@ export class ManagerHelper {
     quoteAssetOracleInstance: Address,
     coreInstance: Address,
     setTokenFactoryAddress: Address,
+    pricePrecision: BigNumber = new BigNumber(100),
     from: Address = this._tokenOwnerAddress,
   ): Promise<WeightedAllocatorContract> {
     const truffleAllocationPricer = await WeightedAllocator.new(
@@ -447,6 +448,7 @@ export class ManagerHelper {
       quoteAssetOracleInstance,
       coreInstance,
       setTokenFactoryAddress,
+      pricePrecision,
       { from }
     );
 
