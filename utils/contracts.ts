@@ -46,3 +46,4 @@ export { AssetPairManagerContract } from '../types/generated/asset_pair_manager'
 export { TwoAssetLinearizedTimeSeriesFeedContract } from '../types/generated/two_asset_linearized_time_series_feed';
 export { UintArrayUtilsLibraryMockContract } from '../types/generated/uint_array_utils_library_mock';
 export { USDCMockContract } from '../types/generated/u_s_d_c_mock';
+export { WeightedAllocatorContract } from '../types/generated/weighted_allocator';

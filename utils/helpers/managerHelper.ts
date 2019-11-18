@@ -20,6 +20,7 @@ import {
   MovingAverageCrossoverTriggerContract,
   RSITrendingTriggerContract,
   TriggerMockContract,
+  WeightedAllocatorContract,
 } from '../contracts';
 import { BigNumber } from 'bignumber.js';
 
@@ -54,6 +55,7 @@ const MovingAverageCrossoverTrigger = artifacts.require(
 const RSITrendingTrigger = artifacts.require('RSITrendingTrigger');
 const TriggerMock = artifacts.require('TriggerMock');
 const UintArrayUtilsLibrary = artifacts.require('UintArrayUtilsLibrary');
+const WeightedAllocator = artifacts.require('WeightedAllocator');
 
 const { SetProtocolUtils: SetUtils, SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
 const setTestUtils = new SetTestUtils(web3);
@@ -424,6 +426,31 @@ export class ManagerHelper {
     );
 
     return new BinaryAllocatorMockContract(
+      getContractInstance(truffleAllocationPricer),
+      { from, gas: DEFAULT_GAS },
+    );
+  }
+
+  public async deployWeightedAllocatorAsync(
+    baseAssetInstance: Address,
+    quoteAssetInstance: Address,
+    baseAssetOracleInstance: Address,
+    quoteAssetOracleInstance: Address,
+    coreInstance: Address,
+    setTokenFactoryAddress: Address,
+    from: Address = this._tokenOwnerAddress,
+  ): Promise<WeightedAllocatorContract> {
+    const truffleAllocationPricer = await WeightedAllocator.new(
+      baseAssetInstance,
+      quoteAssetInstance,
+      baseAssetOracleInstance,
+      quoteAssetOracleInstance,
+      coreInstance,
+      setTokenFactoryAddress,
+      { from }
+    );
+
+    return new WeightedAllocatorContract(
       getContractInstance(truffleAllocationPricer),
       { from, gas: DEFAULT_GAS },
     );
