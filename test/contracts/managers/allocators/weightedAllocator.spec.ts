@@ -142,7 +142,7 @@ contract('WeightedAllocator', accounts => {
     blockchain.revertAsync();
   });
 
-  describe.only('#constructor', async () => {
+  describe('#constructor', async () => {
     let subjectBaseAsset: Address;
     let subjectQuoteAsset: Address;
     let subjectBaseAssetOracle: Address;
@@ -248,7 +248,7 @@ contract('WeightedAllocator', accounts => {
     });
   });
 
-  describe.only('#determineNewAllocation', async () => {
+  describe('#determineNewAllocation', async () => {
     let subjectTargetBaseAssetAllocation: BigNumber;
     let subjectAllocationPrecision: BigNumber;
     let subjectCollateralSet: Address;
