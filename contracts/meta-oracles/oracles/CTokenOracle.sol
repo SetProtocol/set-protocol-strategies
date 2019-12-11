@@ -52,6 +52,7 @@ contract CTokenOracle is
     /*
      * @param  _cToken             The address of Compound Token
      * @param  _underlyingOracle   The address of the underlying oracle
+     * @param  _cTokenFullUnit     The full unit of the Compound Token
      * @param  _underlyingFullUnit The full unit of the underlying asset
      * @param  _dataDescription    Human readable description of oracle
      */
