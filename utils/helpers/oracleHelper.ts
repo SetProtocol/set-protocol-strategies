@@ -425,12 +425,16 @@ export class OracleHelper {
   public async deployCTokenOracleAsync(
     cToken: Address,
     underlyingOracle: Address,
+    cTokenFullUnit: BigNumber,
+    underlyingFullUnit: BigNumber,
     dataDescription: string = 'CToken',
     from: Address = this._contractOwnerAddress
   ): Promise<CTokenOracleContract> {
     const cTokenOracle = await CTokenOracle.new(
       cToken,
       underlyingOracle,
+      cTokenFullUnit,
+      underlyingFullUnit,
       dataDescription,
       txnFrom(from),
     );

@@ -123,6 +123,15 @@ export class ERC20Helper {
     return tokenPromises;
   }
 
+  public async getTokenInstanceAsync(
+    token: Address,
+  ): Promise<StandardTokenMockContract> {
+    return new StandardTokenMockContract(
+      getContractInstance(StandardTokenMock, token),
+      { from: this._senderAccountAddress },
+    );
+  }
+
   public async deployUSDCTokenAsync(
     initialAccount: Address,
     initialTokenAmount: BigNumber = DEPLOYED_TOKEN_QUANTITY,

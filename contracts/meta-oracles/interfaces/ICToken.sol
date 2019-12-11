@@ -36,4 +36,6 @@ interface ICToken {
         returns (uint256);
 
     function exchangeRateStored() external view returns (uint256);
+
+    function decimals() external view returns(uint8);
 }
