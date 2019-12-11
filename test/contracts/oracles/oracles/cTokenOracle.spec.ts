@@ -10,6 +10,7 @@ import ChaiSetup from '@utils/chaiSetup';
 import { BigNumberSetup } from '@utils/bigNumberSetup';
 import { Blockchain } from '@utils/blockchain';
 import { ether } from '@utils/units';
+import { StandardTokenMockContract } from 'set-protocol-contracts';
 import {
   ConstantPriceOracleContract,
   CTokenOracleContract,
@@ -34,9 +35,11 @@ contract('CTokenOracle', accounts => {
 
   let usdc: USDCMockContract;
   let usdcOracle: ConstantPriceOracleContract;
-  let cUSDCAddress: string;
+  let cUSDC: StandardTokenMockContract;
   let cTokenOracle: CTokenOracleContract;
 
+  const cUsdcFullUnit = new BigNumber(10).pow(8);
+  const usdcFullUnit = new BigNumber(10).pow(6);
   const usdcPrice = ether(1);
   const oracleName = 'cUSDC Oracle';
 
@@ -49,10 +52,14 @@ contract('CTokenOracle', accounts => {
 
     usdc = await erc20Helper.deployUSDCTokenAsync(deployerAccount);
     usdcOracle = await oracleHelper.deployConstantPriceOracleAsync(usdcPrice);
-    cUSDCAddress = await compoundHelper.deployMockCUSDC(usdc.address, deployerAccount);
+    const cUSDCAddress = await compoundHelper.deployMockCUSDC(usdc.address, deployerAccount);
+    cUSDC = await erc20Helper.getTokenInstanceAsync(cUSDCAddress);
+
     cTokenOracle = await oracleHelper.deployCTokenOracleAsync(
       cUSDCAddress,
       usdcOracle.address,
+      cUsdcFullUnit,
+      usdcFullUnit,
       oracleName,
     );
   });
@@ -64,18 +71,24 @@ contract('CTokenOracle', accounts => {
   describe('#constructor', async () => {
     let subjectCToken: Address;
     let subjectUnderlyingOracle: Address;
+    let subjectCTokenFullUnit: BigNumber;
+    let subjectUnderlyingFullUnit: BigNumber;
     let subjectDataDescription: string;
 
     beforeEach(async () => {
-      subjectCToken = cUSDCAddress;
+      subjectCToken = cUSDC.address;
+      subjectCTokenFullUnit = new BigNumber(10).pow(8);
+      subjectUnderlyingFullUnit = new BigNumber(10).pow(6);
       subjectUnderlyingOracle = usdcOracle.address;
-      subjectDataDescription = 'ETHDailyRSI';
+      subjectDataDescription = 'cUSDC Oracle';
     });
 
     async function subject(): Promise<CTokenOracleContract> {
       return oracleHelper.deployCTokenOracleAsync(
         subjectCToken,
         subjectUnderlyingOracle,
+        subjectCTokenFullUnit,
+        subjectUnderlyingFullUnit,
         subjectDataDescription
       );
     }
@@ -86,7 +99,19 @@ contract('CTokenOracle', accounts => {
       expect(cTokenAddress).to.equal(subjectCToken);
     });
 
-    it('sets the correct cToken address', async () => {
+    it('sets the correct cToken full unit', async () => {
+      cTokenOracle = await subject();
+      const cTokenFullUnit = await cTokenOracle.cTokenFullUnit.callAsync();
+      expect(cTokenFullUnit).to.bignumber.equal(subjectCTokenFullUnit);
+    });
+
+    it('sets the correct underlying full unit', async () => {
+      cTokenOracle = await subject();
+      const underlyingFullUnit = await cTokenOracle.underlyingFullUnit.callAsync();
+      expect(underlyingFullUnit).to.bignumber.equal(subjectUnderlyingFullUnit);
+    });
+
+    it('sets the correct underlying oracle address', async () => {
       cTokenOracle = await subject();
       const underlyingOracleAddress = await cTokenOracle.underlyingOracle.callAsync();
       expect(underlyingOracleAddress).to.equal(subjectUnderlyingOracle);
@@ -111,11 +136,13 @@ contract('CTokenOracle', accounts => {
     it('returns the correct cTokenValue', async () => {
       const result = await subject();
 
-      const exchangeRate = await compoundHelper.getExchangeRate(cUSDCAddress);
+      const exchangeRate = await compoundHelper.getExchangeRate(cUSDC.address);
 
-      // Price USDC / 1 USDC (10 ** 6)
-      // USDC / cToken * 10 ** 18
-      const expectedResult = ether(1).mul(exchangeRate).div(ether(1));
+      const expectedResult = ether(1)
+                              .mul(exchangeRate)
+                              .mul(cUsdcFullUnit)
+                              .div(usdcFullUnit).round(0, 3)
+                              .div(ether(1)).round(0, 3);
 
       expect(result).to.be.bignumber.equal(expectedResult);
     });

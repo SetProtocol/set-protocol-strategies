@@ -41,21 +41,33 @@ contract CTokenOracle is
     // Exchange Rate values are scaled by 1e18
     uint256 internal constant scalingFactor = 10 ** 18;
 
+    // CToken Full Unit
+    uint256 public cTokenFullUnit;
+
+    // Underlying Asset Full Unit
+    uint256 public underlyingFullUnit;
+
     /* ============ Constructor ============ */
 
     /*
      * @param  _cToken             The address of Compound Token
      * @param  _underlyingOracle   The address of the underlying oracle
+     * @param  _cTokenFullUnit     The full unit of the Compound Token
+     * @param  _underlyingFullUnit The full unit of the underlying asset
      * @param  _dataDescription    Human readable description of oracle
      */
     constructor(
         ICToken _cToken,
         IOracle _underlyingOracle,
+        uint256 _cTokenFullUnit,
+        uint256 _underlyingFullUnit,
         string memory _dataDescription
     )
         public
     {
         cToken = _cToken;
+        cTokenFullUnit = _cTokenFullUnit;
+        underlyingFullUnit = _underlyingFullUnit;
         underlyingOracle = _underlyingOracle;
         dataDescription = _dataDescription;
     }
@@ -66,7 +78,7 @@ contract CTokenOracle is
      * The underlying oracle is assumed to return a USD price of 18 decimal
      * for a single full token of the underlying asset. The derived price
      * of the cToken is then the price of a unit of underlying multiplied
-     * by the exchangeRate and descaled.
+     * by the exchangeRate, adjusted for decimal differences, and descaled.
      */
     function read()
         external
@@ -80,6 +92,11 @@ contract CTokenOracle is
         uint256 conversionRate = cToken.exchangeRateStored();
 
         // Price of underlying is the $ / Token * conversion / scaling factor
-        return underlyingPrice.mul(conversionRate).div(scalingFactor);
+        // Values need to be converted based on full unit quantities
+        return underlyingPrice
+            .mul(conversionRate)
+            .mul(cTokenFullUnit)
+            .div(underlyingFullUnit)
+            .div(scalingFactor);
     }
 }

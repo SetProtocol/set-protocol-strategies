@@ -1,6 +1,6 @@
 {
   "name": "set-protocol-strategies",
-  "version": "1.1.15",
+  "version": "1.1.16",
   "main": "dist/artifacts/index.js",
   "typings": "dist/typings/artifacts/index.d.ts",
   "files": [
@@ -47,7 +47,7 @@
     "truffle-test-integrations": "truffle test `find transpiled/test/integrations -name '*.spec.js'`",
     "truffle-test-contracts": "truffle test `find transpiled/test/contracts -name '*.spec.js'`",
     "prepublishOnly": "yarn dist",
-    "flatten": "truffle-flattener contracts/[xxxx]/[xxx].sol"
+    "flatten": "truffle-flattener contracts/[XXX]/[XXX].sol"
   },
   "repository": "git@github.com:SetProtocol/set-protocol-strategies.git",
   "author": "Justin Chen <justin@setprotocol.com>",
