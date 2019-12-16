@@ -120,7 +120,6 @@ contract('SocialTradingManager', accounts => {
     core = await protocolHelper.getDeployedCoreAsync();
 
     factory = await protocolHelper.getDeployedSetTokenFactoryAsync();
-    linearAuctionPriceCurve = await protocolHelper.getDeployedLinearAuctionPriceCurveAsync();
     rebalancingComponentWhiteList = await protocolHelper.getDeployedWhiteList();
 
     ethMedianizer = await protocolHelper.getDeployedWETHMedianizerAsync();
