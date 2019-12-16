@@ -19,8 +19,9 @@ import {
   MovingAverageOracleV2Contract,
   MovingAverageCrossoverTriggerContract,
   RSITrendingTriggerContract,
+  SocialTradingManagerContract,
   TriggerMockContract,
-  WeightedAllocatorContract,
+  SocialAllocatorContract,
 } from '../contracts';
 import { BigNumber } from 'bignumber.js';
 
@@ -53,9 +54,10 @@ const MovingAverageCrossoverTrigger = artifacts.require(
   'MovingAverageCrossoverTrigger'
 );
 const RSITrendingTrigger = artifacts.require('RSITrendingTrigger');
+const SocialTradingManager = artifacts.require('SocialTradingManager');
 const TriggerMock = artifacts.require('TriggerMock');
 const UintArrayUtilsLibrary = artifacts.require('UintArrayUtilsLibrary');
-const WeightedAllocator = artifacts.require('WeightedAllocator');
+const SocialAllocator = artifacts.require('SocialAllocator');
 
 const { SetProtocolUtils: SetUtils, SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
 const setTestUtils = new SetTestUtils(web3);
@@ -313,6 +315,21 @@ export class ManagerHelper {
     );
   }
 
+  public async deploySocialTradingManagerAsync(
+    coreInstance: Address,
+    from: Address = this._tokenOwnerAddress
+  ): Promise<SocialTradingManagerContract> {
+    const truffleRebalacingTokenManager = await SocialTradingManager.new(
+      coreInstance,
+      { from },
+    );
+
+    return new SocialTradingManagerContract(
+      getContractInstance(truffleRebalacingTokenManager),
+      { from, gas: DEFAULT_GAS },
+    );
+  }
+
   /* ============ Triggers ============ */
   public async deployTriggerMocksAsync(
     priceTriggerCount: number,
@@ -431,7 +448,7 @@ export class ManagerHelper {
     );
   }
 
-  public async deployWeightedAllocatorAsync(
+  public async deploySocialAllocatorAsync(
     baseAssetInstance: Address,
     quoteAssetInstance: Address,
     baseAssetOracleInstance: Address,
@@ -440,8 +457,8 @@ export class ManagerHelper {
     setTokenFactoryAddress: Address,
     pricePrecision: BigNumber = new BigNumber(100),
     from: Address = this._tokenOwnerAddress,
-  ): Promise<WeightedAllocatorContract> {
-    const truffleAllocationPricer = await WeightedAllocator.new(
+  ): Promise<SocialAllocatorContract> {
+    const truffleAllocationPricer = await SocialAllocator.new(
       baseAssetInstance,
       quoteAssetInstance,
       baseAssetOracleInstance,
@@ -452,7 +469,7 @@ export class ManagerHelper {
       { from }
     );
 
-    return new WeightedAllocatorContract(
+    return new SocialAllocatorContract(
       getContractInstance(truffleAllocationPricer),
       { from, gas: DEFAULT_GAS },
     );
@@ -890,7 +907,7 @@ export class ManagerHelper {
     let collateralSetValue = new BigNumber(0);
     for (let i = 0; i < collateralSetUnits.length; i++) {
       const componentUnitsInFullToken = SET_FULL_TOKEN_UNITS
-                                        .mul(collateralSetUnits)
+                                        .mul(collateralSetUnits[i])
                                         .div(collateralSetNaturalUnit)
                                         .round(0, 3);
 

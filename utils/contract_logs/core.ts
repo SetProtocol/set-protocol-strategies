@@ -16,8 +16,9 @@ interface CreateLogArgs {
 
 export function extractNewSetTokenAddressFromLogs(
   logs: Log[],
+  logIndex: number = 1
 ): Address {
-  const createLog = logs[logs.length - 1];
+  const createLog = logs[logs.length - logIndex];
   const args: CreateLogArgs = createLog.args;
   return args._setTokenAddress;
 }

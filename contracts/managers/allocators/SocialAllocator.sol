@@ -26,21 +26,22 @@ import { SetTokenLibrary } from "set-protocol-contracts/contracts/core/lib/SetTo
 
 import { AllocatorMathLibrary } from "../lib/AllocatorMathLibrary.sol";
 import { FlexibleTimingManagerLibrary } from "../lib/FlexibleTimingManagerLibrary.sol";
-import { IAllocator } from "./IAllocator.sol";
 import { IOracle } from "../../meta-oracles/interfaces/IOracle.sol";
+import { ISocialAllocator } from "./ISocialAllocator.sol";
 
 
 /**
- * @title WeightedAllocator
+ * @title SocialAllocator
  * @author Set Protocol
  *
- * Implementing IAllocator the WeightedAllocator creates new SetTokens that represent a mix of two
+ * Implementing ISocialAllocator the SocialAllocator creates new SetTokens that represent a mix of two
  * assets. 
  */
-contract WeightedAllocator is
-    IAllocator
+contract SocialAllocator is
+    ISocialAllocator
 {
     using SafeMath for uint256;
+    using CommonMath for uint256;
 
     /* ============ Events ============ */
 
@@ -70,7 +71,7 @@ contract WeightedAllocator is
     uint256 public quoteAssetDecimalDifference;
 
     /*
-     * WeightedAllocator constructor.
+     * SocialAllocator constructor.
      *
      * @param  _baseAsset                   The baseAsset address
      * @param  _quoteAsset                  The quoteAsset address
@@ -123,17 +124,15 @@ contract WeightedAllocator is
     /* ============ External ============ */
 
     /*
-     * Determine the next allocation to rebalance into. Set new collateral to value of old collateral.
+     * Determine the next allocation to rebalance into.
      *
      * @param  _targetBaseAssetAllocation       Target allocation of the base asset
      * @param  _allocationPrecision             Precision of allocation percentage
-     * @param  _currentCollateralSet            Instance of current set collateralizing RebalancingSetToken
-     * @return address                          The address of the proposed nextSet
+     * @return ISetToken                        The address of the proposed nextSet
      */
     function determineNewAllocation(
         uint256 _targetBaseAssetAllocation,
-        uint256 _allocationPrecision,
-        ISetToken _currentCollateralSet
+        uint256 _allocationPrecision
     )
         external
         returns (ISetToken)
@@ -242,8 +241,8 @@ contract WeightedAllocator is
         // Calculate multiplier for quote and base asset. Multiplier is just the amount of highest
         // allocation divided by lowest allocation. Asset that has lowest allocation will have
         // multiplier set to 1.
-        uint256 baseAssetMultiplier = Math.max(_targetBaseAssetAllocation.div(quoteAssetAllocation), ONE);
-        uint256 quoteAssetMultiplier = Math.max(quoteAssetAllocation.div(_targetBaseAssetAllocation), ONE);
+        uint256 baseAssetMultiplier = Math.max(_targetBaseAssetAllocation.scale().div(quoteAssetAllocation), ONE.scale());
+        uint256 quoteAssetMultiplier = Math.max(quoteAssetAllocation.scale().div(_targetBaseAssetAllocation), ONE.scale());
 
         // Get prices
         uint256 baseAssetPrice = baseAssetOracle.read();
@@ -253,12 +252,12 @@ contract WeightedAllocator is
         // Get baseAsset units
         units[0] = baseAssetDecimalDifference.mul(baseAssetMultiplier).mul(
             Math.max(quoteAssetPrice.mul(pricePrecision).div(baseAssetPrice), pricePrecision)
-        );
+        ).deScale();
 
         // Get quote asset units
         units[1] = quoteAssetDecimalDifference.mul(quoteAssetMultiplier).mul(
             Math.max(baseAssetPrice.mul(pricePrecision).div(quoteAssetPrice), pricePrecision)
-        );
+        ).deScale();
 
         return units;
     }

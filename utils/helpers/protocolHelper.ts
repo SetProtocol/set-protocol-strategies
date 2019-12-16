@@ -5,14 +5,19 @@ import { Address } from 'set-protocol-utils';
 import {
   Core,
   CoreContract,
+  ExponentialPivotAuctionLiquidator,
   LinearAuctionPriceCurve,
   LinearAuctionPriceCurveContract,
   MedianContract,
+  OracleWhiteList,
   RebalanceAuctionModule,
   RebalanceAuctionModuleContract,
   RebalancingSetTokenContract,
+  RebalancingSetTokenV2,
+  RebalancingSetTokenV2Contract,
   RebalancingSetTokenFactory,
   RebalancingSetTokenFactoryContract,
+  RebalancingSetTokenV2Factory,
   SetToken,
   SetTokenContract,
   SetTokenFactory,
@@ -31,6 +36,8 @@ import { BigNumber } from 'bignumber.js';
 import {
   DEFAULT_GAS,
   DEFAULT_UNIT_SHARES,
+  DEFAULT_REBALANCING_MAXIMUM_NATURAL_UNIT,
+  DEFAULT_REBALANCING_MINIMUM_NATURAL_UNIT,
   DEFAULT_REBALANCING_NATURAL_UNIT,
   ONE_DAY_IN_SECONDS,
 } from '../constants';
@@ -137,7 +144,90 @@ export class ProtocolHelper {
      return await StandardTokenMockContract.at(address, web3, {});
   }
 
+  public async deployWhiteListAsync(
+    initialAddresses: Address[] = [],
+    from: Address = this._tokenOwnerAddress
+  ): Promise<string> {
+    const instance = await new web3.eth.Contract(WhiteList.abi).deploy({
+      data: WhiteList.bytecode,
+      arguments: [
+        initialAddresses,
+      ],
+    }).send({ from, gas: DEFAULT_GAS });
+
+    return instance.options.address;
+  }
+
+  public async deployOracleWhiteListAsync(
+    initialTokenAddresses: Address[] = [],
+    initialOracleAddresses: Address[] = [],
+    from: Address = this._tokenOwnerAddress
+  ): Promise<string> {
+    const instance = await new web3.eth.Contract(OracleWhiteList.abi).deploy({
+      data: OracleWhiteList.bytecode,
+      arguments: [
+        initialTokenAddresses,
+        initialOracleAddresses,
+      ],
+    }).send({ from, gas: DEFAULT_GAS });
+
+    return instance.options.address;
+  }
+
+  public async deployLinearLiquidatorAsync(
+    core: Address,
+    oracleWhiteList: Address,
+    auctionPeriod: BigNumber = ONE_DAY_IN_SECONDS.div(6),
+    rangeStart: BigNumber = new BigNumber(10),
+    rangeEnd: BigNumber = new BigNumber(10),
+    name: string = 'Liquidator',
+    from: Address = this._tokenOwnerAddress
+  ): Promise<string> {
+    const instance = await new web3.eth.Contract(ExponentialPivotAuctionLiquidator.abi).deploy({
+      data: ExponentialPivotAuctionLiquidator.bytecode,
+      arguments: [
+        core,
+        oracleWhiteList,
+        new BigNumber(1000).toString(),
+        auctionPeriod.toString(),
+        rangeStart.toString(),
+        rangeEnd.toString(),
+        name,
+      ],
+    }).send({ from, gas: DEFAULT_GAS });
+
+    return instance.options.address;
+  }
+
   /* ============ CoreFactory Extension ============ */
+
+  public async deployRebalancingSetTokenV2FactoryAsync(
+    coreAddress: Address,
+    componentWhitelistAddress: Address,
+    liquidatorWhitelistAddress: Address,
+    minimumRebalanceInterval: BigNumber = ONE_DAY_IN_SECONDS,
+    minimumFailRebalancePeriod: BigNumber = ONE_DAY_IN_SECONDS,
+    maximumFailRebalancePeriod: BigNumber = ONE_DAY_IN_SECONDS.mul(30),
+    minimumNaturalUnit: BigNumber = DEFAULT_REBALANCING_MINIMUM_NATURAL_UNIT,
+    maximumNaturalUnit: BigNumber = DEFAULT_REBALANCING_MAXIMUM_NATURAL_UNIT,
+    from: Address = this._tokenOwnerAddress
+  ): Promise<string> {
+    const instance = await new web3.eth.Contract(RebalancingSetTokenV2Factory.abi).deploy({
+      data: RebalancingSetTokenV2Factory.bytecode,
+      arguments: [
+        coreAddress,
+        componentWhitelistAddress,
+        liquidatorWhitelistAddress,
+        minimumRebalanceInterval.toString(),
+        minimumFailRebalancePeriod.toString(),
+        maximumFailRebalancePeriod.toString(),
+        minimumNaturalUnit.toString(),
+        maximumNaturalUnit.toString(),
+      ],
+    }).send({ from, gas: DEFAULT_GAS });
+
+    return instance.options.address;
+  }
 
   public async createSetTokenAsync(
     core: CoreContract,
@@ -242,6 +332,15 @@ export class ProtocolHelper {
   ): Promise<SetTokenContract> {
     return new SetTokenContract(
       new web3.eth.Contract(SetToken.abi, setTokenAddress),
+      { from: this._tokenOwnerAddress },
+    );
+  }
+
+  public async getRebalancingSetTokenV2Async(
+    setTokenAddress: Address,
+  ): Promise<RebalancingSetTokenV2Contract> {
+    return new RebalancingSetTokenV2Contract(
+      new web3.eth.Contract(RebalancingSetTokenV2.abi, setTokenAddress),
       { from: this._tokenOwnerAddress },
     );
   }

@@ -24,7 +24,7 @@ import {
 import {
   LegacyMakerOracleAdapterContract,
   OracleProxyContract,
-  WeightedAllocatorContract,
+  SocialAllocatorContract,
 } from '@utils/contracts';
 
 import {
@@ -49,7 +49,7 @@ const blockchain = new Blockchain(web3);
 const { SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
 const setTestUtils = new SetTestUtils(web3);
 
-contract('WeightedAllocator', accounts => {
+contract('SocialAllocator', accounts => {
   const [
     deployerAccount,
   ] = accounts;
@@ -68,7 +68,7 @@ contract('WeightedAllocator', accounts => {
   let btcLegacyMakerOracleAdapter: LegacyMakerOracleAdapterContract;
   let btcOracleProxy: OracleProxyContract;
 
-  let allocator: WeightedAllocatorContract;
+  let allocator: SocialAllocatorContract;
 
   let initialEthPrice: BigNumber;
   let initialBtcPrice: BigNumber;
@@ -161,8 +161,8 @@ contract('WeightedAllocator', accounts => {
       subjectPricePrecision = new BigNumber(100);
     });
 
-    async function subject(): Promise<WeightedAllocatorContract> {
-      return managerHelper.deployWeightedAllocatorAsync(
+    async function subject(): Promise<SocialAllocatorContract> {
+      return managerHelper.deploySocialAllocatorAsync(
         subjectBaseAsset,
         subjectQuoteAsset,
         subjectBaseAssetOracle,
@@ -251,7 +251,6 @@ contract('WeightedAllocator', accounts => {
   describe('#determineNewAllocation', async () => {
     let subjectTargetBaseAssetAllocation: BigNumber;
     let subjectAllocationPrecision: BigNumber;
-    let subjectCollateralSet: Address;
 
     let baseAsset: Address;
     let quoteAsset: Address;
@@ -259,22 +258,13 @@ contract('WeightedAllocator', accounts => {
     beforeEach(async () => {
       baseAsset = wrappedETH.address;
       quoteAsset = wrappedBTC.address;
-      allocator = await managerHelper.deployWeightedAllocatorAsync(
+      allocator = await managerHelper.deploySocialAllocatorAsync(
         baseAsset,
         quoteAsset,
         ethOracleProxy.address,
         btcOracleProxy.address,
         core.address,
         factory.address
-      );
-      const units = [new BigNumber(4.5 * 10 ** 10), new BigNumber(1)];
-      const naturalUnit = new BigNumber(10 ** 10);
-      const setToken = await protocolHelper.createSetTokenAsync(
-        core,
-        factory.address,
-        [wrappedETH.address, wrappedBTC.address],
-        units,
-        naturalUnit
       );
 
       await oracleHelper.addAuthorizedAddressesToOracleProxy(
@@ -287,7 +277,6 @@ contract('WeightedAllocator', accounts => {
         [allocator.address]
       );
 
-      subjectCollateralSet = setToken.address;
       subjectTargetBaseAssetAllocation = new BigNumber(75);
       subjectAllocationPrecision = new BigNumber(100);
     });
@@ -296,7 +285,6 @@ contract('WeightedAllocator', accounts => {
       return allocator.determineNewAllocation.sendTransactionAsync(
         subjectTargetBaseAssetAllocation,
         subjectAllocationPrecision,
-        subjectCollateralSet
       );
     }
 
@@ -431,7 +419,7 @@ contract('WeightedAllocator', accounts => {
     });
 
     beforeEach(async () => {
-      allocator = await managerHelper.deployWeightedAllocatorAsync(
+      allocator = await managerHelper.deploySocialAllocatorAsync(
         wrappedETH.address,
         wrappedBTC.address,
         ethOracleProxy.address,
