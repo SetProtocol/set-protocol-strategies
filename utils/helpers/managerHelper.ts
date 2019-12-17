@@ -590,6 +590,7 @@ export class ManagerHelper {
       units = [pricePrecision.mul(decimalDifference).mul(tokenOneMultiplier), tokenTwoUnits.mul(tokenTwoMultiplier)];
     }
 
+    units = units.filter(unit => unit.greaterThan(0));
     return {
       units,
       naturalUnit,

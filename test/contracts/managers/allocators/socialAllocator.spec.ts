@@ -30,7 +30,8 @@ import {
 import {
   ONE_DAY_IN_SECONDS,
   ONE,
-  WBTC_DECIMALS
+  WBTC_DECIMALS,
+  ZERO
 } from '@utils/constants';
 
 import { extractNewSetTokenAddressFromLogs } from '@utils/contract_logs/core';
@@ -277,8 +278,8 @@ contract('SocialAllocator', accounts => {
         [allocator.address]
       );
 
-      subjectTargetBaseAssetAllocation = new BigNumber(75);
-      subjectAllocationPrecision = new BigNumber(100);
+      subjectTargetBaseAssetAllocation = ether(.75);
+      subjectAllocationPrecision = ether(1);
     });
 
     async function subject(): Promise<string> {
@@ -344,9 +345,9 @@ contract('SocialAllocator', accounts => {
       expect(actualNaturalUnit).to.be.bignumber.equal(expectedNaturalUnit);
     });
 
-    describe('but collateral is 4x different in price', async () => {
+    describe('but new allocation is all base asset', async () => {
       beforeEach(async () => {
-        subjectTargetBaseAssetAllocation = new BigNumber(25);
+        subjectTargetBaseAssetAllocation = ether(1);
       });
 
       it('new collateral should have correct component array', async () => {
@@ -357,7 +358,7 @@ contract('SocialAllocator', accounts => {
         const nextSet = await protocolHelper.getSetTokenAsync(expectedSetAddress);
 
         const actualComponentArray = await nextSet.getComponents.callAsync();
-        const expectedComponentArray = [baseAsset, quoteAsset];
+        const expectedComponentArray = [baseAsset];
 
         expect(JSON.stringify(actualComponentArray)).to.be.eql(JSON.stringify(expectedComponentArray));
       });
@@ -371,14 +372,64 @@ contract('SocialAllocator', accounts => {
 
         const actualUnitsArray = await nextSet.getUnits.callAsync();
 
-        const baseAssetWeight = BigNumber.max(
-          subjectTargetBaseAssetAllocation.div(subjectAllocationPrecision.sub(subjectTargetBaseAssetAllocation)),
-          ONE
+        const baseAssetWeight = new BigNumber(4);
+        const quoteAssetWeight = ZERO;
+
+        const expectedParams = managerHelper.getExpectedGeneralNextSetParameters(
+          initialEthPrice,
+          initialBtcPrice,
+          baseAssetWeight,
+          quoteAssetWeight,
+          new BigNumber(10 ** 10),
+          new BigNumber(100)
         );
-        const quoteAssetWeight = BigNumber.max(
-          subjectAllocationPrecision.sub(subjectTargetBaseAssetAllocation).div(subjectTargetBaseAssetAllocation),
-          ONE
-        );
+
+        expect(JSON.stringify(actualUnitsArray)).to.be.eql(JSON.stringify(expectedParams['units']));
+      });
+
+      it('new collateral should have correct naturalUnit', async () => {
+        const txHash = await subject();
+
+        const logs = await setTestUtils.getLogsFromTxHash(txHash);
+        const expectedSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
+        const nextSet = await protocolHelper.getSetTokenAsync(expectedSetAddress);
+
+        const actualNaturalUnit = await nextSet.naturalUnit.callAsync();
+        const expectedNaturalUnit = new BigNumber(10 ** 12);
+
+        expect(actualNaturalUnit).to.be.bignumber.equal(expectedNaturalUnit);
+      });
+    });
+
+    describe('but new allocation is all quote asset', async () => {
+      beforeEach(async () => {
+        subjectTargetBaseAssetAllocation = ZERO;
+      });
+
+      it('new collateral should have correct component array', async () => {
+        const txHash = await subject();
+
+        const logs = await setTestUtils.getLogsFromTxHash(txHash);
+        const expectedSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
+        const nextSet = await protocolHelper.getSetTokenAsync(expectedSetAddress);
+
+        const actualComponentArray = await nextSet.getComponents.callAsync();
+        const expectedComponentArray = [quoteAsset];
+
+        expect(JSON.stringify(actualComponentArray)).to.be.eql(JSON.stringify(expectedComponentArray));
+      });
+
+      it('new collateral should have correct units array', async () => {
+        const txHash = await subject();
+
+        const logs = await setTestUtils.getLogsFromTxHash(txHash);
+        const expectedSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
+        const nextSet = await protocolHelper.getSetTokenAsync(expectedSetAddress);
+
+        const actualUnitsArray = await nextSet.getUnits.callAsync();
+
+        const baseAssetWeight = ZERO;
+        const quoteAssetWeight = new BigNumber(4);
 
         const expectedParams = managerHelper.getExpectedGeneralNextSetParameters(
           initialEthPrice,

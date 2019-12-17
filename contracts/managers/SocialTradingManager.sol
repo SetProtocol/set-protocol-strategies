@@ -136,7 +136,7 @@ contract SocialTradingManager {
             _startingBaseAssetAllocation,
             SCALE_FACTOR
         );
-
+        
         uint256[] memory units = new uint256[](1);
 
         uint256 collateralValue = _tradingPairAllocator.calculateCollateralSetValue(

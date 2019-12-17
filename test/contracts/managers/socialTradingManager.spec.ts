@@ -285,7 +285,7 @@ contract('SocialTradingManager', accounts => {
 
       subjectAllocator = allocator.address;
       subjectFactory = rebalancingFactory;
-      subjectStartingBaseAssetAllocation = ether(.66);
+      subjectStartingBaseAssetAllocation = ether(1);
       subjectStartingValue = ether(100);
       subjectName = 'TestSet';
       subjectSymbol = 'TEST';
@@ -492,7 +492,7 @@ contract('SocialTradingManager', accounts => {
 
       const usedAlocator = allocator.address;
       const factory = rebalancingFactory;
-      startingBaseAssetAllocation = ether(.66);
+      startingBaseAssetAllocation = ether(1);
       const startingValue = ether(100);
       const name = 'TestSet';
       const symbol = 'TEST';
