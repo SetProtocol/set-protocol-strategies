@@ -1,7 +1,7 @@
 import * as _ from 'lodash';
 import * as ethUtil from 'ethereumjs-util';
 import * as setProtocolUtils from 'set-protocol-utils';
-import { Address } from 'set-protocol-utils';
+import { Address, Bytes } from 'set-protocol-utils';
 
 import { SetTokenContract, MedianContract } from 'set-protocol-contracts';
 
@@ -451,21 +451,23 @@ export class ManagerHelper {
   public async deploySocialAllocatorAsync(
     baseAssetInstance: Address,
     quoteAssetInstance: Address,
-    baseAssetOracleInstance: Address,
-    quoteAssetOracleInstance: Address,
+    oracleWhiteListInstance: Address,
     coreInstance: Address,
     setTokenFactoryAddress: Address,
     pricePrecision: BigNumber = new BigNumber(100),
+    collateralName: Bytes = SetUtils.stringToBytes('CollateralName'),
+    collateralSymbol: Bytes = SetUtils.stringToBytes('COL'),
     from: Address = this._tokenOwnerAddress,
   ): Promise<SocialAllocatorContract> {
     const truffleAllocationPricer = await SocialAllocator.new(
       baseAssetInstance,
       quoteAssetInstance,
-      baseAssetOracleInstance,
-      quoteAssetOracleInstance,
+      oracleWhiteListInstance,
       coreInstance,
       setTokenFactoryAddress,
       pricePrecision,
+      collateralName,
+      collateralSymbol,
       { from }
     );
 

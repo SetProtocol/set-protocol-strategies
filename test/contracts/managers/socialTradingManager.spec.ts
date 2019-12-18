@@ -68,6 +68,7 @@ contract('SocialTradingManager', accounts => {
     feeRecipient,
     newTrader,
     newLiquidator,
+    liquidatorData,
     attacker,
   ] = accounts;
 
@@ -193,8 +194,7 @@ contract('SocialTradingManager', accounts => {
     allocator = await managerHelper.deploySocialAllocatorAsync(
       wrappedETH.address,
       wrappedBTC.address,
-      ethOracleProxy.address,
-      btcOracleProxy.address,
+      oracleWhiteList,
       core.address,
       factory.address,
     );
@@ -446,9 +446,19 @@ contract('SocialTradingManager', accounts => {
       expect(actualRebalanceFee).to.be.bignumber.equal(callDataRebalanceFee);
     });
 
-    describe('but passed starting allocation is greater than 100 %', async () => {
+    describe('but passed starting allocation is greater than 100%', async () => {
       beforeEach(async () => {
         subjectStartingBaseAssetAllocation = ether(2);
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('but passed starting allocation is less than 1%', async () => {
+      beforeEach(async () => {
+        subjectStartingBaseAssetAllocation = ether(.009);
       });
 
       it('should revert', async () => {
@@ -460,6 +470,7 @@ contract('SocialTradingManager', accounts => {
   describe('#updateAllocation', async () => {
     let subjectTradingPool: Address;
     let subjectNewAllocation: BigNumber;
+    let subjectLiquidatorData: string;
     let subjectTimeIncrease: BigNumber;
     let subjectCaller: Address;
 
@@ -511,6 +522,7 @@ contract('SocialTradingManager', accounts => {
       const logs = await setTestUtils.getLogsFromTxHash(txHash);
       subjectTradingPool = extractNewSetTokenAddressFromLogs(logs, 2);
       subjectNewAllocation = ether(.20);
+      subjectLiquidatorData = liquidatorData;
       subjectCaller = deployerAccount;
       subjectTimeIncrease = ONE_DAY_IN_SECONDS;
 
@@ -531,6 +543,7 @@ contract('SocialTradingManager', accounts => {
       return setManager.updateAllocation.sendTransactionAsync(
         subjectTradingPool,
         subjectNewAllocation,
+        subjectLiquidatorData,
         { from: subjectCaller }
       );
     }
@@ -569,6 +582,46 @@ contract('SocialTradingManager', accounts => {
       await SetTestUtils.assertLogEquivalence(formattedLogs, expectedLogs);
     });
 
+    describe('but passed new allocation is greater than 100%', async () => {
+      beforeEach(async () => {
+        subjectNewAllocation = ZERO;
+      });
+
+      it('sets the correct current allocation', async () => {
+        await subject();
+
+        const poolInfo = await setManager.pools.callAsync(subjectTradingPool);
+
+        expect(poolInfo['currentAllocation']).to.be.bignumber.equal(subjectNewAllocation);
+      });
+
+      it('passes the correct nextSet', async () => {
+        const txHash = await subject();
+        const logs = await setTestUtils.getLogsFromTxHash(txHash);
+        const collateralAddress = extractNewSetTokenAddressFromLogs(logs, 3);
+
+        const poolInstance = await protocolHelper.getRebalancingSetTokenV2Async(subjectTradingPool);
+        const actualNextSet = await poolInstance.nextSet.callAsync();
+
+        expect(actualNextSet).to.equal(collateralAddress);
+      });
+
+      it('emits the correct AllocationUpdate log', async () => {
+        const txHash = await subject();
+
+        const formattedLogs = await setTestUtils.getLogsFromTxHash(txHash);
+
+        const expectedLogs = LogAllocationUpdate(
+          subjectTradingPool,
+          startingBaseAssetAllocation,
+          subjectNewAllocation,
+          setManager.address
+        );
+
+        await SetTestUtils.assertLogEquivalence(formattedLogs, expectedLogs);
+      });
+    });
+
     describe('but caller is not trader', async () => {
       beforeEach(async () => {
         subjectCaller = attacker;
@@ -582,6 +635,16 @@ contract('SocialTradingManager', accounts => {
     describe('but passed new allocation is greater than 100%', async () => {
       beforeEach(async () => {
         subjectNewAllocation = ether(2);
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('but passed starting allocation is less than 1%', async () => {
+      beforeEach(async () => {
+        subjectNewAllocation = ether(.009);
       });
 
       it('should revert', async () => {

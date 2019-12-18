@@ -31,12 +31,10 @@ interface ISocialAllocator {
      * Determine the next allocation to rebalance into.
      *
      * @param  _targetBaseAssetAllocation       Target allocation of the base asset
-     * @param  _allocationPrecision             Precision of allocation percentage
      * @return ISetToken                        The address of the proposed nextSet
      */
     function determineNewAllocation(
-        uint256 _targetBaseAssetAllocation,
-        uint256 _allocationPrecision
+        uint256 _targetBaseAssetAllocation
     )
         external
         returns (ISetToken);

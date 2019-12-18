@@ -5,7 +5,7 @@ import { Address } from 'set-protocol-utils';
 import {
   Core,
   CoreContract,
-  ExponentialPivotAuctionLiquidator,
+  LinearAuctionLiquidator,
   LinearAuctionPriceCurve,
   LinearAuctionPriceCurveContract,
   MedianContract,
@@ -183,12 +183,11 @@ export class ProtocolHelper {
     name: string = 'Liquidator',
     from: Address = this._tokenOwnerAddress
   ): Promise<string> {
-    const instance = await new web3.eth.Contract(ExponentialPivotAuctionLiquidator.abi).deploy({
-      data: ExponentialPivotAuctionLiquidator.bytecode,
+    const instance = await new web3.eth.Contract(LinearAuctionLiquidator.abi).deploy({
+      data: LinearAuctionLiquidator.bytecode,
       arguments: [
         core,
         oracleWhiteList,
-        new BigNumber(1000).toString(),
         auctionPeriod.toString(),
         rangeStart.toString(),
         rangeEnd.toString(),

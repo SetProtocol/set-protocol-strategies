@@ -18,6 +18,7 @@ pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import { CommonMath } from "set-protocol-contracts/contracts/lib/CommonMath.sol";
 import { ICore } from "set-protocol-contracts/contracts/core/interfaces/ICore.sol";
 import { ILiquidator } from "set-protocol-contracts/contracts/core/interfaces/ILiquidator.sol";
 import { IRebalancingSetTokenV2 } from "set-protocol-contracts/contracts/core/interfaces/IRebalancingSetTokenV2.sol";
@@ -80,7 +81,6 @@ contract SocialTradingManager {
     /* ============ Constants ============ */
 
     uint256 public constant REBALANCING_SET_NATURAL_UNIT = 10 ** 6;
-    uint256 public constant SCALE_FACTOR = 10 ** 18;
 
     /* ============ State Variables ============ */
 
@@ -111,7 +111,7 @@ contract SocialTradingManager {
      * @param _factory                          Factory to use for RebalancingSetToken creation
      * @param _startingBaseAssetAllocation      Starting base asset allocation in a scaled decimal value
      *                                          (e.g. 100% = 1e18, 1% = 1e16)
-     * @param _startingValue                    Starting value of one share of the trading pool to 18 decimals of precision
+     * @param _startingUSDValue                 Starting value of one share of the trading pool to 18 decimals of precision
      * @param _name                             The name of the new RebalancingSetTokenV2
      * @param _symbol                           The symbol of the new RebalancingSetTokenV2
      * @param _rebalancingSetCallData           Byte string containing additional call parameters to pass to factory
@@ -120,30 +120,27 @@ contract SocialTradingManager {
         ISocialAllocator _tradingPairAllocator,
         address _factory,
         uint256 _startingBaseAssetAllocation,
-        uint256 _startingValue,
+        uint256 _startingUSDValue,
         bytes32 _name,
         bytes32 _symbol,
         bytes calldata _rebalancingSetCallData
     )
         external
     {
-        require(
-            _startingBaseAssetAllocation <= SCALE_FACTOR,
-            "SocialTradingManager.createTradingPool: Starting allocation is not valid."
-        );
+        validateAllocationAmount(_startingBaseAssetAllocation);
 
         ISetToken collateralSet = _tradingPairAllocator.determineNewAllocation(
-            _startingBaseAssetAllocation,
-            SCALE_FACTOR
+            _startingBaseAssetAllocation
         );
-        
-        uint256[] memory units = new uint256[](1);
+
+        uint256[] memory unitShares = new uint256[](1);
 
         uint256 collateralValue = _tradingPairAllocator.calculateCollateralSetValue(
             collateralSet
         );
 
-        units[0] = _startingValue.mul(REBALANCING_SET_NATURAL_UNIT).div(collateralValue);
+        // unitShares is equal to _startingUSDValue divided by colalteral Value
+        unitShares[0] = _startingUSDValue.mul(REBALANCING_SET_NATURAL_UNIT).div(collateralValue);
 
         address[] memory components = new address[](1);
         components[0] = address(collateralSet);
@@ -151,7 +148,7 @@ contract SocialTradingManager {
         address tradingPool = core.createSet(
             _factory,
             components,
-            units,
+            unitShares,
             REBALANCING_SET_NATURAL_UNIT,
             _name,
             _symbol,
@@ -176,26 +173,27 @@ contract SocialTradingManager {
      * @param _tradingPool        The address of the trading pool being updated
      * @param _newAllocation      New base asset allocation in a scaled decimal value
      *                                          (e.g. 100% = 1e18, 1% = 1e16)
+     * @param _liquidatorData     Extra parameters passed to the liquidator
      */
     function updateAllocation(
         IRebalancingSetTokenV2 _tradingPool,
-        uint256 _newAllocation
+        uint256 _newAllocation,
+        bytes calldata _liquidatorData
     )
         external
         onlyTrader(_tradingPool)
     {
         validateAllocationUpdate(_tradingPool, _newAllocation);
 
-        ISetToken nextSet = pools[address(_tradingPool)].allocator.determineNewAllocation(
-            _newAllocation,
-            SCALE_FACTOR
+        ISetToken nextSet = allocator(_tradingPool).determineNewAllocation(
+            _newAllocation
         );
 
-        _tradingPool.startRebalance(address(nextSet));
+        _tradingPool.startRebalance(address(nextSet), _liquidatorData);
 
         emit AllocationUpdate(
             address(_tradingPool),
-            pools[address(_tradingPool)].currentAllocation,
+            currentAllocation(_tradingPool),
             _newAllocation
         );
 
@@ -217,7 +215,7 @@ contract SocialTradingManager {
     {
         emit NewTrader(
             address(_tradingPool),
-            pools[address(_tradingPool)].trader,
+            trader(_tradingPool),
             _newTrader
         );
 
@@ -272,11 +270,8 @@ contract SocialTradingManager {
     )
         internal
         view
-    {
-        require(
-            _newAllocation <= SCALE_FACTOR,
-            "SocialTradingManager.validateAllocationUpdate: New allocation is not valid."
-        );
+    {   
+        validateAllocationAmount(_newAllocation);
 
         // Require that enough time has passed from last rebalance
         uint256 lastRebalanceTimestamp = _tradingPool.lastRebalanceTimestamp();
@@ -292,5 +287,37 @@ contract SocialTradingManager {
             _tradingPool.rebalanceState() == RebalancingLibrary.State.Default,
             "SocialTradingManager.validateAllocationUpdate: State must be in Default"
         );        
+    }
+
+    function validateAllocationAmount(
+        uint256 _allocation
+    )
+        internal
+        view
+    {
+        // Want to allow 0% allocations but disallow everything below 1% and above 100%
+        if (_allocation != 0) {
+            require(
+                _allocation <= CommonMath.scaleFactor(),
+                "Passed allocation must not exceed 100%."
+            );
+
+            require(
+                _allocation >= CommonMath.scaleFactor().div(100),
+                "Passed allocation must not be less than 1%."
+            );
+        }
+    }
+
+    function allocator(IRebalancingSetTokenV2 _tradingPool) internal view returns (ISocialAllocator) {
+        return pools[address(_tradingPool)].allocator;
+    }
+
+    function trader(IRebalancingSetTokenV2 _tradingPool) internal view returns (address) {
+        return pools[address(_tradingPool)].trader;
+    }
+
+    function currentAllocation(IRebalancingSetTokenV2 _tradingPool) internal view returns (uint256) {
+        return pools[address(_tradingPool)].currentAllocation;
     }
 }

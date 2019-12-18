@@ -21,8 +21,10 @@ import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { CommonMath } from "set-protocol-contracts/contracts/lib/CommonMath.sol";
 import { ICore } from "set-protocol-contracts/contracts/core/interfaces/ICore.sol";
+import { IOracleWhiteList } from "set-protocol-contracts/contracts/core/interfaces/IOracleWhiteList.sol";
 import { ISetToken } from "set-protocol-contracts/contracts/core/interfaces/ISetToken.sol";
 import { SetTokenLibrary } from "set-protocol-contracts/contracts/core/lib/SetTokenLibrary.sol";
+import { SetUSDValuation } from "set-protocol-contracts/contracts/core/liquidators/impl/SetUSDValuation.sol";
 
 import { AllocatorMathLibrary } from "../lib/AllocatorMathLibrary.sol";
 import { FlexibleTimingManagerLibrary } from "../lib/FlexibleTimingManagerLibrary.sol";
@@ -50,6 +52,13 @@ contract SocialAllocator is
         address indexed _collateralAddress
     );
 
+    /* ============ Structs ============ */
+
+    struct AssetPrices {
+        uint256 baseAsset;
+        uint256 quoteAsset;
+    } 
+
     /* ============ Constants ============ */
     uint256 constant private ONE = 1;
     uint256 constant public SINGLE_ASSET_MULTIPLER = 4 * 10 ** 18;
@@ -60,26 +69,27 @@ contract SocialAllocator is
 
     ERC20Detailed public baseAsset;
     ERC20Detailed public quoteAsset;
-    IOracle public baseAssetOracle;
-    IOracle public quoteAssetOracle;  
+    IOracleWhiteList public oracleWhiteList;  
     uint8 public baseAssetDecimals;
     uint8 public quoteAssetDecimals;
 
     uint256 public pricePrecision;
     uint256 public collateralNaturalUnit;
+    bytes32 public collateralName;
+    bytes32 public collateralSymbol;
+
     address[] public multiAssetNextSetComponents;
     address[] public baseAssetNextSetComponents;
     address[] public quoteAssetNextSetComponents;
-    uint256 public baseAssetDecimalDifference;
-    uint256 public quoteAssetDecimalDifference;
+    uint256 public baseAssetFullUnitDifference;
+    uint256 public quoteAssetFullUnitDifference;
 
     /*
      * SocialAllocator constructor.
      *
      * @param  _baseAsset                   The baseAsset address
      * @param  _quoteAsset                  The quoteAsset address
-     * @param  _baseAssetOracle             The baseAsset oracle
-     * @param  _quoteAssetOracle            The quoteAsset oracle
+     * @param  _oracleWhiteList             List of assets to their matching oracles
      * @param  _core                        The address of the Core contract
      * @param  _setTokenFactory             The address of SetTokenFactory used to create new collateral
      * @param  _pricePrecision              Amount of significant figures kept in determining new units
@@ -87,19 +97,19 @@ contract SocialAllocator is
     constructor(
         ERC20Detailed _baseAsset,
         ERC20Detailed _quoteAsset,
-        IOracle _baseAssetOracle,
-        IOracle _quoteAssetOracle,
+        IOracleWhiteList _oracleWhiteList,
         ICore _core,
         address _setTokenFactory,
-        uint256 _pricePrecision
+        uint256 _pricePrecision,
+        bytes32 _collateralName,
+        bytes32 _collateralSymbol
     )
         public
     {
         baseAsset = _baseAsset;
         quoteAsset = _quoteAsset;
 
-        baseAssetOracle = _baseAssetOracle;
-        quoteAssetOracle = _quoteAssetOracle;
+        oracleWhiteList = _oracleWhiteList;
 
         // Query decimals of base and quote assets
         baseAssetDecimals = _baseAsset.decimals();
@@ -113,17 +123,20 @@ contract SocialAllocator is
         uint256 minDecimals = Math.min(baseAssetDecimals, quoteAssetDecimals);
 
         // Decimal difference for asset a1 is 10 ** (a1Decimals - min(a1Decimals, a2Decimals))
-        baseAssetDecimalDifference = CommonMath.safePower(10, uint256(baseAssetDecimals).sub(minDecimals));
-        quoteAssetDecimalDifference = CommonMath.safePower(10, uint256(quoteAssetDecimals).sub(minDecimals));
+        baseAssetFullUnitDifference = CommonMath.safePower(10, uint256(baseAssetDecimals).sub(minDecimals));
+        quoteAssetFullUnitDifference = CommonMath.safePower(10, uint256(quoteAssetDecimals).sub(minDecimals));
 
         // NaturalUnit is equal to max(a1DecimalDifference, a2DecimalDifference) * pricePrecision
-        collateralNaturalUnit = Math.max(baseAssetDecimalDifference, quoteAssetDecimalDifference)
+        collateralNaturalUnit = Math.max(baseAssetFullUnitDifference, quoteAssetFullUnitDifference)
             .mul(pricePrecision);
 
         // Next set components will always be in order of base asset first
         multiAssetNextSetComponents = [address(baseAsset), address(quoteAsset)];
         baseAssetNextSetComponents = [address(baseAsset)];
         quoteAssetNextSetComponents = [address(quoteAsset)];
+
+        collateralName = _collateralName;
+        collateralSymbol = _collateralSymbol;
     }
 
     /* ============ External ============ */
@@ -132,12 +145,10 @@ contract SocialAllocator is
      * Determine the next allocation to rebalance into.
      *
      * @param  _targetBaseAssetAllocation       Target allocation of the base asset
-     * @param  _allocationPrecision             Precision of allocation percentage
      * @return ISetToken                        The address of the proposed nextSet
      */
     function determineNewAllocation(
-        uint256 _targetBaseAssetAllocation,
-        uint256 _allocationPrecision
+        uint256 _targetBaseAssetAllocation
     )
         external
         returns (ISetToken)
@@ -147,8 +158,7 @@ contract SocialAllocator is
             uint256[] memory nextSetUnits,
             address[] memory nextSetComponents
         )= calculateNextSetParameters(
-            _targetBaseAssetAllocation,
-            _allocationPrecision
+            _targetBaseAssetAllocation
         );
 
         // Create new collateral set with passed components, units, and collateralNaturalUnit
@@ -157,8 +167,8 @@ contract SocialAllocator is
             nextSetComponents,
             nextSetUnits,
             collateralNaturalUnit,
-            "",
-            "",
+            collateralName,
+            collateralSymbol,
             ""
         );
 
@@ -178,67 +188,31 @@ contract SocialAllocator is
         view
         returns (uint256)
     {
-        return calculateCollateralSetValueInternal(
-            address(_collateralSet)
-        );
+        return SetUSDValuation.calculateSetTokenDollarValue(_collateralSet, oracleWhiteList);
     }
 
     /* ============ Internal ============ */
-
-    /*
-     * Calculate value of passed collateral set.
-     *
-     * @param  _currentCollateralSet        Instance of current set collateralizing RebalancingSetToken
-     * @return uint256                      USD value of passed Set
-     */
-    function calculateCollateralSetValueInternal(
-        address _collateralSet
-    )
-        internal
-        view
-        returns (uint256)
-    {
-        // Get SetToken details for use in calculating collateralIDHash
-        SetTokenLibrary.SetDetails memory setDetails = SetTokenLibrary.getSetDetails(
-            address(_collateralSet)
-        );
-
-        // Get components prices and decimals
-        (
-            uint256[] memory componentPrices,
-            uint256[] memory componentDecimals
-        ) = fetchComponentsPriceAndDecimal(setDetails.components);
-
-        // Calculate and return Set value
-        return FlexibleTimingManagerLibrary.calculateSetTokenDollarValue(
-            componentPrices,
-            setDetails.naturalUnit,
-            setDetails.units,
-            componentDecimals
-        );
-    }
 
     /*
      * Determine units and component array of nextSet. Direct to correct calculating function
      * based on if allocation is mix of assets or single asset.
      *
      * @param  _targetBaseAssetAllocation       Target allocation of the base asset
-     * @param  _allocationPrecision             Precision of allocation percentage
-     * @return ISetToken                        The address of the proposed nextSet
+     * @return uint256[]                        Unit array of nextSet collateral
+     * @return address[]                        Component array of nextSet collateral
      */
     function calculateNextSetParameters(
-        uint256 _targetBaseAssetAllocation,
-        uint256 _allocationPrecision
+        uint256 _targetBaseAssetAllocation
     )
         internal
         view
         returns (uint256[] memory, address[] memory)
     {
-        if (_targetBaseAssetAllocation == 0 || _targetBaseAssetAllocation == _allocationPrecision) {
-            return calculateSingleAssetNextSetUnits(_targetBaseAssetAllocation, _allocationPrecision);
+        if (_targetBaseAssetAllocation == 0 || _targetBaseAssetAllocation == CommonMath.scaleFactor()) {
+            return calculateSingleAssetNextSetParameters(_targetBaseAssetAllocation);
         }
 
-        return calculateMultiAssetNextSetUnits(_targetBaseAssetAllocation, _allocationPrecision);
+        return calculateMultiAssetNextSetParameters(_targetBaseAssetAllocation);
     }
 
     /*
@@ -256,20 +230,18 @@ contract SocialAllocator is
      * This results in a Set Token that's value is max(Pa1, Pa2) * (a1Multiplier + a2Multiplier)
      *
      * @param  _targetBaseAssetAllocation       Target allocation of the base asset
-     * @param  _allocationPrecision             Precision of allocation percentage
      * @return uint256[]                        Unit array of nextSet collateral
      * @return address[]                        Component array of nextSet collateral
      */
-    function calculateMultiAssetNextSetUnits(
-        uint256 _targetBaseAssetAllocation,
-        uint256 _allocationPrecision
+    function calculateMultiAssetNextSetParameters(
+        uint256 _targetBaseAssetAllocation
     )
         internal
         view
         returns (uint256[] memory, address[] memory)
     {
         // Get quote asset allocation
-        uint256 quoteAssetAllocation = _allocationPrecision.sub(_targetBaseAssetAllocation);
+        uint256 quoteAssetAllocation = CommonMath.scaleFactor().sub(_targetBaseAssetAllocation);
 
         // Calculate multiplier for quote and base asset. Multiplier is just the amount of highest
         // allocation divided by lowest allocation. Asset that has lowest allocation will have
@@ -278,22 +250,21 @@ contract SocialAllocator is
         uint256 quoteAssetMultiplier = Math.max(quoteAssetAllocation.scale().div(_targetBaseAssetAllocation), ONE.scale());
 
         // Get prices
-        uint256 baseAssetPrice = baseAssetOracle.read();
-        uint256 quoteAssetPrice = quoteAssetOracle.read();
+        AssetPrices memory assetPrices = getAssetPrices();
 
         uint256[] memory units = new uint256[](2);
         // Get baseAsset units
         units[0] = calculateUnitAmount(
-            Math.max(quoteAssetPrice.mul(pricePrecision).div(baseAssetPrice), pricePrecision),
+            Math.max(assetPrices.quoteAsset.mul(pricePrecision).div(assetPrices.baseAsset), pricePrecision),
             baseAssetMultiplier,
-            baseAssetDecimalDifference
+            baseAssetFullUnitDifference
         );
 
         // Get quote asset units
         units[1] = calculateUnitAmount(
-            Math.max(baseAssetPrice.mul(pricePrecision).div(quoteAssetPrice), pricePrecision),
+            Math.max(assetPrices.baseAsset.mul(pricePrecision).div(assetPrices.quoteAsset), pricePrecision),
             quoteAssetMultiplier,
-            quoteAssetDecimalDifference
+            quoteAssetFullUnitDifference
         );
 
         return (units, multiAssetNextSetComponents);
@@ -304,42 +275,38 @@ contract SocialAllocator is
      * amount. Set value should be equal to SINGLE_ASSET_MULTIPLIER * max(Pa1, Pa2).
      *
      * @param  _targetBaseAssetAllocation       Target allocation of the base asset
-     * @param  _allocationPrecision             Precision of allocation percentage
      * @return uint256[]                        Unit array of nextSet collateral
      * @return address[]                        Component array of nextSet collateral
      */
-    function calculateSingleAssetNextSetUnits(
-        uint256 _targetBaseAssetAllocation,
-        uint256 _allocationPrecision
+    function calculateSingleAssetNextSetParameters(
+        uint256 _targetBaseAssetAllocation
     )
         internal
         view
         returns (uint256[] memory, address[] memory)
     {
         // Get prices
-        uint256 baseAssetPrice = baseAssetOracle.read();
-        uint256 quoteAssetPrice = quoteAssetOracle.read();
+        AssetPrices memory assetPrices = getAssetPrices();
 
         // Determine whether allocating all to baseAsset or quoteAsset
         uint256[] memory units = new uint256[](1);
-        if (_targetBaseAssetAllocation == _allocationPrecision) {
+        if (_targetBaseAssetAllocation == CommonMath.scaleFactor()) {
             units[0] = calculateUnitAmount(
-                Math.max(quoteAssetPrice.mul(pricePrecision).div(baseAssetPrice), pricePrecision),
+                Math.max(assetPrices.quoteAsset.mul(pricePrecision).div(assetPrices.baseAsset), pricePrecision),
                 SINGLE_ASSET_MULTIPLER,
-                baseAssetDecimalDifference
+                baseAssetFullUnitDifference
             );
 
             return (units, baseAssetNextSetComponents);
         } else {
             units[0] = calculateUnitAmount(
-                Math.max(baseAssetPrice.mul(pricePrecision).div(quoteAssetPrice), pricePrecision),
+                Math.max(assetPrices.baseAsset.mul(pricePrecision).div(assetPrices.quoteAsset), pricePrecision),
                 SINGLE_ASSET_MULTIPLER,
-                quoteAssetDecimalDifference
+                quoteAssetFullUnitDifference
             );
 
             return (units, quoteAssetNextSetComponents);
         }
-
     }
 
     /*
@@ -368,34 +335,30 @@ contract SocialAllocator is
     }
 
     /*
-     * Get prices and decimals information for passed two component array. Arrays returned will be in
-     * order of components passed.
+     * Gets oracle addresses from whitelist then calls oracles for current price. Returns in
+     * order of baseAsset, quoteAsset.
      *
-     * @param  _componentArray        Array of component addresses to get price and decimal info
-     * @return uint256[]              Price of components
-     * @return uint256[]              Decimals of components
+     * @return AssetPrices             Struct containing base and quote asset prices
      */
-    function fetchComponentsPriceAndDecimal(
-        address[] memory _componentArray
-    )
+    function getAssetPrices()
         internal
         view
-        returns (uint256[] memory, uint256[] memory)
+        returns(AssetPrices memory)
     {
-        uint256[] memory componentPrices = new uint256[](_componentArray.length);
-        uint256[] memory componentDecimals = new uint256[](_componentArray.length);
+        // Create token addresses array
+        address[] memory tokenAddresses = new address[](2);
+        tokenAddresses[0] = address(baseAsset);
+        tokenAddresses[1] = address(quoteAsset);
 
-        for (uint256 i = 0; i < _componentArray.length; i++) {
-            // Create price and decimal arrays, order is based on which component is passed first
-            if (_componentArray[i] == address(baseAsset)) {
-                componentPrices[i] = baseAssetOracle.read();
-                componentDecimals[i] = baseAssetDecimals; 
-            } else {
-                componentPrices[i] = quoteAssetOracle.read();
-                componentDecimals[i] = quoteAssetDecimals;        
-            }
-        }
+        // Get oracle addresses for each token
+        address[] memory oracleAddresses = oracleWhiteList.getOracleAddressesByToken(
+            tokenAddresses
+        );
 
-        return (componentPrices, componentDecimals);
+        // Get token price from oracles
+        return AssetPrices({
+            baseAsset: IOracle(oracleAddresses[0]).read(),
+            quoteAsset: IOracle(oracleAddresses[1]).read()
+        });
     }
 }

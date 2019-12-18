@@ -5,7 +5,7 @@ import * as ABIDecoder from 'abi-decoder';
 import * as chai from 'chai';
 import * as setProtocolUtils from 'set-protocol-utils';
 
-import { Address } from 'set-protocol-utils';
+import { Address, Bytes } from 'set-protocol-utils';
 import { BigNumber } from 'bignumber.js';
 
 import ChaiSetup from '@utils/chaiSetup';
@@ -47,7 +47,7 @@ ChaiSetup.configure();
 const web3 = getWeb3();
 const { expect } = chai;
 const blockchain = new Blockchain(web3);
-const { SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
+const { SetProtocolUtils: SetUtils, SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
 const setTestUtils = new SetTestUtils(web3);
 
 contract('SocialAllocator', accounts => {
@@ -58,6 +58,7 @@ contract('SocialAllocator', accounts => {
   let core: CoreContract;
   let factory: SetTokenFactoryContract;
   let whiteList: WhiteListContract;
+  let oracleWhiteList: Address;
   let wrappedBTC: StandardTokenMockContract;
   let wrappedETH: WethMockContract;
 
@@ -137,6 +138,11 @@ contract('SocialAllocator', accounts => {
     btcOracleProxy = await oracleHelper.deployOracleProxyAsync(
       btcLegacyMakerOracleAdapter.address,
     );
+
+    oracleWhiteList = await protocolHelper.deployOracleWhiteListAsync(
+      [wrappedETH.address, wrappedBTC.address],
+      [ethOracleProxy.address, btcOracleProxy.address],
+    );
   });
 
   afterEach(async () => {
@@ -146,31 +152,34 @@ contract('SocialAllocator', accounts => {
   describe('#constructor', async () => {
     let subjectBaseAsset: Address;
     let subjectQuoteAsset: Address;
-    let subjectBaseAssetOracle: Address;
-    let subjectQuoteAssetOracle: Address;
+    let subjectOracleWhiteList: Address;
     let subjectCore: Address;
     let subjectSetTokenFactory: Address;
     let subjectPricePrecision: BigNumber;
+    let subjectCollateralName: Bytes;
+    let subjectCollateralSymbol: Bytes;
 
     beforeEach(async () => {
       subjectBaseAsset = wrappedETH.address;
       subjectQuoteAsset = wrappedBTC.address;
-      subjectBaseAssetOracle = ethOracleProxy.address;
-      subjectQuoteAssetOracle = btcOracleProxy.address;
+      subjectOracleWhiteList = oracleWhiteList;
       subjectCore = core.address;
       subjectSetTokenFactory = factory.address;
       subjectPricePrecision = new BigNumber(100);
+      subjectCollateralName = SetUtils.stringToBytes('CollateralName');
+      subjectCollateralSymbol = SetUtils.stringToBytes('COL');
     });
 
     async function subject(): Promise<SocialAllocatorContract> {
       return managerHelper.deploySocialAllocatorAsync(
         subjectBaseAsset,
         subjectQuoteAsset,
-        subjectBaseAssetOracle,
-        subjectQuoteAssetOracle,
+        subjectOracleWhiteList,
         subjectCore,
         subjectSetTokenFactory,
         subjectPricePrecision,
+        subjectCollateralName,
+        subjectCollateralSymbol
       );
     }
 
@@ -190,20 +199,12 @@ contract('SocialAllocator', accounts => {
       expect(actualQuoteAsset).to.equal(subjectQuoteAsset);
     });
 
-    it('sets the correct base asset oracle address', async () => {
+    it('sets the correct oracleWhiteList address', async () => {
       allocator = await subject();
 
-      const actualBaseAssetOracle = await allocator.baseAssetOracle.callAsync();
+      const actualOracleWhiteList = await allocator.oracleWhiteList.callAsync();
 
-      expect(actualBaseAssetOracle).to.equal(subjectBaseAssetOracle);
-    });
-
-    it('sets the correct quote asset oracle address', async () => {
-      allocator = await subject();
-
-      const actualQuoteAssetOracle = await allocator.quoteAssetOracle.callAsync();
-
-      expect(actualQuoteAssetOracle).to.equal(subjectQuoteAssetOracle);
+      expect(actualOracleWhiteList).to.equal(subjectOracleWhiteList);
     });
 
     it('sets the correct core address', async () => {
@@ -247,14 +248,31 @@ contract('SocialAllocator', accounts => {
 
       expect(actualQuoteAssetDecimals).to.be.bignumber.equal(expectedQuoteAssetDecimals);
     });
+
+    it('sets the correct collateral name', async () => {
+      allocator = await subject();
+
+      const actualCollateralName = await allocator.collateralName.callAsync();
+
+      expect(actualCollateralName).to.equal(subjectCollateralName);
+    });
+
+    it('sets the correct collateral symbol', async () => {
+      allocator = await subject();
+
+      const actualCollateralSymbol = await allocator.collateralSymbol.callAsync();
+
+      expect(actualCollateralSymbol).to.equal(subjectCollateralSymbol);
+    });
   });
 
   describe('#determineNewAllocation', async () => {
     let subjectTargetBaseAssetAllocation: BigNumber;
-    let subjectAllocationPrecision: BigNumber;
 
     let baseAsset: Address;
     let quoteAsset: Address;
+
+    const scaleFactor = new BigNumber(10 ** 18);
 
     beforeEach(async () => {
       baseAsset = wrappedETH.address;
@@ -262,8 +280,7 @@ contract('SocialAllocator', accounts => {
       allocator = await managerHelper.deploySocialAllocatorAsync(
         baseAsset,
         quoteAsset,
-        ethOracleProxy.address,
-        btcOracleProxy.address,
+        oracleWhiteList,
         core.address,
         factory.address
       );
@@ -279,13 +296,11 @@ contract('SocialAllocator', accounts => {
       );
 
       subjectTargetBaseAssetAllocation = ether(.75);
-      subjectAllocationPrecision = ether(1);
     });
 
     async function subject(): Promise<string> {
       return allocator.determineNewAllocation.sendTransactionAsync(
         subjectTargetBaseAssetAllocation,
-        subjectAllocationPrecision,
       );
     }
 
@@ -312,11 +327,11 @@ contract('SocialAllocator', accounts => {
       const actualUnitsArray = await nextSet.getUnits.callAsync();
 
       const baseAssetWeight = BigNumber.max(
-        subjectTargetBaseAssetAllocation.div(subjectAllocationPrecision.sub(subjectTargetBaseAssetAllocation)),
+        subjectTargetBaseAssetAllocation.div(scaleFactor.sub(subjectTargetBaseAssetAllocation)),
         ONE
       );
       const quoteAssetWeight = BigNumber.max(
-        subjectAllocationPrecision.sub(subjectTargetBaseAssetAllocation).div(subjectTargetBaseAssetAllocation),
+        scaleFactor.sub(subjectTargetBaseAssetAllocation).div(subjectTargetBaseAssetAllocation),
         ONE
       );
 
@@ -399,6 +414,32 @@ contract('SocialAllocator', accounts => {
 
         expect(actualNaturalUnit).to.be.bignumber.equal(expectedNaturalUnit);
       });
+
+      it('new collateral should have correct collateralName', async () => {
+        const txHash = await subject();
+
+        const logs = await setTestUtils.getLogsFromTxHash(txHash);
+        const expectedSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
+        const nextSet = await protocolHelper.getSetTokenAsync(expectedSetAddress);
+
+        const actualCollateralName = await nextSet.name.callAsync();
+        const expectedCollateralName = 'CollateralName';
+
+        expect(actualCollateralName).to.equal(expectedCollateralName);
+      });
+
+      it('new collateral should have correct collateralSymbol', async () => {
+        const txHash = await subject();
+
+        const logs = await setTestUtils.getLogsFromTxHash(txHash);
+        const expectedSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
+        const nextSet = await protocolHelper.getSetTokenAsync(expectedSetAddress);
+
+        const actualCollateralSymbol = await nextSet.symbol.callAsync();
+        const expectedCollateralSymbol = 'COL';
+
+        expect(actualCollateralSymbol).to.equal(expectedCollateralSymbol);
+      });
     });
 
     describe('but new allocation is all quote asset', async () => {
@@ -473,8 +514,7 @@ contract('SocialAllocator', accounts => {
       allocator = await managerHelper.deploySocialAllocatorAsync(
         wrappedETH.address,
         wrappedBTC.address,
-        ethOracleProxy.address,
-        btcOracleProxy.address,
+        oracleWhiteList,
         core.address,
         factory.address
       );
