@@ -10,6 +10,8 @@ import { ether } from '@utils/units';
 import {
   ConstantPriceOracleContract,
   CTokenOracleContract,
+  DydxConstantPriceOracleMockContract,
+  DydxOracleAdapterContract,
   EMAOracleContract,
   FeedFactoryContract,
   HistoricalPriceFeedContract,
@@ -41,6 +43,8 @@ const web3 = getWeb3();
 
 const ConstantPriceOracle = artifacts.require('ConstantPriceOracle');
 const CTokenOracle = artifacts.require('CTokenOracle');
+const DydxConstantPriceOracleMock = artifacts.require('DydxConstantPriceOracleMock');
+const DydxOracleAdapter = artifacts.require('DydxOracleAdapter');
 const EMAOracle = artifacts.require('EMAOracle');
 const FeedFactory = artifacts.require('FeedFactory');
 const HistoricalPriceFeed = artifacts.require('HistoricalPriceFeed');
@@ -441,6 +445,38 @@ export class OracleHelper {
 
     return new CTokenOracleContract(
       getContractInstance(cTokenOracle),
+      txnFrom(from),
+    );
+  }
+
+  public async deployDydxOracleAdapterAsync(
+    dydxPriceOracleAddress: Address,
+    erc20TokenAddress: Address,
+    from: Address = this._contractOwnerAddress
+  ): Promise<DydxOracleAdapterContract> {
+    const dydxOracleAdapter = await DydxOracleAdapter.new(
+      dydxPriceOracleAddress,
+      erc20TokenAddress,
+      txnFrom(from),
+    );
+
+    return new DydxOracleAdapterContract(
+      getContractInstance(dydxOracleAdapter),
+      txnFrom(from),
+    );
+  }
+
+  public async deployDydxConstantPriceOracleMockAsync(
+    oracleValue: BigNumber,
+    from: Address = this._contractOwnerAddress
+  ): Promise<DydxConstantPriceOracleMockContract> {
+    const dydxConstantPriceOracleMock = await DydxConstantPriceOracleMock.new(
+      oracleValue,
+      txnFrom(from),
+    );
+
+    return new DydxConstantPriceOracleMockContract(
+      getContractInstance(dydxConstantPriceOracleMock),
       txnFrom(from),
     );
   }
