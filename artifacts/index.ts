@@ -4,6 +4,7 @@ export { BTCDaiRebalancingManager } from './ts/BTCDaiRebalancingManager';
 export { BTCETHRebalancingManager } from './ts/BTCETHRebalancingManager';
 export { ConstantPriceOracle } from './ts/ConstantPriceOracle';
 export { CTokenOracle } from './ts/CTokenOracle';
+export { DydxOracleAdapter } from './ts/DydxOracleAdapter';
 export { ETHDaiRebalancingManager } from './ts/ETHDaiRebalancingManager';
 export { EMAOracle } from './ts/EMAOracle';
 export { FeedFactory } from './ts/FeedFactory';
@@ -36,6 +37,7 @@ export {
 	BTCETHRebalancingManagerContract,
 	ConstantPriceOracleContract,
 	CTokenOracleContract,
+	DydxOracleAdapterContract,
 	ETHDaiRebalancingManagerContract,
 	EMAOracleContract,
 	FeedFactoryContract,
