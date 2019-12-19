@@ -45,13 +45,6 @@ contract SocialAllocator is
     using SafeMath for uint256;
     using CommonMath for uint256;
 
-    /* ============ Events ============ */
-
-    event NewCollateralTracked(
-        bytes32 indexed _hash,
-        address indexed _collateralAddress
-    );
-
     /* ============ Structs ============ */
 
     struct AssetPrices {
@@ -60,7 +53,7 @@ contract SocialAllocator is
     } 
 
     /* ============ Constants ============ */
-    uint256 constant private ONE = 1;
+    // Asset multiplier for single assets. Used to define value of collateral as 4 * (priceA, priceB).
     uint256 constant public SINGLE_ASSET_MULTIPLER = 4 * 10 ** 18;
 
     /* ============ State Variables ============ */
@@ -93,6 +86,8 @@ contract SocialAllocator is
      * @param  _core                        The address of the Core contract
      * @param  _setTokenFactory             The address of SetTokenFactory used to create new collateral
      * @param  _pricePrecision              Amount of significant figures kept in determining new units
+     * @param  _collateralName              Name of collateral Sets created by this Allocator
+     * @param  _collateralSymbol            Symbol of collateral Sets created by this Allocator
      */
     constructor(
         ERC20Detailed _baseAsset,
@@ -110,14 +105,15 @@ contract SocialAllocator is
         quoteAsset = _quoteAsset;
 
         oracleWhiteList = _oracleWhiteList;
+        core = _core;
+        setTokenFactory = _setTokenFactory;
+        pricePrecision = _pricePrecision;
+        collateralName = _collateralName;
+        collateralSymbol = _collateralSymbol;
 
         // Query decimals of base and quote assets
         baseAssetDecimals = _baseAsset.decimals();
         quoteAssetDecimals = _quoteAsset.decimals();
-
-        core = _core;
-        setTokenFactory = _setTokenFactory;
-        pricePrecision = _pricePrecision;
 
         // Calculate constants that will be used in calculations
         uint256 minDecimals = Math.min(baseAssetDecimals, quoteAssetDecimals);
@@ -134,9 +130,6 @@ contract SocialAllocator is
         multiAssetNextSetComponents = [address(baseAsset), address(quoteAsset)];
         baseAssetNextSetComponents = [address(baseAsset)];
         quoteAssetNextSetComponents = [address(quoteAsset)];
-
-        collateralName = _collateralName;
-        collateralSymbol = _collateralSymbol;
     }
 
     /* ============ External ============ */
@@ -144,7 +137,8 @@ contract SocialAllocator is
     /*
      * Determine the next allocation to rebalance into.
      *
-     * @param  _targetBaseAssetAllocation       Target allocation of the base asset
+     * @param  _targetBaseAssetAllocation       Target allocation of the base asset in a scaled decimal value
+     *                                          (e.g. 100% = 1e18, 1% = 1e16)
      * @return ISetToken                        The address of the proposed nextSet
      */
     function determineNewAllocation(
@@ -153,6 +147,11 @@ contract SocialAllocator is
         external
         returns (ISetToken)
     {
+        require(
+            _targetBaseAssetAllocation <= CommonMath.scaleFactor(),
+            "SocialAllocator.determineNewAllocation: Passed allocation must not exceed 100%."
+        );
+
         // Determine nextSet units and components
         (
             uint256[] memory nextSetUnits,
@@ -246,8 +245,8 @@ contract SocialAllocator is
         // Calculate multiplier for quote and base asset. Multiplier is just the amount of highest
         // allocation divided by lowest allocation. Asset that has lowest allocation will have
         // multiplier set to 1.
-        uint256 baseAssetMultiplier = Math.max(_targetBaseAssetAllocation.scale().div(quoteAssetAllocation), ONE.scale());
-        uint256 quoteAssetMultiplier = Math.max(quoteAssetAllocation.scale().div(_targetBaseAssetAllocation), ONE.scale());
+        uint256 baseAssetMultiplier = Math.max(_targetBaseAssetAllocation.scale().div(quoteAssetAllocation), CommonMath.scaleFactor());
+        uint256 quoteAssetMultiplier = Math.max(quoteAssetAllocation.scale().div(_targetBaseAssetAllocation), CommonMath.scaleFactor());
 
         // Get prices
         AssetPrices memory assetPrices = getAssetPrices();

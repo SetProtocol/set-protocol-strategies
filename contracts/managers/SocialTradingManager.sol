@@ -42,9 +42,9 @@ contract SocialTradingManager {
 
     /* ============ Structs ============ */
     struct PoolInfo {
-        address trader;
-        ISocialAllocator allocator;
-        uint256 currentAllocation;
+        address trader;                 // Address allowed to make admin and allocation decisions
+        ISocialAllocator allocator;     // Allocator used to make collateral Sets, defines asset pair being used
+        uint256 currentAllocation;      // Current base asset allocation of tradingPool
     }
 
     /* ============ Events ============ */
@@ -72,7 +72,7 @@ contract SocialTradingManager {
 
     modifier onlyTrader(IRebalancingSetTokenV2 _tradingPool) {
         require(
-            msg.sender == pools[address(_tradingPool)].trader,
+            msg.sender == trader(_tradingPool),
             "Sender must be trader"
         );
         _;
@@ -85,19 +85,23 @@ contract SocialTradingManager {
     /* ============ State Variables ============ */
 
     ICore public core;
+    address public factory;
     mapping(address => PoolInfo) public pools;
 
     /*
      * SocialTradingManager constructor.
      *
      * @param  _core                            The address of the Core contract
+     * @param  _factory                         Factory to use for RebalancingSetToken creation
      */
     constructor(
-        ICore _core
+        ICore _core,
+        address _factory
     )
         public
     {
         core = _core;
+        factory = _factory;
     }
 
     /* ============ External ============ */
@@ -108,7 +112,6 @@ contract SocialTradingManager {
      * Set Token address.
      *
      * @param _tradingPairAllocator             The address of the allocator the trader wishes to use
-     * @param _factory                          Factory to use for RebalancingSetToken creation
      * @param _startingBaseAssetAllocation      Starting base asset allocation in a scaled decimal value
      *                                          (e.g. 100% = 1e18, 1% = 1e16)
      * @param _startingUSDValue                 Starting value of one share of the trading pool to 18 decimals of precision
@@ -118,7 +121,6 @@ contract SocialTradingManager {
      */
     function createTradingPool(
         ISocialAllocator _tradingPairAllocator,
-        address _factory,
         uint256 _startingBaseAssetAllocation,
         uint256 _startingUSDValue,
         bytes32 _name,
@@ -146,7 +148,7 @@ contract SocialTradingManager {
         components[0] = address(collateralSet);
 
         address tradingPool = core.createSet(
-            _factory,
+            factory,
             components,
             unitShares,
             REBALANCING_SET_NATURAL_UNIT,
@@ -168,7 +170,7 @@ contract SocialTradingManager {
     }
 
     /*
-     * Update trading pool allocation. Issue new collateral Set and pass on to RebalancingSetTokenV2.
+     * Update trading pool allocation. Issue new collateral Set and initiate rebalance on RebalancingSetTokenV2.
      *
      * @param _tradingPool        The address of the trading pool being updated
      * @param _newAllocation      New base asset allocation in a scaled decimal value
@@ -295,18 +297,15 @@ contract SocialTradingManager {
         internal
         view
     {
-        // Want to allow 0% allocations but disallow everything below 1% and above 100%
-        if (_allocation != 0) {
-            require(
-                _allocation <= CommonMath.scaleFactor(),
-                "Passed allocation must not exceed 100%."
-            );
+        require(
+            _allocation <= CommonMath.scaleFactor(),
+            "Passed allocation must not exceed 100%."
+        );
 
-            require(
-                _allocation >= CommonMath.scaleFactor().div(100),
-                "Passed allocation must not be less than 1%."
-            );
-        }
+        require(
+            _allocation.mod(CommonMath.scaleFactor().div(100)) == 0,
+            "Passed allocation must be multiple of 1% or 0%."
+        );
     }
 
     function allocator(IRebalancingSetTokenV2 _tradingPool) internal view returns (ISocialAllocator) {

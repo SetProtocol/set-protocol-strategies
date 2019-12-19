@@ -216,16 +216,19 @@ contract('SocialTradingManager', accounts => {
 
   describe('#constructor', async () => {
     let subjectCore: Address;
+    let subjectFactory: Address;
     let subjectCaller: Address;
 
     beforeEach(async () => {
       subjectCore = core.address;
+      subjectFactory = rebalancingFactory;
       subjectCaller = deployerAccount;
     });
 
     async function subject(): Promise<SocialTradingManagerContract> {
       return managerHelper.deploySocialTradingManagerAsync(
         subjectCore,
+        subjectFactory,
         subjectCaller,
       );
     }
@@ -237,11 +240,18 @@ contract('SocialTradingManager', accounts => {
 
       expect(actualCore).to.equal(subjectCore);
     });
+
+    it('sets the correct factory address', async () => {
+      setManager = await subject();
+
+      const actualFactory = await setManager.factory.callAsync();
+
+      expect(actualFactory).to.equal(subjectFactory);
+    });
   });
 
   describe('#createTradingPool', async () => {
     let subjectAllocator: Address;
-    let subjectFactory: Address;
     let subjectStartingBaseAssetAllocation: BigNumber;
     let subjectStartingValue: BigNumber;
     let subjectName: string;
@@ -260,7 +270,8 @@ contract('SocialTradingManager', accounts => {
 
     beforeEach(async () => {
       setManager = await managerHelper.deploySocialTradingManagerAsync(
-        core.address
+        core.address,
+        rebalancingFactory
       );
 
       callDataManagerAddress = setManager.address;
@@ -284,7 +295,6 @@ contract('SocialTradingManager', accounts => {
       );
 
       subjectAllocator = allocator.address;
-      subjectFactory = rebalancingFactory;
       subjectStartingBaseAssetAllocation = ether(1);
       subjectStartingValue = ether(100);
       subjectName = 'TestSet';
@@ -295,7 +305,6 @@ contract('SocialTradingManager', accounts => {
     async function subject(): Promise<string> {
       return setManager.createTradingPool.sendTransactionAsync(
         subjectAllocator,
-        subjectFactory,
         subjectStartingBaseAssetAllocation,
         subjectStartingValue,
         SetUtils.stringToBytes(subjectName),
@@ -383,18 +392,6 @@ contract('SocialTradingManager', accounts => {
       expect(actualNaturalUnit).to.be.bignumber.equal(DEFAULT_REBALANCING_NATURAL_UNIT);
     });
 
-    it('created pool has correct factory', async () => {
-      const txHash = await subject();
-
-      const logs = await setTestUtils.getLogsFromTxHash(txHash);
-      const poolAddress = extractNewSetTokenAddressFromLogs(logs, 2);
-
-      const poolInstance = await protocolHelper.getRebalancingSetTokenV2Async(poolAddress);
-      const actualFactory = await poolInstance.factory.callAsync();
-
-      expect(actualFactory).to.equal(subjectFactory);
-    });
-
     it('created pool has correct name', async () => {
       const txHash = await subject();
 
@@ -478,7 +475,8 @@ contract('SocialTradingManager', accounts => {
 
     beforeEach(async () => {
       setManager = await managerHelper.deploySocialTradingManagerAsync(
-        core.address
+        core.address,
+        rebalancingFactory
       );
 
       const callDataManagerAddress = setManager.address;
@@ -502,7 +500,6 @@ contract('SocialTradingManager', accounts => {
       );
 
       const usedAlocator = allocator.address;
-      const factory = rebalancingFactory;
       startingBaseAssetAllocation = ether(1);
       const startingValue = ether(100);
       const name = 'TestSet';
@@ -510,7 +507,6 @@ contract('SocialTradingManager', accounts => {
 
       const txHash = await setManager.createTradingPool.sendTransactionAsync(
         usedAlocator,
-        factory,
         startingBaseAssetAllocation,
         startingValue,
         SetUtils.stringToBytes(name),
@@ -652,6 +648,16 @@ contract('SocialTradingManager', accounts => {
       });
     });
 
+    describe('but passed starting allocation is not multiple of 1%', async () => {
+      beforeEach(async () => {
+        subjectNewAllocation = ether(.019);
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
     describe('but rebalanceInterval has not elapsed', async () => {
       beforeEach(async () => {
         subjectTimeIncrease = ZERO;
@@ -680,7 +686,8 @@ contract('SocialTradingManager', accounts => {
 
     beforeEach(async () => {
       setManager = await managerHelper.deploySocialTradingManagerAsync(
-        core.address
+        core.address,
+        rebalancingFactory
       );
 
       const callDataManagerAddress = setManager.address;
@@ -704,7 +711,6 @@ contract('SocialTradingManager', accounts => {
       );
 
       const usedAlocator = allocator.address;
-      const factory = rebalancingFactory;
       const startingBaseAssetAllocation = ether(.66);
       const startingValue = ether(100);
       const name = 'TestSet';
@@ -712,7 +718,6 @@ contract('SocialTradingManager', accounts => {
 
       const txHash = await setManager.createTradingPool.sendTransactionAsync(
         usedAlocator,
-        factory,
         startingBaseAssetAllocation,
         startingValue,
         SetUtils.stringToBytes(name),
@@ -776,7 +781,8 @@ contract('SocialTradingManager', accounts => {
 
     beforeEach(async () => {
       setManager = await managerHelper.deploySocialTradingManagerAsync(
-        core.address
+        core.address,
+        rebalancingFactory
       );
 
       const callDataManagerAddress = setManager.address;
@@ -800,7 +806,6 @@ contract('SocialTradingManager', accounts => {
       );
 
       const usedAlocator = allocator.address;
-      const factory = rebalancingFactory;
       const startingBaseAssetAllocation = ether(.66);
       const startingValue = ether(100);
       const name = 'TestSet';
@@ -808,7 +813,6 @@ contract('SocialTradingManager', accounts => {
 
       const txHash = await setManager.createTradingPool.sendTransactionAsync(
         usedAlocator,
-        factory,
         startingBaseAssetAllocation,
         startingValue,
         SetUtils.stringToBytes(name),
@@ -858,7 +862,8 @@ contract('SocialTradingManager', accounts => {
 
     beforeEach(async () => {
       setManager = await managerHelper.deploySocialTradingManagerAsync(
-        core.address
+        core.address,
+        rebalancingFactory
       );
 
       const callDataManagerAddress = setManager.address;
@@ -882,7 +887,6 @@ contract('SocialTradingManager', accounts => {
       );
 
       const usedAlocator = allocator.address;
-      const factory = rebalancingFactory;
       const startingBaseAssetAllocation = ether(.66);
       const startingValue = ether(100);
       const name = 'TestSet';
@@ -890,7 +894,6 @@ contract('SocialTradingManager', accounts => {
 
       const txHash = await setManager.createTradingPool.sendTransactionAsync(
         usedAlocator,
-        factory,
         startingBaseAssetAllocation,
         startingValue,
         SetUtils.stringToBytes(name),

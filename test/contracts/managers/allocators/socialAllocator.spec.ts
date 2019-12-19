@@ -34,6 +34,7 @@ import {
   ZERO
 } from '@utils/constants';
 
+import { expectRevertError } from '@utils/tokenAssertions';
 import { extractNewSetTokenAddressFromLogs } from '@utils/contract_logs/core';
 import { getWeb3 } from '@utils/web3Helper';
 
@@ -495,6 +496,16 @@ contract('SocialAllocator', accounts => {
         const expectedNaturalUnit = new BigNumber(10 ** 12);
 
         expect(actualNaturalUnit).to.be.bignumber.equal(expectedNaturalUnit);
+      });
+    });
+
+    describe('but new allocation is greater than 100%', async () => {
+      beforeEach(async () => {
+        subjectTargetBaseAssetAllocation = ether(2);
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
       });
     });
   });

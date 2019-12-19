@@ -317,10 +317,12 @@ export class ManagerHelper {
 
   public async deploySocialTradingManagerAsync(
     coreInstance: Address,
+    factory: Address,
     from: Address = this._tokenOwnerAddress
   ): Promise<SocialTradingManagerContract> {
     const truffleRebalacingTokenManager = await SocialTradingManager.new(
       coreInstance,
+      factory,
       { from },
     );
 
