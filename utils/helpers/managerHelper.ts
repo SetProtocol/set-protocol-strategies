@@ -1,7 +1,7 @@
 import * as _ from 'lodash';
 import * as ethUtil from 'ethereumjs-util';
 import * as setProtocolUtils from 'set-protocol-utils';
-import { Address } from 'set-protocol-utils';
+import { Address, Bytes } from 'set-protocol-utils';
 
 import { SetTokenContract, MedianContract } from 'set-protocol-contracts';
 
@@ -19,7 +19,9 @@ import {
   MovingAverageOracleV2Contract,
   MovingAverageCrossoverTriggerContract,
   RSITrendingTriggerContract,
+  SocialTradingManagerContract,
   TriggerMockContract,
+  SocialAllocatorContract,
 } from '../contracts';
 import { BigNumber } from 'bignumber.js';
 
@@ -52,8 +54,10 @@ const MovingAverageCrossoverTrigger = artifacts.require(
   'MovingAverageCrossoverTrigger'
 );
 const RSITrendingTrigger = artifacts.require('RSITrendingTrigger');
+const SocialTradingManager = artifacts.require('SocialTradingManager');
 const TriggerMock = artifacts.require('TriggerMock');
 const UintArrayUtilsLibrary = artifacts.require('UintArrayUtilsLibrary');
+const SocialAllocator = artifacts.require('SocialAllocator');
 
 const { SetProtocolUtils: SetUtils, SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
 const setTestUtils = new SetTestUtils(web3);
@@ -311,6 +315,23 @@ export class ManagerHelper {
     );
   }
 
+  public async deploySocialTradingManagerAsync(
+    coreInstance: Address,
+    factory: Address,
+    from: Address = this._tokenOwnerAddress
+  ): Promise<SocialTradingManagerContract> {
+    const truffleRebalacingTokenManager = await SocialTradingManager.new(
+      coreInstance,
+      factory,
+      { from },
+    );
+
+    return new SocialTradingManagerContract(
+      getContractInstance(truffleRebalacingTokenManager),
+      { from, gas: DEFAULT_GAS },
+    );
+  }
+
   /* ============ Triggers ============ */
   public async deployTriggerMocksAsync(
     priceTriggerCount: number,
@@ -424,6 +445,35 @@ export class ManagerHelper {
     );
 
     return new BinaryAllocatorMockContract(
+      getContractInstance(truffleAllocationPricer),
+      { from, gas: DEFAULT_GAS },
+    );
+  }
+
+  public async deploySocialAllocatorAsync(
+    baseAssetInstance: Address,
+    quoteAssetInstance: Address,
+    oracleWhiteListInstance: Address,
+    coreInstance: Address,
+    setTokenFactoryAddress: Address,
+    pricePrecision: BigNumber = new BigNumber(100),
+    collateralName: Bytes = SetUtils.stringToBytes('CollateralName'),
+    collateralSymbol: Bytes = SetUtils.stringToBytes('COL'),
+    from: Address = this._tokenOwnerAddress,
+  ): Promise<SocialAllocatorContract> {
+    const truffleAllocationPricer = await SocialAllocator.new(
+      baseAssetInstance,
+      quoteAssetInstance,
+      oracleWhiteListInstance,
+      coreInstance,
+      setTokenFactoryAddress,
+      pricePrecision,
+      collateralName,
+      collateralSymbol,
+      { from }
+    );
+
+    return new SocialAllocatorContract(
       getContractInstance(truffleAllocationPricer),
       { from, gas: DEFAULT_GAS },
     );
@@ -544,6 +594,7 @@ export class ManagerHelper {
       units = [pricePrecision.mul(decimalDifference).mul(tokenOneMultiplier), tokenTwoUnits.mul(tokenTwoMultiplier)];
     }
 
+    units = units.filter(unit => unit.greaterThan(0));
     return {
       units,
       naturalUnit,
@@ -861,7 +912,7 @@ export class ManagerHelper {
     let collateralSetValue = new BigNumber(0);
     for (let i = 0; i < collateralSetUnits.length; i++) {
       const componentUnitsInFullToken = SET_FULL_TOKEN_UNITS
-                                        .mul(collateralSetUnits)
+                                        .mul(collateralSetUnits[i])
                                         .div(collateralSetNaturalUnit)
                                         .round(0, 3);
 

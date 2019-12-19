@@ -26,6 +26,7 @@ export const STANDARD_QUANTITY_ISSUED: BigNumber = ether(10);
 export const UNLIMITED_ALLOWANCE_IN_BASE_UNITS = new BigNumber(2).pow(256).minus(1);
 export const USDC_DECIMALS = new BigNumber(10 ** 6);
 export const VALUE_TO_CENTS_CONVERSION = new BigNumber(10 ** 16);
+export const WBTC_DECIMALS = 8;
 export const ZERO: BigNumber = new BigNumber(0);
 
 export const PRIVATE_KEYS = [

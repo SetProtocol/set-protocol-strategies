@@ -3,7 +3,6 @@ import { Address } from 'set-protocol-utils';
 import { BigNumber } from 'bignumber.js';
 
 import {
-  StandardTokenMock,
   StandardTokenMockContract,
   WethMockContract,
 } from 'set-protocol-contracts';
@@ -14,6 +13,7 @@ import {
 
 import {
   DEFAULT_GAS,
+  DEFAULT_MOCK_TOKEN_DECIMALS,
   DEPLOYED_TOKEN_QUANTITY,
   UNLIMITED_ALLOWANCE_IN_BASE_UNITS,
 } from '../constants';
@@ -22,6 +22,7 @@ import {
 } from '../web3Helper';
 
 const USDCMock = artifacts.require('USDCMock');
+const StandardTokenMock = artifacts.require('StandardTokenMock');
 
 export class ERC20Helper {
   private _senderAccountAddress: Address;
@@ -147,6 +148,26 @@ export class ERC20Helper {
     return new USDCMockContract(
       getContractInstance(truffleMockToken),
       { from: this._senderAccountAddress, gas: DEFAULT_GAS },
+    );
+  }
+
+  public async deployTokenAsync(
+    initialAccount: Address,
+    decimals: number = DEFAULT_MOCK_TOKEN_DECIMALS,
+    initialTokenAmount: BigNumber = DEPLOYED_TOKEN_QUANTITY,
+  ): Promise<StandardTokenMockContract> {
+    const truffleMockToken = await StandardTokenMock.new(
+      initialAccount,
+      initialTokenAmount,
+      'Mock Token',
+      'MOCK',
+      decimals,
+      { from: this._senderAccountAddress, gas: DEFAULT_GAS },
+    );
+
+    return new StandardTokenMockContract(
+      new web3.eth.Contract(truffleMockToken.abi, truffleMockToken.address),
+      { from: this._senderAccountAddress },
     );
   }
 }

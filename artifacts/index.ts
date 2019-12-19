@@ -28,6 +28,8 @@ export { RSIOracle } from './ts/RSIOracle';
 export { RSITrendingTrigger } from './ts/RSITrendingTrigger';
 export { TimeSeriesFeed } from './ts/TimeSeriesFeed';
 export { TwoAssetLinearizedTimeSeriesFeed } from './ts/TwoAssetLinearizedTimeSeriesFeed';
+export { SocialAllocator } from './ts/SocialAllocator';
+export { SocialTradingManager } from './ts/SocialTradingManager';
 
 // Export abi-gen contract wrappers
 export {
@@ -63,4 +65,6 @@ export {
 	RSITrendingTriggerContract,
 	TimeSeriesFeedContract,
 	TwoAssetLinearizedTimeSeriesFeedContract,
+	SocialAllocatorContract,
+	SocialTradingManagerContract,
 } from "../utils/contracts";
