@@ -50,6 +50,18 @@ contract DydxConstantPriceOracleMock is
     /* ============ External ============ */
 
     /*
+     * Change oracle value. Warning: no permissions to change the value
+     *
+     */
+    function changeOracleValue(
+        uint256 _newOracleValue
+    )
+        public
+    {
+        oracleValue = _newOracleValue;
+    }
+
+    /*
      * Gets price and returns as a struct.
      *
      * @returns         Struct with value denominated in uint256
