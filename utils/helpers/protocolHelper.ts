@@ -5,6 +5,7 @@ import { Address } from 'set-protocol-utils';
 import {
   Core,
   CoreContract,
+  FixedFeeCalculator,
   LinearAuctionLiquidator,
   LinearAuctionPriceCurve,
   LinearAuctionPriceCurveContract,
@@ -198,12 +199,24 @@ export class ProtocolHelper {
     return instance.options.address;
   }
 
+  public async deployFixedFeeCalculatorAsync(
+    from: Address = this._tokenOwnerAddress
+  ): Promise<string> {
+    const instance = await new web3.eth.Contract(FixedFeeCalculator.abi).deploy({
+      data: FixedFeeCalculator.bytecode,
+      arguments: [],
+    }).send({ from, gas: DEFAULT_GAS });
+
+    return instance.options.address;
+  }
+
   /* ============ CoreFactory Extension ============ */
 
   public async deployRebalancingSetTokenV2FactoryAsync(
     coreAddress: Address,
     componentWhitelistAddress: Address,
     liquidatorWhitelistAddress: Address,
+    rebalanceFeeWhiteListAddress: Address,
     minimumRebalanceInterval: BigNumber = ONE_DAY_IN_SECONDS,
     minimumFailRebalancePeriod: BigNumber = ONE_DAY_IN_SECONDS,
     maximumFailRebalancePeriod: BigNumber = ONE_DAY_IN_SECONDS.mul(30),
@@ -217,6 +230,7 @@ export class ProtocolHelper {
         coreAddress,
         componentWhitelistAddress,
         liquidatorWhitelistAddress,
+        rebalanceFeeWhiteListAddress,
         minimumRebalanceInterval.toString(),
         minimumFailRebalancePeriod.toString(),
         maximumFailRebalancePeriod.toString(),

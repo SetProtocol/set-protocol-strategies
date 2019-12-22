@@ -80,9 +80,11 @@ contract('SocialTradingManager', accounts => {
   let wrappedETH: WethMockContract;
 
   let liquidator: Address;
+  let feeCalculator: Address;
   let rebalancingFactory: Address;
   let oracleWhiteList: Address;
   let liquidatorWhiteList: Address;
+  let feeCalculatorWhiteList: Address;
 
   let ethMedianizer: MedianContract;
   let ethLegacyMakerOracleAdapter: LegacyMakerOracleAdapterContract;
@@ -176,10 +178,14 @@ contract('SocialTradingManager', accounts => {
     );
     liquidatorWhiteList = await protocolHelper.deployWhiteListAsync([liquidator, newLiquidator]);
 
+    feeCalculator = await protocolHelper.deployFixedFeeCalculatorAsync();
+    feeCalculatorWhiteList = await protocolHelper.deployWhiteListAsync([feeCalculator]);
+
     rebalancingFactory = await protocolHelper.deployRebalancingSetTokenV2FactoryAsync(
       core.address,
       rebalancingComponentWhiteList.address,
       liquidatorWhiteList,
+      feeCalculatorWhiteList,
     );
 
     await core.addFactory.sendTransactionAsync(rebalancingFactory, { from: deployerAccount });
@@ -262,6 +268,7 @@ contract('SocialTradingManager', accounts => {
     let callDataManagerAddress: Address;
     let callDataLiquidator: Address;
     let callDataFeeRecipient: Address;
+    let callDataRebalanceFeeCalculator: Address;
     let callDataRebalanceInterval: BigNumber;
     let callDataFailAuctionPeriod: BigNumber;
     let callDataLastRebalanceTimestamp: BigNumber;
@@ -277,21 +284,24 @@ contract('SocialTradingManager', accounts => {
       callDataManagerAddress = setManager.address;
       callDataLiquidator = liquidator;
       callDataFeeRecipient = feeRecipient;
+      callDataRebalanceFeeCalculator = feeCalculator;
       callDataRebalanceInterval = ONE_DAY_IN_SECONDS;
       callDataFailAuctionPeriod = ONE_DAY_IN_SECONDS;
       const { timestamp } = await web3.eth.getBlock('latest');
       callDataLastRebalanceTimestamp = timestamp;
       callDataEntryFee = ether(.01);
       callDataRebalanceFee = ether(.02);
+      const callDataRebalanceFeeCallData = SetUtils.generateFixedFeeCalculatorCalldata(callDataRebalanceFee);
       subjectRebalancingSetCallData = SetUtils.generateRebalancingSetTokenV2CallData(
         callDataManagerAddress,
         callDataLiquidator,
         callDataFeeRecipient,
+        callDataRebalanceFeeCalculator,
         callDataRebalanceInterval,
         callDataFailAuctionPeriod,
         callDataLastRebalanceTimestamp,
         callDataEntryFee,
-        callDataRebalanceFee,
+        callDataRebalanceFeeCallData,
       );
 
       subjectAllocator = allocator.address;
@@ -482,21 +492,24 @@ contract('SocialTradingManager', accounts => {
       const callDataManagerAddress = setManager.address;
       const callDataLiquidator = liquidator;
       const callDataFeeRecipient = feeRecipient;
+      const callDataFeeCalculator = feeCalculator;
       const callDataRebalanceInterval = ONE_DAY_IN_SECONDS;
       const callDataFailAuctionPeriod = ONE_DAY_IN_SECONDS;
       const { timestamp } = await web3.eth.getBlock('latest');
       const callDataLastRebalanceTimestamp = timestamp;
-      const callDataEntryFee = ether(1);
-      const callDataRebalanceFee = ether(2);
+      const callDataEntryFee = ether(.01);
+      const rebalanceFee = ether(.02);
+      const callDataRebalanceFeeCallData = SetUtils.generateFixedFeeCalculatorCalldata(rebalanceFee);
       const rebalancingSetCallData = SetUtils.generateRebalancingSetTokenV2CallData(
         callDataManagerAddress,
         callDataLiquidator,
         callDataFeeRecipient,
+        callDataFeeCalculator,
         callDataRebalanceInterval,
         callDataFailAuctionPeriod,
         callDataLastRebalanceTimestamp,
         callDataEntryFee,
-        callDataRebalanceFee,
+        callDataRebalanceFeeCallData,
       );
 
       const usedAlocator = allocator.address;
@@ -693,21 +706,24 @@ contract('SocialTradingManager', accounts => {
       const callDataManagerAddress = setManager.address;
       const callDataLiquidator = liquidator;
       const callDataFeeRecipient = feeRecipient;
+      const callDataFeeCalculator = feeCalculator;
       const callDataRebalanceInterval = ONE_DAY_IN_SECONDS;
       const callDataFailAuctionPeriod = ONE_DAY_IN_SECONDS;
       const { timestamp } = await web3.eth.getBlock('latest');
       const callDataLastRebalanceTimestamp = timestamp;
-      const callDataEntryFee = ether(1);
-      const callDataRebalanceFee = ether(2);
+      const callDataEntryFee = ether(.01);
+      const rebalanceFee = ether(.02);
+      const callDataRebalanceFeeCallData = SetUtils.generateFixedFeeCalculatorCalldata(rebalanceFee);
       const rebalancingSetCallData = SetUtils.generateRebalancingSetTokenV2CallData(
         callDataManagerAddress,
         callDataLiquidator,
         callDataFeeRecipient,
+        callDataFeeCalculator,
         callDataRebalanceInterval,
         callDataFailAuctionPeriod,
         callDataLastRebalanceTimestamp,
         callDataEntryFee,
-        callDataRebalanceFee,
+        callDataRebalanceFeeCallData,
       );
 
       const usedAlocator = allocator.address;
@@ -788,21 +804,24 @@ contract('SocialTradingManager', accounts => {
       const callDataManagerAddress = setManager.address;
       const callDataLiquidator = liquidator;
       const callDataFeeRecipient = feeRecipient;
+      const callDataFeeCalculator = feeCalculator;
       const callDataRebalanceInterval = ONE_DAY_IN_SECONDS;
       const callDataFailAuctionPeriod = ONE_DAY_IN_SECONDS;
       const { timestamp } = await web3.eth.getBlock('latest');
       const callDataLastRebalanceTimestamp = timestamp;
-      const callDataEntryFee = ether(1);
-      const callDataRebalanceFee = ether(2);
+      const callDataEntryFee = ether(.01);
+      const rebalanceFee = ether(.02);
+      const callDataRebalanceFeeCallData = SetUtils.generateFixedFeeCalculatorCalldata(rebalanceFee);
       const rebalancingSetCallData = SetUtils.generateRebalancingSetTokenV2CallData(
         callDataManagerAddress,
         callDataLiquidator,
         callDataFeeRecipient,
+        callDataFeeCalculator,
         callDataRebalanceInterval,
         callDataFailAuctionPeriod,
         callDataLastRebalanceTimestamp,
         callDataEntryFee,
-        callDataRebalanceFee,
+        callDataRebalanceFeeCallData,
       );
 
       const usedAlocator = allocator.address;
@@ -869,21 +888,24 @@ contract('SocialTradingManager', accounts => {
       const callDataManagerAddress = setManager.address;
       const callDataLiquidator = liquidator;
       const callDataFeeRecipient = feeRecipient;
+      const callDataFeeCalculator = feeCalculator;
       const callDataRebalanceInterval = ONE_DAY_IN_SECONDS;
       const callDataFailAuctionPeriod = ONE_DAY_IN_SECONDS;
       const { timestamp } = await web3.eth.getBlock('latest');
       const callDataLastRebalanceTimestamp = timestamp;
-      const callDataEntryFee = ether(1);
-      const callDataRebalanceFee = ether(2);
+      const callDataEntryFee = ether(.01);
+      const rebalanceFee = ether(.02);
+      const callDataRebalanceFeeCallData = SetUtils.generateFixedFeeCalculatorCalldata(rebalanceFee);
       const rebalancingSetCallData = SetUtils.generateRebalancingSetTokenV2CallData(
         callDataManagerAddress,
         callDataLiquidator,
         callDataFeeRecipient,
+        callDataFeeCalculator,
         callDataRebalanceInterval,
         callDataFailAuctionPeriod,
         callDataLastRebalanceTimestamp,
         callDataEntryFee,
-        callDataRebalanceFee,
+        callDataRebalanceFeeCallData,
       );
 
       const usedAlocator = allocator.address;
