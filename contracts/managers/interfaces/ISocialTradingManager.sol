@@ -21,6 +21,7 @@ import { ILiquidator } from "set-protocol-contracts/contracts/core/interfaces/IL
 import { IRebalancingSetTokenV2 } from "set-protocol-contracts/contracts/core/interfaces/IRebalancingSetTokenV2.sol";
 
 import { ISocialAllocator } from "../allocators/ISocialAllocator.sol";
+import { SocialTradingLibrary } from "../lib/SocialTradingLibrary.sol";
 
 /**
  * @title ISocialTradingManager
@@ -30,13 +31,6 @@ import { ISocialAllocator } from "../allocators/ISocialAllocator.sol";
  */
 interface ISocialTradingManager {
 
-    /* ============ Structs ============ */
-    struct PoolInfo {
-        address trader;                 // Address allowed to make admin and allocation decisions
-        ISocialAllocator allocator;     // Allocator used to make collateral Sets, defines asset pair being used
-        uint256 currentAllocation;      // Current base asset allocation of tradingPool
-    }
-
     /*
      * Get trading pool info.
      *
@@ -44,7 +38,7 @@ interface ISocialTradingManager {
      *
      * @return                    PoolInfo struct of trading pool
      */
-    function pools(address _tradingPool) external returns (PoolInfo memory);
+    function pools(address _tradingPool) external returns (SocialTradingLibrary.PoolInfo memory);
 
     /*
      * Create a trading pool. Create or select new collateral and create RebalancingSetToken contract to

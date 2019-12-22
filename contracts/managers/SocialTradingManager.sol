@@ -26,7 +26,7 @@ import { ISetToken } from "set-protocol-contracts/contracts/core/interfaces/ISet
 import { RebalancingLibrary } from "set-protocol-contracts/contracts/core/lib/RebalancingLibrary.sol";
 
 import { ISocialAllocator } from "./allocators/ISocialAllocator.sol";
-import { ISocialTradingManager } from "./interfaces/ISocialTradingManager.sol";
+import { SocialTradingLibrary } from "./lib/SocialTradingLibrary.sol";
 
 
 /**
@@ -38,9 +38,7 @@ import { ISocialTradingManager } from "./interfaces/ISocialTradingManager.sol";
  * passed in on pool creation. Only compatible with RebalancingSetTokenV2 constracts. All permissioned functions
  * on the RebalancingSetTokenV2 must be called through the administrative functions exposed on this contract.
  */
-contract SocialTradingManager is
-    ISocialTradingManager
-{
+contract SocialTradingManager {
     using SafeMath for uint256;
 
     /* ============ Events ============ */
@@ -82,7 +80,7 @@ contract SocialTradingManager is
 
     ICore public core;
     address public factory;
-    mapping(address => PoolInfo) public pools;
+    mapping(address => SocialTradingLibrary.PoolInfo) public pools;
 
     /*
      * SocialTradingManager constructor.
