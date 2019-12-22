@@ -30,6 +30,22 @@ import { ISocialAllocator } from "../allocators/ISocialAllocator.sol";
  */
 interface ISocialTradingManager {
 
+    /* ============ Structs ============ */
+    struct PoolInfo {
+        address trader;                 // Address allowed to make admin and allocation decisions
+        ISocialAllocator allocator;     // Allocator used to make collateral Sets, defines asset pair being used
+        uint256 currentAllocation;      // Current base asset allocation of tradingPool
+    }
+
+    /*
+     * Get trading pool info.
+     *
+     * @param _tradingPool        The address of the trading pool being queried
+     *
+     * @return                    PoolInfo struct of trading pool
+     */
+    function pools(address _tradingPool) external returns (PoolInfo memory);
+
     /*
      * Create a trading pool. Create or select new collateral and create RebalancingSetToken contract to
      * administer pool. Save relevant data to pool's entry in pools state variable under the Rebalancing

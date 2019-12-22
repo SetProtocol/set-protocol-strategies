@@ -26,6 +26,7 @@ import { ISetToken } from "set-protocol-contracts/contracts/core/interfaces/ISet
 import { RebalancingLibrary } from "set-protocol-contracts/contracts/core/lib/RebalancingLibrary.sol";
 
 import { ISocialAllocator } from "./allocators/ISocialAllocator.sol";
+import { ISocialTradingManager } from "./interfaces/ISocialTradingManager.sol";
 
 
 /**
@@ -37,15 +38,10 @@ import { ISocialAllocator } from "./allocators/ISocialAllocator.sol";
  * passed in on pool creation. Only compatible with RebalancingSetTokenV2 constracts. All permissioned functions
  * on the RebalancingSetTokenV2 must be called through the administrative functions exposed on this contract.
  */
-contract SocialTradingManager {
+contract SocialTradingManager is
+    ISocialTradingManager
+{
     using SafeMath for uint256;
-
-    /* ============ Structs ============ */
-    struct PoolInfo {
-        address trader;                 // Address allowed to make admin and allocation decisions
-        ISocialAllocator allocator;     // Allocator used to make collateral Sets, defines asset pair being used
-        uint256 currentAllocation;      // Current base asset allocation of tradingPool
-    }
 
     /* ============ Events ============ */
 
