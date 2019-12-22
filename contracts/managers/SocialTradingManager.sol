@@ -26,6 +26,7 @@ import { ISetToken } from "set-protocol-contracts/contracts/core/interfaces/ISet
 import { RebalancingLibrary } from "set-protocol-contracts/contracts/core/lib/RebalancingLibrary.sol";
 
 import { ISocialAllocator } from "./allocators/ISocialAllocator.sol";
+import { SocialTradingLibrary } from "./lib/SocialTradingLibrary.sol";
 
 
 /**
@@ -39,13 +40,6 @@ import { ISocialAllocator } from "./allocators/ISocialAllocator.sol";
  */
 contract SocialTradingManager {
     using SafeMath for uint256;
-
-    /* ============ Structs ============ */
-    struct PoolInfo {
-        address trader;                 // Address allowed to make admin and allocation decisions
-        ISocialAllocator allocator;     // Allocator used to make collateral Sets, defines asset pair being used
-        uint256 currentAllocation;      // Current base asset allocation of tradingPool
-    }
 
     /* ============ Events ============ */
 
@@ -86,7 +80,7 @@ contract SocialTradingManager {
 
     ICore public core;
     address public factory;
-    mapping(address => PoolInfo) public pools;
+    mapping(address => SocialTradingLibrary.PoolInfo) public pools;
 
     /*
      * SocialTradingManager constructor.
