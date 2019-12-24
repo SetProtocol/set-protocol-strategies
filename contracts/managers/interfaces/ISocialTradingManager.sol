@@ -38,7 +38,7 @@ interface ISocialTradingManager {
      *
      * @return                    PoolInfo struct of trading pool
      */
-    function pools(address _tradingPool) external returns (SocialTradingLibrary.PoolInfo memory);
+    function pools(address _tradingPool) external view returns (SocialTradingLibrary.PoolInfo memory);
 
     /*
      * Create a trading pool. Create or select new collateral and create RebalancingSetToken contract to
