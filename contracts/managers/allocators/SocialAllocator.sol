@@ -48,13 +48,14 @@ contract SocialAllocator is
     /* ============ Structs ============ */
 
     struct AssetPrices {
-        uint256 baseAsset;
-        uint256 quoteAsset;
+        uint256 baseAssetPrice;
+        uint256 quoteAssetPrice;
     } 
 
     /* ============ Constants ============ */
     // Asset multiplier for single assets. Used to define value of collateral as 4 * (priceA, priceB).
-    uint256 constant public SINGLE_ASSET_MULTIPLER = 4 * 10 ** 18;
+    uint256 constant public SINGLE_ASSET_MULTIPLER = 4e18;
+    uint256 constant public MAXIMUM_ALLOCATION = 1e18;
 
     /* ============ State Variables ============ */
     ICore public core;
@@ -74,8 +75,8 @@ contract SocialAllocator is
     address[] public multiAssetNextSetComponents;
     address[] public baseAssetNextSetComponents;
     address[] public quoteAssetNextSetComponents;
-    uint256 public baseAssetFullUnitDifference;
-    uint256 public quoteAssetFullUnitDifference;
+    uint256 public baseAssetFullUnitMultiplier;
+    uint256 public quoteAssetFullUnitMultiplier;
 
     /*
      * SocialAllocator constructor.
@@ -100,7 +101,12 @@ contract SocialAllocator is
         bytes32 _collateralSymbol
     )
         public
-    {
+    {   
+        require(
+            _pricePrecision > 0,
+            "SocialAllocator.constructor: Price precision must be greater than 0."
+        );
+
         baseAsset = _baseAsset;
         quoteAsset = _quoteAsset;
 
@@ -119,11 +125,11 @@ contract SocialAllocator is
         uint256 minDecimals = Math.min(baseAssetDecimals, quoteAssetDecimals);
 
         // Decimal difference for asset a1 is 10 ** (a1Decimals - min(a1Decimals, a2Decimals))
-        baseAssetFullUnitDifference = CommonMath.safePower(10, uint256(baseAssetDecimals).sub(minDecimals));
-        quoteAssetFullUnitDifference = CommonMath.safePower(10, uint256(quoteAssetDecimals).sub(minDecimals));
+        baseAssetFullUnitMultiplier = CommonMath.safePower(10, uint256(baseAssetDecimals).sub(minDecimals));
+        quoteAssetFullUnitMultiplier = CommonMath.safePower(10, uint256(quoteAssetDecimals).sub(minDecimals));
 
         // NaturalUnit is equal to max(a1DecimalDifference, a2DecimalDifference) * pricePrecision
-        collateralNaturalUnit = Math.max(baseAssetFullUnitDifference, quoteAssetFullUnitDifference)
+        collateralNaturalUnit = Math.max(baseAssetFullUnitMultiplier, quoteAssetFullUnitMultiplier)
             .mul(pricePrecision);
 
         // Next set components will always be in order of base asset first
@@ -148,7 +154,7 @@ contract SocialAllocator is
         returns (ISetToken)
     {
         require(
-            _targetBaseAssetAllocation <= CommonMath.scaleFactor(),
+            _targetBaseAssetAllocation <= MAXIMUM_ALLOCATION,
             "SocialAllocator.determineNewAllocation: Passed allocation must not exceed 100%."
         );
 
@@ -177,8 +183,8 @@ contract SocialAllocator is
     /*
      * Calculate value of passed collateral set.
      *
-     * @param  _collateralSet         of current set collateralizing RebalancingSetToken
-     * @return uint256               USD value of passed Set
+     * @param  _collateralSet        Address of current set collateralizing RebalancingSetToken
+     * @return uint256               USD value of 10 **18 units of passed Set
      */
     function calculateCollateralSetValue(
         ISetToken _collateralSet
@@ -207,11 +213,43 @@ contract SocialAllocator is
         view
         returns (uint256[] memory, address[] memory)
     {
-        if (_targetBaseAssetAllocation == 0 || _targetBaseAssetAllocation == CommonMath.scaleFactor()) {
-            return calculateSingleAssetNextSetParameters(_targetBaseAssetAllocation);
+        // Get prices
+        AssetPrices memory assetPrices = getAssetPrices();
+
+        // Calculate allocationUnitValues, or the amount of each component equal to max(Pa1, Pa2)
+        uint256 baseAssetAllocationUnitValue = Math.max(
+            assetPrices.quoteAssetPrice.mul(pricePrecision).div(assetPrices.baseAssetPrice),
+            pricePrecision
+        );
+
+        uint256 quoteAssetAllocationUnitValue = Math.max(
+            assetPrices.baseAssetPrice.mul(pricePrecision).div(assetPrices.quoteAssetPrice),
+            pricePrecision
+        );
+
+        // If single asset use correct asset vars to calculate units, and return correct component array
+        if (_targetBaseAssetAllocation == 0) {
+            uint256[] memory units = calculateSingleAssetNextSetUnits(
+                quoteAssetAllocationUnitValue,
+                quoteAssetFullUnitMultiplier
+            );
+
+            return (units, quoteAssetNextSetComponents);
+        } else if (_targetBaseAssetAllocation == MAXIMUM_ALLOCATION) {
+            uint256[] memory units = calculateSingleAssetNextSetUnits(
+                baseAssetAllocationUnitValue,
+                baseAssetFullUnitMultiplier
+            );
+
+            return (units, baseAssetNextSetComponents);       
         }
 
-        return calculateMultiAssetNextSetParameters(_targetBaseAssetAllocation);
+        // Calculate multi-asset units and component arrays
+        return calculateMultiAssetNextSetParameters(
+            _targetBaseAssetAllocation,
+            baseAssetAllocationUnitValue,
+            quoteAssetAllocationUnitValue
+        );
     }
 
     /*
@@ -229,18 +267,22 @@ contract SocialAllocator is
      * This results in a Set Token that's value is max(Pa1, Pa2) * (a1Multiplier + a2Multiplier)
      *
      * @param  _targetBaseAssetAllocation       Target allocation of the base asset
+     * @param  _baseAssetAllocationUnitValue    Amount in base component units equal in USD to max(Pa1, Pa2)
+     * @param  _quoteAssetAllocationUnitValue   Amount in quote component units equal in USD to max(Pa1, Pa2)
      * @return uint256[]                        Unit array of nextSet collateral
      * @return address[]                        Component array of nextSet collateral
      */
     function calculateMultiAssetNextSetParameters(
-        uint256 _targetBaseAssetAllocation
+        uint256 _targetBaseAssetAllocation,
+        uint256 _baseAssetAllocationUnitValue,
+        uint256 _quoteAssetAllocationUnitValue
     )
         internal
         view
         returns (uint256[] memory, address[] memory)
     {
         // Get quote asset allocation
-        uint256 quoteAssetAllocation = CommonMath.scaleFactor().sub(_targetBaseAssetAllocation);
+        uint256 quoteAssetAllocation = MAXIMUM_ALLOCATION.sub(_targetBaseAssetAllocation);
 
         // Calculate multiplier for quote and base asset. Multiplier is just the amount of highest
         // allocation divided by lowest allocation. Asset that has lowest allocation will have
@@ -248,64 +290,48 @@ contract SocialAllocator is
         uint256 baseAssetMultiplier = Math.max(_targetBaseAssetAllocation.scale().div(quoteAssetAllocation), CommonMath.scaleFactor());
         uint256 quoteAssetMultiplier = Math.max(quoteAssetAllocation.scale().div(_targetBaseAssetAllocation), CommonMath.scaleFactor());
 
-        // Get prices
-        AssetPrices memory assetPrices = getAssetPrices();
-
         uint256[] memory units = new uint256[](2);
         // Get baseAsset units
         units[0] = calculateUnitAmount(
-            Math.max(assetPrices.quoteAsset.mul(pricePrecision).div(assetPrices.baseAsset), pricePrecision),
+            _baseAssetAllocationUnitValue,
             baseAssetMultiplier,
-            baseAssetFullUnitDifference
+            baseAssetFullUnitMultiplier
         );
 
         // Get quote asset units
         units[1] = calculateUnitAmount(
-            Math.max(assetPrices.baseAsset.mul(pricePrecision).div(assetPrices.quoteAsset), pricePrecision),
+            _quoteAssetAllocationUnitValue,
             quoteAssetMultiplier,
-            quoteAssetFullUnitDifference
+            quoteAssetFullUnitMultiplier
         );
 
         return (units, multiAssetNextSetComponents);
     }
 
     /*
-     * Calculate units of next Set. Determine which asset to rebalance into and then calculate unit
-     * amount. Set value should be equal to SINGLE_ASSET_MULTIPLIER * max(Pa1, Pa2).
+     * Calculate units of next Set. Set value should be equal to SINGLE_ASSET_MULTIPLIER * max(Pa1, Pa2).
      *
-     * @param  _targetBaseAssetAllocation       Target allocation of the base asset
+     * @param  _allocationUnitValue             Amount in component units equal in USD to max(Pa1, Pa2)
+     * @param  _decimalMultiplier               Decimal difference between asset and max decimal amount
      * @return uint256[]                        Unit array of nextSet collateral
-     * @return address[]                        Component array of nextSet collateral
      */
-    function calculateSingleAssetNextSetParameters(
-        uint256 _targetBaseAssetAllocation
+    function calculateSingleAssetNextSetUnits(
+        uint256 _allocationUnitValue,
+        uint256 _decimalMultiplier
     )
         internal
         view
-        returns (uint256[] memory, address[] memory)
+        returns (uint256[] memory)
     {
-        // Get prices
-        AssetPrices memory assetPrices = getAssetPrices();
-
         // Determine whether allocating all to baseAsset or quoteAsset
         uint256[] memory units = new uint256[](1);
-        if (_targetBaseAssetAllocation == CommonMath.scaleFactor()) {
-            units[0] = calculateUnitAmount(
-                Math.max(assetPrices.quoteAsset.mul(pricePrecision).div(assetPrices.baseAsset), pricePrecision),
-                SINGLE_ASSET_MULTIPLER,
-                baseAssetFullUnitDifference
-            );
+        units[0] = calculateUnitAmount(
+            _allocationUnitValue,
+            SINGLE_ASSET_MULTIPLER,
+            _decimalMultiplier
+        );
 
-            return (units, baseAssetNextSetComponents);
-        } else {
-            units[0] = calculateUnitAmount(
-                Math.max(assetPrices.baseAsset.mul(pricePrecision).div(assetPrices.quoteAsset), pricePrecision),
-                SINGLE_ASSET_MULTIPLER,
-                quoteAssetFullUnitDifference
-            );
-
-            return (units, quoteAssetNextSetComponents);
-        }
+        return units;
     }
 
     /*
@@ -318,19 +344,19 @@ contract SocialAllocator is
      *
      * @param  _allocationUnitValue       Amount in component units equal in USD to max(Pa1, Pa2)
      * @param  _assetMultiplier           Amount of allocationUnitValues to include in allocation
-     * @param  _decimalDifference         Decimal difference between asset and max decimal amount
+     * @param  _decimalMultiplier         Decimal difference between asset and max decimal amount
      * @return uint256                    Units of asset
      */
     function calculateUnitAmount(
         uint256 _allocationUnitValue,
         uint256 _assetMultiplier,
-        uint256 _decimalDifference
+        uint256 _decimalMultiplier
     )
         internal
         view
         returns (uint256)
     {
-        return _decimalDifference.mul(_assetMultiplier).mul(_allocationUnitValue).deScale();
+        return _decimalMultiplier.mul(_assetMultiplier).mul(_allocationUnitValue).deScale();
     }
 
     /*
@@ -356,8 +382,8 @@ contract SocialAllocator is
 
         // Get token price from oracles
         return AssetPrices({
-            baseAsset: IOracle(oracleAddresses[0]).read(),
-            quoteAsset: IOracle(oracleAddresses[1]).read()
+            baseAssetPrice: IOracle(oracleAddresses[0]).read(),
+            quoteAssetPrice: IOracle(oracleAddresses[1]).read()
         });
     }
 }

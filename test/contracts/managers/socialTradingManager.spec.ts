@@ -70,6 +70,7 @@ contract('SocialTradingManager', accounts => {
     newLiquidator,
     liquidatorData,
     attacker,
+    newAllocator,
   ] = accounts;
 
   let core: CoreContract;
@@ -223,11 +224,13 @@ contract('SocialTradingManager', accounts => {
   describe('#constructor', async () => {
     let subjectCore: Address;
     let subjectFactory: Address;
+    let subjectWhiteListedAllocators: Address[];
     let subjectCaller: Address;
 
     beforeEach(async () => {
       subjectCore = core.address;
       subjectFactory = rebalancingFactory;
+      subjectWhiteListedAllocators = [allocator.address, newAllocator];
       subjectCaller = deployerAccount;
     });
 
@@ -235,6 +238,7 @@ contract('SocialTradingManager', accounts => {
       return managerHelper.deploySocialTradingManagerAsync(
         subjectCore,
         subjectFactory,
+        subjectWhiteListedAllocators,
         subjectCaller,
       );
     }
@@ -253,6 +257,14 @@ contract('SocialTradingManager', accounts => {
       const actualFactory = await setManager.factory.callAsync();
 
       expect(actualFactory).to.equal(subjectFactory);
+    });
+
+    it('added allocators to the WhiteList', async () => {
+      setManager = await subject();
+
+      const actualWhiteListedAllocators = await setManager.validAddresses.callAsync();
+
+      expect(JSON.stringify(actualWhiteListedAllocators)).to.equal(JSON.stringify(subjectWhiteListedAllocators));
     });
   });
 
@@ -275,13 +287,16 @@ contract('SocialTradingManager', accounts => {
     let callDataEntryFee: BigNumber;
     let callDataRebalanceFee: BigNumber;
 
+    let customManagerAddress: Address = undefined;
+
     beforeEach(async () => {
       setManager = await managerHelper.deploySocialTradingManagerAsync(
         core.address,
-        rebalancingFactory
+        rebalancingFactory,
+        [allocator.address]
       );
 
-      callDataManagerAddress = setManager.address;
+      callDataManagerAddress = customManagerAddress || setManager.address;
       callDataLiquidator = liquidator;
       callDataFeeRecipient = feeRecipient;
       callDataRebalanceFeeCalculator = feeCalculator;
@@ -472,6 +487,30 @@ contract('SocialTradingManager', accounts => {
         await expectRevertError(subject());
       });
     });
+
+    describe('but passed allocator address is not WhiteListed', async () => {
+      beforeEach(async () => {
+        subjectAllocator = attacker;
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('but passed manager address is not SocialTradingManager', async () => {
+      before(async () => {
+        customManagerAddress = attacker;
+      });
+
+      after(async () => {
+        customManagerAddress = undefined;
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
   });
 
   describe('#updateAllocation', async () => {
@@ -486,7 +525,8 @@ contract('SocialTradingManager', accounts => {
     beforeEach(async () => {
       setManager = await managerHelper.deploySocialTradingManagerAsync(
         core.address,
-        rebalancingFactory
+        rebalancingFactory,
+        [allocator.address]
       );
 
       const callDataManagerAddress = setManager.address;
@@ -700,7 +740,8 @@ contract('SocialTradingManager', accounts => {
     beforeEach(async () => {
       setManager = await managerHelper.deploySocialTradingManagerAsync(
         core.address,
-        rebalancingFactory
+        rebalancingFactory,
+        [allocator.address]
       );
 
       const callDataManagerAddress = setManager.address;
@@ -798,7 +839,8 @@ contract('SocialTradingManager', accounts => {
     beforeEach(async () => {
       setManager = await managerHelper.deploySocialTradingManagerAsync(
         core.address,
-        rebalancingFactory
+        rebalancingFactory,
+        [allocator.address]
       );
 
       const callDataManagerAddress = setManager.address;
@@ -882,7 +924,8 @@ contract('SocialTradingManager', accounts => {
     beforeEach(async () => {
       setManager = await managerHelper.deploySocialTradingManagerAsync(
         core.address,
-        rebalancingFactory
+        rebalancingFactory,
+        [allocator.address]
       );
 
       const callDataManagerAddress = setManager.address;

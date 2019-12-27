@@ -18,12 +18,12 @@ pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import { CommonMath } from "set-protocol-contracts/contracts/lib/CommonMath.sol";
 import { ICore } from "set-protocol-contracts/contracts/core/interfaces/ICore.sol";
 import { ILiquidator } from "set-protocol-contracts/contracts/core/interfaces/ILiquidator.sol";
 import { IRebalancingSetTokenV2 } from "set-protocol-contracts/contracts/core/interfaces/IRebalancingSetTokenV2.sol";
 import { ISetToken } from "set-protocol-contracts/contracts/core/interfaces/ISetToken.sol";
 import { RebalancingLibrary } from "set-protocol-contracts/contracts/core/lib/RebalancingLibrary.sol";
+import { WhiteList } from "set-protocol-contracts/contracts/lib/WhiteList.sol";
 
 import { ISocialAllocator } from "./allocators/ISocialAllocator.sol";
 import { SocialTradingLibrary } from "./lib/SocialTradingLibrary.sol";
@@ -38,28 +38,30 @@ import { SocialTradingLibrary } from "./lib/SocialTradingLibrary.sol";
  * passed in on pool creation. Only compatible with RebalancingSetTokenV2 constracts. All permissioned functions
  * on the RebalancingSetTokenV2 must be called through the administrative functions exposed on this contract.
  */
-contract SocialTradingManager {
+contract SocialTradingManager is 
+    WhiteList
+{
     using SafeMath for uint256;
 
     /* ============ Events ============ */
 
     event TradingPoolCreated(
-        address indexed _trader,
-        ISocialAllocator indexed _allocator,
-        address _tradingPool,
-        uint256 _startingAllocation
+        address indexed trader,
+        ISocialAllocator indexed allocator,
+        address indexed tradingPool,
+        uint256 startingAllocation
     );
 
     event AllocationUpdate(
-        address indexed _tradingPool,
-        uint256 _oldAllocation,
-        uint256 _newAllocation
+        address indexed tradingPool,
+        uint256 oldAllocation,
+        uint256 newAllocation
     );
 
     event NewTrader(
-        address indexed _tradingPool,
-        address _oldTrader,
-        address _newTrader
+        address indexed tradingPool,
+        address indexed oldTrader,
+        address indexed newTrader
     );
 
     /* ============ Modifier ============ */
@@ -74,7 +76,9 @@ contract SocialTradingManager {
 
     /* ============ Constants ============ */
 
-    uint256 public constant REBALANCING_SET_NATURAL_UNIT = 10 ** 6;
+    uint256 public constant REBALANCING_SET_NATURAL_UNIT = 1e6;
+    uint public constant ONE_PERCENT = 1e16;
+    uint256 constant public MAXIMUM_ALLOCATION = 1e18;
 
     /* ============ State Variables ============ */
 
@@ -87,12 +91,15 @@ contract SocialTradingManager {
      *
      * @param  _core                            The address of the Core contract
      * @param  _factory                         Factory to use for RebalancingSetToken creation
+     * @param  _whiteListedAllocators           List of allocator addresses to WhiteList
      */
     constructor(
         ICore _core,
-        address _factory
+        address _factory,
+        address[] memory _whiteListedAllocators
     )
         public
+        WhiteList(_whiteListedAllocators)
     {
         core = _core;
         factory = _factory;
@@ -123,7 +130,7 @@ contract SocialTradingManager {
     )
         external
     {
-        validateAllocationAmount(_startingBaseAssetAllocation);
+        validateCreateTradingPool(_tradingPairAllocator, _startingBaseAssetAllocation, _rebalancingSetCallData);
 
         ISetToken collateralSet = _tradingPairAllocator.determineNewAllocation(
             _startingBaseAssetAllocation
@@ -253,7 +260,34 @@ contract SocialTradingManager {
     /* ============ Internal ============ */
 
     /*
-     * Validate trading pool allocation update. Make sure trader is caller, allocation is valid,
+     * Validate trading pool creation. Make sure allocation is valid, allocator is white listed and
+     * manager passed in rebalancingSetCallData is this address.
+     *
+     * @param _tradingPairAllocator             The address of allocator being used in trading pool
+     * @param _startingBaseAssetAllocation      New base asset allocation in a scaled decimal value
+     *                                          (e.g. 100% = 1e18, 1% = 1e16)
+     * @param _rebalancingSetCallData           Byte string containing RebalancingSetTokenV2 call parameters
+     */
+    function validateCreateTradingPool(
+        ISocialAllocator _tradingPairAllocator,
+        uint256 _startingBaseAssetAllocation,
+        bytes memory _rebalancingSetCallData
+    )
+        internal
+        view
+    {
+        validateAllocationAmount(_startingBaseAssetAllocation);
+
+        validateManagerAddress(_rebalancingSetCallData);
+
+        require(
+            whiteList[address(_tradingPairAllocator)],
+            "SocialTradingManager.validateCreateTradingPool: Passed allocator is not valid."
+        );
+    }
+
+    /*
+     * Validate trading pool allocation update. Make sure allocation is valid,
      * and RebalancingSet is in valid state.
      *
      * @param _tradingPool        The address of the trading pool being updated
@@ -285,6 +319,12 @@ contract SocialTradingManager {
         );        
     }
 
+    /*
+     * Validate passed allocation amount.
+     *
+     * @param _alocation      New base asset allocation in a scaled decimal value
+     *                                          (e.g. 100% = 1e18, 1% = 1e16)
+     */
     function validateAllocationAmount(
         uint256 _allocation
     )
@@ -292,13 +332,36 @@ contract SocialTradingManager {
         view
     {
         require(
-            _allocation <= CommonMath.scaleFactor(),
+            _allocation <= MAXIMUM_ALLOCATION,
             "Passed allocation must not exceed 100%."
         );
 
         require(
-            _allocation.mod(CommonMath.scaleFactor().div(100)) == 0,
-            "Passed allocation must be multiple of 1% or 0%."
+            _allocation.mod(ONE_PERCENT) == 0,
+            "Passed allocation must be multiple of 1%."
+        );
+    }
+
+    /*
+     * Validate passed manager in RebalancingSetToken bytes arg matches this address.
+     *
+     * @param _rebalancingSetCallData       Byte string containing RebalancingSetTokenV2 call parameters
+     */
+    function validateManagerAddress(
+        bytes memory _rebalancingSetCallData
+    )
+        internal
+        view
+    {
+        address manager;
+
+        assembly {
+            manager := mload(add(_rebalancingSetCallData, 32))   // manager slot
+        }
+
+        require(
+            manager == address(this),
+            "SocialTradingManager.validateCallDataArgs: Passed manager address is not this address."
         );
     }
 

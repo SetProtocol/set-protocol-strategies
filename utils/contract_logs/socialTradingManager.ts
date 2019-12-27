@@ -2,54 +2,54 @@ import { Address, Log } from 'set-protocol-utils';
 import { BigNumber } from 'bignumber.js';
 
 export function LogTradingPoolCreated(
-  _trader: Address,
-  _allocator: Address,
-  _tradingPool: Address,
-  _startingAllocation: BigNumber,
+  trader: Address,
+  allocator: Address,
+  tradingPool: Address,
+  startingAllocation: BigNumber,
   contractAddress: Address,
 ): Log[] {
   return [{
     event: 'TradingPoolCreated',
     address: contractAddress,
     args: {
-      _trader,
-      _allocator,
-      _tradingPool,
-      _startingAllocation,
+      trader,
+      allocator,
+      tradingPool,
+      startingAllocation,
     },
   }];
 }
 
 export function LogAllocationUpdate(
-  _tradingPool: Address,
-  _oldAllocation: BigNumber,
-  _newAllocation: BigNumber,
+  tradingPool: Address,
+  oldAllocation: BigNumber,
+  newAllocation: BigNumber,
   contractAddress: Address,
 ): Log[] {
   return [{
     event: 'AllocationUpdate',
     address: contractAddress,
     args: {
-      _tradingPool,
-      _oldAllocation,
-      _newAllocation,
+      tradingPool,
+      oldAllocation,
+      newAllocation,
     },
   }];
 }
 
 export function LogNewTrader(
-  _tradingPool: Address,
-  _oldTrader: Address,
-  _newTrader: Address,
+  tradingPool: Address,
+  oldTrader: Address,
+  newTrader: Address,
   contractAddress: Address,
 ): Log[] {
   return [{
     event: 'NewTrader',
     address: contractAddress,
     args: {
-      _tradingPool,
-      _oldTrader,
-      _newTrader,
+      tradingPool,
+      oldTrader,
+      newTrader,
     },
   }];
 }

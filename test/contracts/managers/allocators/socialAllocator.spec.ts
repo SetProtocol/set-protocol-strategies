@@ -250,6 +250,48 @@ contract('SocialAllocator', accounts => {
       expect(actualQuoteAssetDecimals).to.be.bignumber.equal(expectedQuoteAssetDecimals);
     });
 
+    it('sets the correct baseAssetFullUnitMultiplier', async () => {
+      allocator = await subject();
+
+      const baseAssetDecimals = await allocator.baseAssetDecimals.callAsync();
+      const quoteAssetDecimals = await allocator.quoteAssetDecimals.callAsync();
+      const minDecimals = Math.min(baseAssetDecimals.toNumber(), quoteAssetDecimals.toNumber());
+
+      const expectedBaseAssetFullUnitMultiplier = new BigNumber(10 ** (baseAssetDecimals.toNumber() - minDecimals));
+
+      const actualBaseAssetFullUnitMultiplier = await allocator.baseAssetFullUnitMultiplier.callAsync();
+
+      expect(actualBaseAssetFullUnitMultiplier).to.be.bignumber.equal(expectedBaseAssetFullUnitMultiplier);
+    });
+
+    it('sets the correct quoteAssetFullUnitMultiplier', async () => {
+      allocator = await subject();
+
+      const baseAssetDecimals = await allocator.baseAssetDecimals.callAsync();
+      const quoteAssetDecimals = await allocator.quoteAssetDecimals.callAsync();
+      const minDecimals = Math.min(baseAssetDecimals.toNumber(), quoteAssetDecimals.toNumber());
+
+      const expectedQuoteAssetFullUnitMultiplier = new BigNumber(10 ** (quoteAssetDecimals.toNumber() - minDecimals));
+
+      const actualQuoteAssetFullUnitMultiplier = await allocator.quoteAssetFullUnitMultiplier.callAsync();
+
+      expect(actualQuoteAssetFullUnitMultiplier).to.be.bignumber.equal(expectedQuoteAssetFullUnitMultiplier);
+    });
+
+    it('sets the correct collateralNaturalUnit', async () => {
+      allocator = await subject();
+
+      const quoteAssetFullUnitMultiplier = await allocator.quoteAssetFullUnitMultiplier.callAsync();
+      const baseAssetFullUnitMultiplier = await allocator.baseAssetFullUnitMultiplier.callAsync();
+      const expectedCollateralNaturalUnit = subjectPricePrecision.mul(
+        Math.max(quoteAssetFullUnitMultiplier.toNumber(), baseAssetFullUnitMultiplier.toNumber())
+      );
+
+      const actualCollateralNaturalUnit = await allocator.collateralNaturalUnit.callAsync();
+
+      expect(actualCollateralNaturalUnit).to.be.bignumber.equal(expectedCollateralNaturalUnit);
+    });
+
     it('sets the correct collateral name', async () => {
       allocator = await subject();
 
@@ -264,6 +306,16 @@ contract('SocialAllocator', accounts => {
       const actualCollateralSymbol = await allocator.collateralSymbol.callAsync();
 
       expect(actualCollateralSymbol).to.equal(subjectCollateralSymbol);
+    });
+
+    describe('but price precision is not greater than 0', async () => {
+      beforeEach(async () => {
+        subjectPricePrecision = ZERO;
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
     });
   });
 
