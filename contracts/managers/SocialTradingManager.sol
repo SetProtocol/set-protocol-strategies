@@ -18,7 +18,6 @@ pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import { CommonMath } from "set-protocol-contracts/contracts/lib/CommonMath.sol";
 import { ICore } from "set-protocol-contracts/contracts/core/interfaces/ICore.sol";
 import { ILiquidator } from "set-protocol-contracts/contracts/core/interfaces/ILiquidator.sol";
 import { IRebalancingSetTokenV2 } from "set-protocol-contracts/contracts/core/interfaces/IRebalancingSetTokenV2.sol";
