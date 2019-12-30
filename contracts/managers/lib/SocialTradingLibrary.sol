@@ -33,5 +33,7 @@ library SocialTradingLibrary {
         address trader;                 // Address allowed to make admin and allocation decisions
         ISocialAllocator allocator;     // Allocator used to make collateral Sets, defines asset pair being used
         uint256 currentAllocation;      // Current base asset allocation of tradingPool
+        uint256 newEntryFee;            // New fee percentage to change to after time lock passes, defaults to 0
+        uint256 feeUpdateTimestamp;     // Timestamp when fee update process can be finalized, defaults to maxUint256
     }
 }
