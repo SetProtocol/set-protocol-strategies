@@ -165,7 +165,7 @@ contract('SocialAllocator', accounts => {
     blockchain.revertAsync();
   });
 
-  describe.only('#constructor', async () => {
+  describe('#constructor', async () => {
     let subjectBaseAsset: Address;
     let subjectQuoteAsset: Address;
     let subjectOracleWhiteList: Address;
@@ -322,7 +322,7 @@ contract('SocialAllocator', accounts => {
       expect(actualCollateralSymbol).to.equal(subjectCollateralSymbol);
     });
 
-    describe.only('but no 18 decimal tokens are used', async () => {
+    describe('but no 18 decimal tokens are used', async () => {
       beforeEach(async () => {
         subjectBaseAsset = wrappedBTC.address;
         subjectQuoteAsset = usdcMock.address;
