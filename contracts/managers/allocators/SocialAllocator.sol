@@ -129,7 +129,7 @@ contract SocialAllocator is
         quoteAssetFullUnitMultiplier = CommonMath.safePower(10, uint256(quoteAssetDecimals).sub(minDecimals));
 
         // NaturalUnit is equal to max(a1DecimalDifference, a2DecimalDifference) * pricePrecision
-        collateralNaturalUnit = Math.max(baseAssetFullUnitMultiplier, quoteAssetFullUnitMultiplier)
+        collateralNaturalUnit = CommonMath.safePower(10, uint256(18).sub(minDecimals))
             .mul(pricePrecision);
 
         // Next set components will always be in order of base asset first

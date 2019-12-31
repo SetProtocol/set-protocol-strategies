@@ -22,9 +22,11 @@ import {
   WhiteListContract,
 } from 'set-protocol-contracts';
 import {
+  ConstantPriceOracleContract,
   LegacyMakerOracleAdapterContract,
   OracleProxyContract,
   SocialAllocatorContract,
+  USDCMockContract,
 } from '@utils/contracts';
 
 import {
@@ -60,8 +62,10 @@ contract('SocialAllocator', accounts => {
   let factory: SetTokenFactoryContract;
   let whiteList: WhiteListContract;
   let oracleWhiteList: Address;
+
   let wrappedBTC: StandardTokenMockContract;
   let wrappedETH: WethMockContract;
+  let usdcMock: USDCMockContract;
 
   let ethMedianizer: MedianContract;
   let ethLegacyMakerOracleAdapter: LegacyMakerOracleAdapterContract;
@@ -71,10 +75,13 @@ contract('SocialAllocator', accounts => {
   let btcLegacyMakerOracleAdapter: LegacyMakerOracleAdapterContract;
   let btcOracleProxy: OracleProxyContract;
 
+  let usdcOracle: ConstantPriceOracleContract;
+
   let allocator: SocialAllocatorContract;
 
   let initialEthPrice: BigNumber;
   let initialBtcPrice: BigNumber;
+  const usdcPrice: BigNumber = ether(1);
 
   const protocolHelper = new ProtocolHelper(deployerAccount);
   const erc20Helper = new ERC20Helper(deployerAccount);
@@ -103,6 +110,10 @@ contract('SocialAllocator', accounts => {
     btcMedianizer = await oracleHelper.deployMedianizerAsync();
     await oracleHelper.addPriceFeedOwnerToMedianizer(btcMedianizer, deployerAccount);
 
+    usdcOracle = await oracleHelper.deployConstantPriceOracleAsync(
+      usdcPrice
+    );
+
     initialEthPrice = ether(180);
     await oracleHelper.updateMedianizerPriceAsync(
       ethMedianizer,
@@ -124,6 +135,10 @@ contract('SocialAllocator', accounts => {
 
     wrappedETH = await protocolHelper.getDeployedWETHAsync();
 
+    usdcMock = await erc20Helper.deployUSDCTokenAsync(
+      deployerAccount
+    );
+
     ethLegacyMakerOracleAdapter = await oracleHelper.deployLegacyMakerOracleAdapterAsync(
       ethMedianizer.address,
     );
@@ -141,8 +156,8 @@ contract('SocialAllocator', accounts => {
     );
 
     oracleWhiteList = await protocolHelper.deployOracleWhiteListAsync(
-      [wrappedETH.address, wrappedBTC.address],
-      [ethOracleProxy.address, btcOracleProxy.address],
+      [wrappedETH.address, wrappedBTC.address, usdcMock.address],
+      [ethOracleProxy.address, btcOracleProxy.address, usdcOracle.address],
     );
   });
 
@@ -281,11 +296,10 @@ contract('SocialAllocator', accounts => {
     it('sets the correct collateralNaturalUnit', async () => {
       allocator = await subject();
 
-      const quoteAssetFullUnitMultiplier = await allocator.quoteAssetFullUnitMultiplier.callAsync();
-      const baseAssetFullUnitMultiplier = await allocator.baseAssetFullUnitMultiplier.callAsync();
-      const expectedCollateralNaturalUnit = subjectPricePrecision.mul(
-        Math.max(quoteAssetFullUnitMultiplier.toNumber(), baseAssetFullUnitMultiplier.toNumber())
-      );
+      const quoteAssetDecimals = await allocator.quoteAssetDecimals.callAsync();
+      const baseAssetDecimals = await allocator.baseAssetDecimals.callAsync();
+      const minDecimals = BigNumber.min(quoteAssetDecimals, baseAssetDecimals).toNumber();
+      const expectedCollateralNaturalUnit = new BigNumber(10 ** (18 - minDecimals)).mul(subjectPricePrecision);
 
       const actualCollateralNaturalUnit = await allocator.collateralNaturalUnit.callAsync();
 
@@ -308,6 +322,54 @@ contract('SocialAllocator', accounts => {
       expect(actualCollateralSymbol).to.equal(subjectCollateralSymbol);
     });
 
+    describe('but no 18 decimal tokens are used', async () => {
+      beforeEach(async () => {
+        subjectBaseAsset = wrappedBTC.address;
+        subjectQuoteAsset = usdcMock.address;
+      });
+
+      it('sets the correct baseAssetFullUnitMultiplier', async () => {
+        allocator = await subject();
+
+        const baseAssetDecimals = await allocator.baseAssetDecimals.callAsync();
+        const quoteAssetDecimals = await allocator.quoteAssetDecimals.callAsync();
+        const minDecimals = Math.min(baseAssetDecimals.toNumber(), quoteAssetDecimals.toNumber());
+
+        const expectedBaseAssetFullUnitMultiplier = new BigNumber(10 ** (baseAssetDecimals.toNumber() - minDecimals));
+
+        const actualBaseAssetFullUnitMultiplier = await allocator.baseAssetFullUnitMultiplier.callAsync();
+
+        expect(actualBaseAssetFullUnitMultiplier).to.be.bignumber.equal(expectedBaseAssetFullUnitMultiplier);
+      });
+
+      it('sets the correct quoteAssetFullUnitMultiplier', async () => {
+        allocator = await subject();
+
+        const baseAssetDecimals = await allocator.baseAssetDecimals.callAsync();
+        const quoteAssetDecimals = await allocator.quoteAssetDecimals.callAsync();
+        const minDecimals = Math.min(baseAssetDecimals.toNumber(), quoteAssetDecimals.toNumber());
+
+        const expectedQuoteAssetFullUnitMultiplier = new BigNumber(10 ** (quoteAssetDecimals.toNumber() - minDecimals));
+
+        const actualQuoteAssetFullUnitMultiplier = await allocator.quoteAssetFullUnitMultiplier.callAsync();
+
+        expect(actualQuoteAssetFullUnitMultiplier).to.be.bignumber.equal(expectedQuoteAssetFullUnitMultiplier);
+      });
+
+      it('sets the correct collateralNaturalUnit', async () => {
+        allocator = await subject();
+
+        const quoteAssetDecimals = await allocator.quoteAssetDecimals.callAsync();
+        const baseAssetDecimals = await allocator.baseAssetDecimals.callAsync();
+        const minDecimals = BigNumber.min(quoteAssetDecimals, baseAssetDecimals).toNumber();
+        const expectedCollateralNaturalUnit = new BigNumber(10 ** (18 - minDecimals)).mul(subjectPricePrecision);
+
+        const actualCollateralNaturalUnit = await allocator.collateralNaturalUnit.callAsync();
+
+        expect(actualCollateralNaturalUnit).to.be.bignumber.equal(expectedCollateralNaturalUnit);
+      });
+    });
+
     describe('but price precision is not greater than 0', async () => {
       beforeEach(async () => {
         subjectPricePrecision = ZERO;
@@ -327,9 +389,12 @@ contract('SocialAllocator', accounts => {
 
     const scaleFactor = new BigNumber(10 ** 18);
 
-    beforeEach(async () => {
+    before(async () => {
       baseAsset = wrappedETH.address;
       quoteAsset = wrappedBTC.address;
+    });
+
+    beforeEach(async () => {
       allocator = await managerHelper.deploySocialAllocatorAsync(
         baseAsset,
         quoteAsset,
@@ -411,6 +476,61 @@ contract('SocialAllocator', accounts => {
       const expectedNaturalUnit = new BigNumber(10 ** 12);
 
       expect(actualNaturalUnit).to.be.bignumber.equal(expectedNaturalUnit);
+    });
+
+    describe('but no 18 decimal tokens are used', async () => {
+      before(async () => {
+        baseAsset = wrappedBTC.address;
+        quoteAsset = usdcMock.address;
+      });
+
+      after(async () => {
+        baseAsset = wrappedETH.address;
+        quoteAsset = wrappedBTC.address;
+      });
+
+      it('new collateral should have correct naturalUnit', async () => {
+        const txHash = await subject();
+
+        const logs = await setTestUtils.getLogsFromTxHash(txHash);
+        const expectedSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
+        const nextSet = await protocolHelper.getSetTokenAsync(expectedSetAddress);
+
+        const actualNaturalUnit = await nextSet.naturalUnit.callAsync();
+        const expectedNaturalUnit = new BigNumber(10 ** 14);
+
+        expect(actualNaturalUnit).to.be.bignumber.equal(expectedNaturalUnit);
+      });
+
+      it('new collateral should have correct units array', async () => {
+        const txHash = await subject();
+
+        const logs = await setTestUtils.getLogsFromTxHash(txHash);
+        const expectedSetAddress = extractNewSetTokenAddressFromLogs([logs[0]]);
+        const nextSet = await protocolHelper.getSetTokenAsync(expectedSetAddress);
+
+        const actualUnitsArray = await nextSet.getUnits.callAsync();
+
+        const baseAssetWeight = BigNumber.max(
+          subjectTargetBaseAssetAllocation.div(scaleFactor.sub(subjectTargetBaseAssetAllocation)),
+          ONE
+        );
+        const quoteAssetWeight = BigNumber.max(
+          scaleFactor.sub(subjectTargetBaseAssetAllocation).div(subjectTargetBaseAssetAllocation),
+          ONE
+        );
+
+        const expectedParams = managerHelper.getExpectedGeneralNextSetParameters(
+          initialBtcPrice,
+          usdcPrice,
+          baseAssetWeight,
+          quoteAssetWeight,
+          new BigNumber(100),
+          new BigNumber(100)
+        );
+
+        expect(JSON.stringify(actualUnitsArray)).to.be.eql(JSON.stringify(expectedParams['units']));
+      });
     });
 
     describe('but new allocation is all base asset', async () => {
