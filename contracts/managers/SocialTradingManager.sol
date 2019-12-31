@@ -231,7 +231,7 @@ contract SocialTradingManager is
      * @param _newEntryFee        New entry fee in a scaled decimal value
      *                              (e.g. 100% = 1e18, 1% = 1e16)
      */
-    function initiateSetEntryFee(
+    function initiateEntryFeeChange(
         IRebalancingSetTokenV2 _tradingPool,
         uint256 _newEntryFee
     )
@@ -251,7 +251,7 @@ contract SocialTradingManager is
      *
      * @param _tradingPool        The address of the trading pool being updated
      */
-    function finalizeSetEntryFee(
+    function finalizeEntryFeeChange(
         IRebalancingSetTokenV2 _tradingPool
     )
         external
@@ -269,12 +269,14 @@ contract SocialTradingManager is
             "SocialTradingManager.finalizeSetFeeRecipient: Time lock period must elapse to update fees."
         );
 
-        // Save entryFee to memory and reset fee related attributes
-        uint256 newEntryFee = newEntryFee(_tradingPool);
+        // Reset timestamp to avoid reentrancy
         pools[address(_tradingPool)].feeUpdateTimestamp = 0;
-        pools[address(_tradingPool)].newEntryFee = 0;
 
-        _tradingPool.setEntryFee(newEntryFee); 
+        // Update fee on RebalancingSetTokenV2
+        _tradingPool.setEntryFee(newEntryFee(_tradingPool));
+
+        // Reset newEntryFee
+        pools[address(_tradingPool)].newEntryFee = 0;
     }
 
     /*

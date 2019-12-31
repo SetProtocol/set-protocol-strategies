@@ -755,7 +755,7 @@ contract('SocialTradingManager', accounts => {
     });
   });
 
-  describe('#initiateSetEntryFee', async () => {
+  describe('#initiateEntryFeeChange', async () => {
     let subjectTradingPool: Address;
     let subjectNewEntryFee: BigNumber;
     let subjectCaller: Address;
@@ -813,7 +813,7 @@ contract('SocialTradingManager', accounts => {
     });
 
     async function subject(): Promise<string> {
-      return setManager.initiateSetEntryFee.sendTransactionAsync(
+      return setManager.initiateEntryFeeChange.sendTransactionAsync(
         subjectTradingPool,
         subjectNewEntryFee,
         { from: subjectCaller }
@@ -860,7 +860,7 @@ contract('SocialTradingManager', accounts => {
     });
   });
 
-  describe('#finalizeSetEntryFee', async () => {
+  describe('#finalizeEntryFeeChange', async () => {
     let subjectTradingPool: Address;
     let subjectCaller: Address;
     let subjectTimeFastForward: BigNumber;
@@ -920,7 +920,7 @@ contract('SocialTradingManager', accounts => {
 
       if (initializeFeeChange) {
         newEntryFee = ether(.02);
-        await setManager.initiateSetEntryFee.sendTransactionAsync(
+        await setManager.initiateEntryFeeChange.sendTransactionAsync(
           subjectTradingPool,
           newEntryFee,
           { from: subjectCaller }
@@ -932,7 +932,7 @@ contract('SocialTradingManager', accounts => {
 
     async function subject(): Promise<string> {
       await blockchain.increaseTimeAsync(subjectTimeFastForward);
-      return setManager.finalizeSetEntryFee.sendTransactionAsync(
+      return setManager.finalizeEntryFeeChange.sendTransactionAsync(
         subjectTradingPool,
         { from: subjectCaller }
       );
