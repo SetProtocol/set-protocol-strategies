@@ -2,6 +2,7 @@ import * as _ from 'lodash';
 import * as ethUtil from 'ethereumjs-util';
 import * as setProtocolUtils from 'set-protocol-utils';
 import { Address, Bytes } from 'set-protocol-utils';
+import { ether } from '@utils/units';
 
 import { SetTokenContract, MedianContract } from 'set-protocol-contracts';
 
@@ -29,6 +30,7 @@ import {
   DEFAULT_GAS,
   DEFAULT_REBALANCING_NATURAL_UNIT,
   ETH_DECIMALS,
+  ONE_DAY_IN_SECONDS,
   ONE_HOUR_IN_SECONDS,
   USDC_DECIMALS,
   VALUE_TO_CENTS_CONVERSION,
@@ -319,12 +321,16 @@ export class ManagerHelper {
     coreInstance: Address,
     factory: Address,
     whiteListedAllocators: Address[],
+    maxEntryFee: BigNumber = ether(.1),
+    feeUpdateTimelock: BigNumber = ONE_DAY_IN_SECONDS,
     from: Address = this._tokenOwnerAddress
   ): Promise<SocialTradingManagerContract> {
     const truffleRebalacingTokenManager = await SocialTradingManager.new(
       coreInstance,
       factory,
       whiteListedAllocators,
+      maxEntryFee,
+      feeUpdateTimelock,
       { from },
     );
 

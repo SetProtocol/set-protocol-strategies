@@ -86,23 +86,35 @@ contract SocialTradingManager is
     address public factory;
     mapping(address => SocialTradingLibrary.PoolInfo) public pools;
 
+    uint256 public maxEntryFee;
+    uint256 public feeUpdateTimelock;
+
     /*
      * SocialTradingManager constructor.
      *
      * @param  _core                            The address of the Core contract
      * @param  _factory                         Factory to use for RebalancingSetToken creation
      * @param  _whiteListedAllocators           List of allocator addresses to WhiteList
+     * @param  _maxEntryFee                     Max entry fee when updating fees in a scaled decimal value
+     *                                          (e.g. 1% = 1e16, 1bp = 1e14)
+     * @param  _feeUpdateTimelock               Amount of time trader must wait between starting fee update
+     *                                          and finalizing fee update
      */
     constructor(
         ICore _core,
         address _factory,
-        address[] memory _whiteListedAllocators
+        address[] memory _whiteListedAllocators,
+        uint256 _maxEntryFee,
+        uint256 _feeUpdateTimelock
     )
         public
         WhiteList(_whiteListedAllocators)
     {
         core = _core;
         factory = _factory;
+
+        maxEntryFee = _maxEntryFee;
+        feeUpdateTimelock = _feeUpdateTimelock;
     }
 
     /* ============ External ============ */
@@ -130,14 +142,17 @@ contract SocialTradingManager is
     )
         external
     {
+        // Validate relevant params
         validateCreateTradingPool(_tradingPairAllocator, _startingBaseAssetAllocation, _rebalancingSetCallData);
 
+        // Get collateral Set
         ISetToken collateralSet = _tradingPairAllocator.determineNewAllocation(
             _startingBaseAssetAllocation
         );
 
         uint256[] memory unitShares = new uint256[](1);
 
+        // Value collateral
         uint256 collateralValue = _tradingPairAllocator.calculateCollateralSetValue(
             collateralSet
         );
@@ -148,6 +163,7 @@ contract SocialTradingManager is
         address[] memory components = new address[](1);
         components[0] = address(collateralSet);
 
+        // Create tradingPool
         address tradingPool = core.createSet(
             factory,
             components,
@@ -161,6 +177,7 @@ contract SocialTradingManager is
         pools[tradingPool].trader = msg.sender;
         pools[tradingPool].allocator = _tradingPairAllocator;
         pools[tradingPool].currentAllocation = _startingBaseAssetAllocation;
+        pools[tradingPool].feeUpdateTimestamp = 0;
 
         emit TradingPoolCreated(
             msg.sender,
@@ -186,12 +203,15 @@ contract SocialTradingManager is
         external
         onlyTrader(_tradingPool)
     {
+        // Validate updateAllocation params
         validateAllocationUpdate(_tradingPool, _newAllocation);
 
+        // Create nextSet collateral
         ISetToken nextSet = allocator(_tradingPool).determineNewAllocation(
             _newAllocation
         );
 
+        // Trigger start rebalance on RebalancingSetTokenV2
         _tradingPool.startRebalance(address(nextSet), _liquidatorData);
 
         emit AllocationUpdate(
@@ -200,7 +220,63 @@ contract SocialTradingManager is
             _newAllocation
         );
 
+        // Save new allocation
         pools[address(_tradingPool)].currentAllocation = _newAllocation;
+    }
+
+    /*
+     * Start fee update process, set fee update timestamp and commit to new fee.
+     *
+     * @param _tradingPool        The address of the trading pool being updated
+     * @param _newEntryFee        New entry fee in a scaled decimal value
+     *                              (e.g. 100% = 1e18, 1% = 1e16)
+     */
+    function initiateEntryFeeChange(
+        IRebalancingSetTokenV2 _tradingPool,
+        uint256 _newEntryFee
+    )
+        external
+        onlyTrader(_tradingPool)
+    {
+        // Validate new entry fee doesn't exceed max
+        validateNewEntryFee(_newEntryFee);
+
+        // Log new entryFee and timestamp to start timelock from
+        pools[address(_tradingPool)].feeUpdateTimestamp = block.timestamp.add(feeUpdateTimelock);
+        pools[address(_tradingPool)].newEntryFee = _newEntryFee;
+    }
+
+    /*
+     * Finalize fee update, change fee on RebalancingSetTokenV2 if time lock period has elapsed.
+     *
+     * @param _tradingPool        The address of the trading pool being updated
+     */
+    function finalizeEntryFeeChange(
+        IRebalancingSetTokenV2 _tradingPool
+    )
+        external
+        onlyTrader(_tradingPool)
+    {
+        // If feeUpdateTimestamp is equal to 0 indicates initiate wasn't called
+        require(
+            feeUpdateTimestamp(_tradingPool) != 0,
+            "SocialTradingManager.finalizeSetFeeRecipient: Must initiate fee change first."
+        );
+
+        // Current block timestamp must exceed feeUpdateTimestamp
+        require(
+            block.timestamp >= feeUpdateTimestamp(_tradingPool),
+            "SocialTradingManager.finalizeSetFeeRecipient: Time lock period must elapse to update fees."
+        );
+
+        // Reset timestamp to avoid reentrancy
+        pools[address(_tradingPool)].feeUpdateTimestamp = 0;
+
+        // Update fee on RebalancingSetTokenV2
+        _tradingPool.setEntryFee(newEntryFee(_tradingPool));
+
+        // Reset newEntryFee
+        pools[address(_tradingPool)].newEntryFee = 0;
     }
 
     /*
@@ -322,7 +398,7 @@ contract SocialTradingManager is
     /*
      * Validate passed allocation amount.
      *
-     * @param _alocation      New base asset allocation in a scaled decimal value
+     * @param _allocation      New base asset allocation in a scaled decimal value
      *                                          (e.g. 100% = 1e18, 1% = 1e16)
      */
     function validateAllocationAmount(
@@ -339,6 +415,24 @@ contract SocialTradingManager is
         require(
             _allocation.mod(ONE_PERCENT) == 0,
             "Passed allocation must be multiple of 1%."
+        );
+    }
+
+    /*
+     * Validate new entry fee.
+     *
+     * @param _entryFee      New entry fee in a scaled decimal value
+     *                          (e.g. 100% = 1e18, 1% = 1e16)
+     */
+    function validateNewEntryFee(
+        uint256 _entryFee
+    )
+        internal
+        view
+    {
+        require(
+            _entryFee <= maxEntryFee,
+            "SocialTradingManager.validateNewEntryFee: Passed entry fee must not exceed maxEntryFee."
         );
     }
 
@@ -375,5 +469,13 @@ contract SocialTradingManager is
 
     function currentAllocation(IRebalancingSetTokenV2 _tradingPool) internal view returns (uint256) {
         return pools[address(_tradingPool)].currentAllocation;
+    }
+
+    function feeUpdateTimestamp(IRebalancingSetTokenV2 _tradingPool) internal view returns (uint256) {
+        return pools[address(_tradingPool)].feeUpdateTimestamp;
+    }
+
+    function newEntryFee(IRebalancingSetTokenV2 _tradingPool) internal view returns (uint256) {
+        return pools[address(_tradingPool)].newEntryFee;
     }
 }

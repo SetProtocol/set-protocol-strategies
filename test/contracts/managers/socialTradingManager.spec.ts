@@ -225,12 +225,16 @@ contract('SocialTradingManager', accounts => {
     let subjectCore: Address;
     let subjectFactory: Address;
     let subjectWhiteListedAllocators: Address[];
+    let subjectMaxEntryFee: BigNumber;
+    let subjectFeeUpdateTimelock: BigNumber;
     let subjectCaller: Address;
 
     beforeEach(async () => {
       subjectCore = core.address;
       subjectFactory = rebalancingFactory;
       subjectWhiteListedAllocators = [allocator.address, newAllocator];
+      subjectMaxEntryFee = ether(.1);
+      subjectFeeUpdateTimelock = ONE_DAY_IN_SECONDS;
       subjectCaller = deployerAccount;
     });
 
@@ -239,6 +243,8 @@ contract('SocialTradingManager', accounts => {
         subjectCore,
         subjectFactory,
         subjectWhiteListedAllocators,
+        subjectMaxEntryFee,
+        subjectFeeUpdateTimelock,
         subjectCaller,
       );
     }
@@ -265,6 +271,22 @@ contract('SocialTradingManager', accounts => {
       const actualWhiteListedAllocators = await setManager.validAddresses.callAsync();
 
       expect(JSON.stringify(actualWhiteListedAllocators)).to.equal(JSON.stringify(subjectWhiteListedAllocators));
+    });
+
+    it('sets the correct maxEntryFee', async () => {
+      setManager = await subject();
+
+      const actualMaxEntryFee = await setManager.maxEntryFee.callAsync();
+
+      expect(actualMaxEntryFee).to.be.bignumber.equal(subjectMaxEntryFee);
+    });
+
+    it('sets the correct feeUpdateTimelock', async () => {
+      setManager = await subject();
+
+      const actualFeeUpdateTimelock = await setManager.feeUpdateTimelock.callAsync();
+
+      expect(actualFeeUpdateTimelock).to.be.bignumber.equal(subjectFeeUpdateTimelock);
     });
   });
 
@@ -345,11 +367,12 @@ contract('SocialTradingManager', accounts => {
       const logs = await setTestUtils.getLogsFromTxHash(txHash);
       const poolAddress = extractNewSetTokenAddressFromLogs(logs, 2);
 
-      const poolInfo = await setManager.pools.callAsync(poolAddress);
+      const poolInfo: any = await setManager.pools.callAsync(poolAddress);
 
-      expect(poolInfo['trader']).to.equal(subjectCaller);
-      expect(poolInfo['allocator']).to.equal(subjectAllocator);
-      expect(poolInfo['currentAllocation']).to.be.bignumber.equal(subjectStartingBaseAssetAllocation);
+      expect(poolInfo.trader).to.equal(subjectCaller);
+      expect(poolInfo.allocator).to.equal(subjectAllocator);
+      expect(poolInfo.currentAllocation).to.be.bignumber.equal(subjectStartingBaseAssetAllocation);
+      expect(poolInfo.feeUpdateTimestamp).to.be.bignumber.equal(ZERO);
     });
 
     it('emits the correct TradingPoolCreated log', async () => {
@@ -724,6 +747,249 @@ contract('SocialTradingManager', accounts => {
     describe('but rebalance currently underway', async () => {
       beforeEach(async () => {
         await subject();
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+  });
+
+  describe('#initiateEntryFeeChange', async () => {
+    let subjectTradingPool: Address;
+    let subjectNewEntryFee: BigNumber;
+    let subjectCaller: Address;
+
+    beforeEach(async () => {
+      setManager = await managerHelper.deploySocialTradingManagerAsync(
+        core.address,
+        rebalancingFactory,
+        [allocator.address]
+      );
+
+      const callDataManagerAddress = setManager.address;
+      const callDataLiquidator = liquidator;
+      const callDataFeeRecipient = feeRecipient;
+      const callDataFeeCalculator = feeCalculator;
+      const callDataRebalanceInterval = ONE_DAY_IN_SECONDS;
+      const callDataFailAuctionPeriod = ONE_DAY_IN_SECONDS;
+      const { timestamp } = await web3.eth.getBlock('latest');
+      const callDataLastRebalanceTimestamp = timestamp;
+      const callDataEntryFee = ether(.01);
+      const rebalanceFee = ether(.02);
+      const callDataRebalanceFeeCallData = SetUtils.generateFixedFeeCalculatorCalldata(rebalanceFee);
+      const rebalancingSetCallData = SetUtils.generateRebalancingSetTokenV2CallData(
+        callDataManagerAddress,
+        callDataLiquidator,
+        callDataFeeRecipient,
+        callDataFeeCalculator,
+        callDataRebalanceInterval,
+        callDataFailAuctionPeriod,
+        callDataLastRebalanceTimestamp,
+        callDataEntryFee,
+        callDataRebalanceFeeCallData,
+      );
+
+      const usedAlocator = allocator.address;
+      const startingBaseAssetAllocation = ether(.66);
+      const startingValue = ether(100);
+      const name = 'TestSet';
+      const symbol = 'TEST';
+
+      const txHash = await setManager.createTradingPool.sendTransactionAsync(
+        usedAlocator,
+        startingBaseAssetAllocation,
+        startingValue,
+        SetUtils.stringToBytes(name),
+        SetUtils.stringToBytes(symbol),
+        rebalancingSetCallData,
+        { from: deployerAccount }
+      );
+
+      const logs = await setTestUtils.getLogsFromTxHash(txHash);
+      subjectTradingPool = extractNewSetTokenAddressFromLogs(logs, 2);
+      subjectNewEntryFee = ether(.02);
+      subjectCaller = deployerAccount;
+    });
+
+    async function subject(): Promise<string> {
+      return setManager.initiateEntryFeeChange.sendTransactionAsync(
+        subjectTradingPool,
+        subjectNewEntryFee,
+        { from: subjectCaller }
+      );
+    }
+
+    it('sets the new entry fee correctly', async () => {
+      await subject();
+
+      const poolInfo: any = await setManager.pools.callAsync(subjectTradingPool);
+
+      expect(poolInfo.newEntryFee).to.be.bignumber.equal(subjectNewEntryFee);
+    });
+
+    it('sets the correct feeUpdateTimestamp', async () => {
+      await subject();
+      const { timestamp } = await web3.eth.getBlock('latest');
+
+      const poolInfo: any = await setManager.pools.callAsync(subjectTradingPool);
+
+      const expectedTimestamp = ONE_DAY_IN_SECONDS.add(timestamp);
+
+      expect(poolInfo.feeUpdateTimestamp).to.be.bignumber.equal(expectedTimestamp);
+    });
+
+    describe('but caller is not trader', async () => {
+      beforeEach(async () => {
+        subjectCaller = attacker;
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('but new fee exceeds max fee', async () => {
+      beforeEach(async () => {
+        subjectNewEntryFee = ether(.5);
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+  });
+
+  describe('#finalizeEntryFeeChange', async () => {
+    let subjectTradingPool: Address;
+    let subjectCaller: Address;
+    let subjectTimeFastForward: BigNumber;
+
+    let newEntryFee: BigNumber;
+    let initializeFeeChange: boolean = true;
+
+    beforeEach(async () => {
+      setManager = await managerHelper.deploySocialTradingManagerAsync(
+        core.address,
+        rebalancingFactory,
+        [allocator.address]
+      );
+
+      const callDataManagerAddress = setManager.address;
+      const callDataLiquidator = liquidator;
+      const callDataFeeRecipient = feeRecipient;
+      const callDataFeeCalculator = feeCalculator;
+      const callDataRebalanceInterval = ONE_DAY_IN_SECONDS;
+      const callDataFailAuctionPeriod = ONE_DAY_IN_SECONDS;
+      const { timestamp } = await web3.eth.getBlock('latest');
+      const callDataLastRebalanceTimestamp = timestamp;
+      const callDataEntryFee = ether(.01);
+      const rebalanceFee = ether(.02);
+      const callDataRebalanceFeeCallData = SetUtils.generateFixedFeeCalculatorCalldata(rebalanceFee);
+      const rebalancingSetCallData = SetUtils.generateRebalancingSetTokenV2CallData(
+        callDataManagerAddress,
+        callDataLiquidator,
+        callDataFeeRecipient,
+        callDataFeeCalculator,
+        callDataRebalanceInterval,
+        callDataFailAuctionPeriod,
+        callDataLastRebalanceTimestamp,
+        callDataEntryFee,
+        callDataRebalanceFeeCallData,
+      );
+
+      const usedAlocator = allocator.address;
+      const startingBaseAssetAllocation = ether(.66);
+      const startingValue = ether(100);
+      const name = 'TestSet';
+      const symbol = 'TEST';
+
+      const txHash = await setManager.createTradingPool.sendTransactionAsync(
+        usedAlocator,
+        startingBaseAssetAllocation,
+        startingValue,
+        SetUtils.stringToBytes(name),
+        SetUtils.stringToBytes(symbol),
+        rebalancingSetCallData,
+        { from: deployerAccount }
+      );
+
+      const logs = await setTestUtils.getLogsFromTxHash(txHash);
+      subjectTradingPool = extractNewSetTokenAddressFromLogs(logs, 2);
+      subjectCaller = deployerAccount;
+
+      if (initializeFeeChange) {
+        newEntryFee = ether(.02);
+        await setManager.initiateEntryFeeChange.sendTransactionAsync(
+          subjectTradingPool,
+          newEntryFee,
+          { from: subjectCaller }
+        );
+      }
+
+      subjectTimeFastForward = ONE_DAY_IN_SECONDS;
+    });
+
+    async function subject(): Promise<string> {
+      await blockchain.increaseTimeAsync(subjectTimeFastForward);
+      return setManager.finalizeEntryFeeChange.sendTransactionAsync(
+        subjectTradingPool,
+        { from: subjectCaller }
+      );
+    }
+
+    it('sets the new entry fee on RebalancingSetTokenV2', async () => {
+      await subject();
+
+      const poolInstance = await protocolHelper.getRebalancingSetTokenV2Async(subjectTradingPool);
+      const actualNewEntryFee = await poolInstance.entryFee.callAsync();
+
+      expect(actualNewEntryFee).to.be.bignumber.equal(newEntryFee);
+    });
+
+    it('resets the new entry fee in PoolInfo', async () => {
+      await subject();
+
+      const poolInfo: any = await setManager.pools.callAsync(subjectTradingPool);
+
+      expect(poolInfo.newEntryFee).to.be.bignumber.equal(ZERO);
+    });
+
+    it('resets the feeUpdateTimestamp in PoolInfo', async () => {
+      await subject();
+
+      const poolInfo: any = await setManager.pools.callAsync(subjectTradingPool);
+
+      expect(poolInfo.feeUpdateTimestamp).to.be.bignumber.equal(ZERO);
+    });
+
+    describe('but caller is not trader', async () => {
+      beforeEach(async () => {
+        subjectCaller = attacker;
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('but not enough time passed in timelock', async () => {
+      beforeEach(async () => {
+        subjectTimeFastForward = ZERO;
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('but initialize was not called first', async () => {
+      before(async () => {
+        initializeFeeChange = false;
+      });
+
+      after(async () => {
+        initializeFeeChange = true;
       });
 
       it('should revert', async () => {
