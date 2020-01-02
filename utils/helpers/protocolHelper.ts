@@ -7,6 +7,7 @@ import {
   CoreContract,
   FixedFeeCalculator,
   LinearAuctionLiquidator,
+  LinearAuctionLiquidatorContract,
   LinearAuctionPriceCurve,
   LinearAuctionPriceCurveContract,
   MedianContract,
@@ -345,6 +346,15 @@ export class ProtocolHelper {
   ): Promise<SetTokenContract> {
     return new SetTokenContract(
       new web3.eth.Contract(SetToken.abi, setTokenAddress),
+      { from: this._tokenOwnerAddress },
+    );
+  }
+
+  public async getLinearLiquidatorAsync(
+    linearLiquidatorAddress: Address,
+  ): Promise<LinearAuctionLiquidatorContract> {
+    return new LinearAuctionLiquidatorContract(
+      new web3.eth.Contract(LinearAuctionLiquidator.abi, linearLiquidatorAddress),
       { from: this._tokenOwnerAddress },
     );
   }
