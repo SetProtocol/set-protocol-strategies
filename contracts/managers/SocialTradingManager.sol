@@ -379,6 +379,14 @@ contract SocialTradingManager is
     {   
         validateAllocationAmount(_newAllocation);
 
+        // If current allocation is 0/100%, cannot be the same allocation
+        uint256 currentAllocationValue = currentAllocation(_tradingPool);
+        require(
+            !(currentAllocationValue == MAXIMUM_ALLOCATION && _newAllocation == MAXIMUM_ALLOCATION) &&
+            !(currentAllocationValue == 0 && _newAllocation == 0),
+            "SocialTradingManager.validateAllocationUpdate: Invalid allocation"
+        );
+
         // Require that enough time has passed from last rebalance
         uint256 lastRebalanceTimestamp = _tradingPool.lastRebalanceTimestamp();
         uint256 rebalanceInterval = _tradingPool.rebalanceInterval();

@@ -544,6 +544,7 @@ contract('SocialTradingManager', accounts => {
     let subjectCaller: Address;
 
     let startingBaseAssetAllocation: BigNumber;
+    let customStartingBaseAssetAllocation: BigNumber;
 
     beforeEach(async () => {
       setManager = await managerHelper.deploySocialTradingManagerAsync(
@@ -576,7 +577,7 @@ contract('SocialTradingManager', accounts => {
       );
 
       const usedAlocator = allocator.address;
-      startingBaseAssetAllocation = ether(1);
+      startingBaseAssetAllocation = customStartingBaseAssetAllocation || ether(1);
       const startingValue = ether(100);
       const name = 'TestSet';
       const symbol = 'TEST';
@@ -717,6 +718,34 @@ contract('SocialTradingManager', accounts => {
     describe('but passed starting allocation is less than 1%', async () => {
       beforeEach(async () => {
         subjectNewAllocation = ether(.009);
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('but the update allocation is also 100%', async () => {
+      beforeEach(async () => {
+        subjectNewAllocation = ether(1);
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('but the start allocation is 0% and new allocation is 0%', async () => {
+      beforeEach(async () => {
+        subjectNewAllocation = ZERO;
+      });
+
+      before(async () => {
+        customStartingBaseAssetAllocation = ZERO;
+      });
+
+      after(async () => {
+        customStartingBaseAssetAllocation = undefined;
       });
 
       it('should revert', async () => {
