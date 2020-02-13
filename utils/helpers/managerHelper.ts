@@ -5,6 +5,7 @@ import { Address, Bytes } from 'set-protocol-utils';
 import { ether } from '@utils/units';
 
 import { SetTokenContract, MedianContract } from 'set-protocol-contracts';
+import { MovingAverageOracleContract, MovingAverageOracleV2Contract, } from 'set-protocol-oracles';
 
 import {
   AssetPairManagerContract,
@@ -16,8 +17,6 @@ import {
   InverseMACOStrategyManagerContract,
   MACOStrategyManagerContract,
   MACOStrategyManagerV2Contract,
-  MovingAverageOracleContract,
-  MovingAverageOracleV2Contract,
   MovingAverageCrossoverTriggerContract,
   RSITrendingTriggerContract,
   SocialTradingManagerContract,

@@ -28,11 +28,13 @@ import {
 import {
   LegacyMakerOracleAdapterContract,
   LinearizedPriceDataSourceContract,
-  InverseMACOStrategyManagerContract,
   MovingAverageOracleV2Contract,
   OracleProxyContract,
-  USDCMockContract,
   TimeSeriesFeedContract,
+} from 'set-protocol-oracles';
+import {
+  InverseMACOStrategyManagerContract,
+  USDCMockContract,
 } from '@utils/contracts';
 import {
   DEFAULT_GAS,

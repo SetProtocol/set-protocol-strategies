@@ -25,6 +25,8 @@ import {
 import {
   LegacyMakerOracleAdapterContract,
   OracleProxyContract,
+} from 'set-protocol-oracles';
+import {
   SocialAllocatorContract,
   SocialTradingManagerContract,
 } from '@utils/contracts';

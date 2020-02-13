@@ -16,14 +16,15 @@ import { ether } from '@utils/units';
 import {
   MedianContract
 } from 'set-protocol-contracts';
-
 import {
   LegacyMakerOracleAdapterContract,
   LinearizedPriceDataSourceContract,
   RSIOracleContract,
-  RSITrendingTriggerContract,
   OracleProxyContract,
   TimeSeriesFeedContract,
+} from 'set-protocol-oracles';
+import {
+  RSITrendingTriggerContract,
 } from '@utils/contracts';
 
 import {

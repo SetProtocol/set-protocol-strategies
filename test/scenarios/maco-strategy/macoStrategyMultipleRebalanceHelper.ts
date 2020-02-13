@@ -23,8 +23,10 @@ import {
 } from 'set-protocol-contracts';
 import {
   HistoricalPriceFeedContract,
-  MACOStrategyManagerContract,
   MovingAverageOracleContract,
+} from 'set-protocol-oracles';
+import {
+  MACOStrategyManagerContract,
   USDCMockContract,
 } from '@utils/contracts';
 import {

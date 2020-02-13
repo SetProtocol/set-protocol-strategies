@@ -26,13 +26,15 @@ import {
   WhiteListContract,
 } from 'set-protocol-contracts';
 import {
-  BinaryAllocatorContract,
   ConstantPriceOracleContract,
   EMAOracleContract,
   LegacyMakerOracleAdapterContract,
   LinearizedEMATimeSeriesFeedContract,
-  MovingAverageCrossoverTriggerContract,
   OracleProxyContract,
+} from 'set-protocol-oracles';
+import {
+  BinaryAllocatorContract,
+  MovingAverageCrossoverTriggerContract,
   AssetPairManagerContract,
   USDCMockContract,
 } from '@utils/contracts';

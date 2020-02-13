@@ -31,10 +31,6 @@ import {
 } from 'set-protocol-oracles';
 
 import {
-  OracleProxyCallerContract,
-  TimeSeriesFeedV2MockContract,
-} from '../contracts';
-import {
   DEFAULT_GAS,
   ONE_DAY_IN_SECONDS,
   ONE_HOUR_IN_SECONDS,
@@ -63,9 +59,6 @@ const OracleProxy = importFromOracles('OracleProxy');
 const RSIOracle = importFromOracles('RSIOracle');
 const TimeSeriesFeed = importFromOracles('TimeSeriesFeed');
 const TwoAssetLinearizedTimeSeriesFeed = importFromOracles('TwoAssetLinearizedTimeSeriesFeed');
-
-const OracleProxyCaller = artifacts.require('OracleProxyCaller');
-const TimeSeriesFeedV2Mock = artifacts.require('TimeSeriesFeedV2Mock');
 
 const { SetProtocolTestUtils: SetTestUtils, SetProtocolUtils: SetUtils } = setProtocolUtils;
 const setTestUtils = new SetTestUtils(web3);
@@ -142,27 +135,6 @@ export class OracleHelper {
     );
 
     return new TimeSeriesFeedContract(
-      getContractInstance(historicalPriceFeed),
-      txnFrom(from),
-    );
-  }
-
-  public async deployTimeSeriesFeedV2MockAsync(
-    seededValues: BigNumber[],
-    updateInterval: BigNumber = ONE_DAY_IN_SECONDS,
-    nextEarliestUpdate: BigNumber = SetTestUtils.generateTimestamp(updateInterval.toNumber() / 60),
-    maxDataPoints: BigNumber = new BigNumber(200),
-    from: Address = this._contractOwnerAddress
-  ): Promise<TimeSeriesFeedV2MockContract> {
-    const historicalPriceFeed = await TimeSeriesFeedV2Mock.new(
-      updateInterval,
-      nextEarliestUpdate,
-      maxDataPoints,
-      seededValues,
-      txnFrom(from),
-    );
-
-    return new TimeSeriesFeedV2MockContract(
       getContractInstance(historicalPriceFeed),
       txnFrom(from),
     );
@@ -394,21 +366,6 @@ export class OracleHelper {
 
     return new ConstantPriceOracleContract(
       getContractInstance(oracle),
-      txnFrom(from),
-    );
-  }
-
-  public async deployOracleProxyCallerAsync(
-    oracleAddress: Address,
-    from: Address = this._contractOwnerAddress
-  ): Promise<OracleProxyCallerContract> {
-    const oracleProxy = await OracleProxyCaller.new(
-      oracleAddress,
-      txnFrom(from),
-    );
-
-    return new OracleProxyCallerContract(
-      getContractInstance(oracleProxy),
       txnFrom(from),
     );
   }

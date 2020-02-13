@@ -25,6 +25,8 @@ import {
   ConstantPriceOracleContract,
   LegacyMakerOracleAdapterContract,
   OracleProxyContract,
+} from 'set-protocol-oracles';
+import {
   SocialAllocatorContract,
   USDCMockContract,
 } from '@utils/contracts';

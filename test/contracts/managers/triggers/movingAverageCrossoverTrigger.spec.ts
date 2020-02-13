@@ -16,14 +16,15 @@ import { ether } from '@utils/units';
 import {
   MedianContract
 } from 'set-protocol-contracts';
-
 import {
   LegacyMakerOracleAdapterContract,
   LinearizedPriceDataSourceContract,
   MovingAverageOracleV2Contract,
-  MovingAverageCrossoverTriggerContract,
   OracleProxyContract,
   TimeSeriesFeedContract,
+} from 'set-protocol-oracles';
+import {
+  MovingAverageCrossoverTriggerContract,
 } from '@utils/contracts';
 
 import {

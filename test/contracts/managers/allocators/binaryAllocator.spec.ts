@@ -21,11 +21,15 @@ import {
   WethMockContract,
   WhiteListContract,
 } from 'set-protocol-contracts';
+
 import {
-  BinaryAllocatorContract,
   ConstantPriceOracleContract,
   LegacyMakerOracleAdapterContract,
   OracleProxyContract,
+} from 'set-protocol-oracles';
+
+import {
+  BinaryAllocatorContract,
   USDCMockContract,
 } from '@utils/contracts';
 
