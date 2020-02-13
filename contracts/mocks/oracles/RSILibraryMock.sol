@@ -16,7 +16,7 @@
 
 pragma solidity 0.5.7;
 
-import { RSILibrary } from "../../meta-oracles/lib/RSILibrary.sol";
+import { RSILibrary } from "set-protocol-oracles/contracts/meta-oracles/lib/RSILibrary.sol";
 
 /**
  * @title RSILibraryMock

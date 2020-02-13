@@ -16,7 +16,7 @@
 
 pragma solidity 0.5.7;
 
-import { DataSourceLinearInterpolationLibrary } from "../../meta-oracles/lib/DataSourceLinearInterpolationLibrary.sol";
+import { DataSourceLinearInterpolationLibrary } from "set-protocol-oracles/contracts/meta-oracles/lib/DataSourceLinearInterpolationLibrary.sol";
 
 /**
  * @title LinearInterpolationLibrary

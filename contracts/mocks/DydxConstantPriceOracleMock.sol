@@ -17,8 +17,8 @@
 pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
-import { IDydxPriceOracle } from "../external/Dydx/interfaces/IDydxPriceOracle.sol";
-import { Monetary } from "../external/Dydx/lib/Monetary.sol";
+import { IDydxPriceOracle } from "set-protocol-oracles/contracts/external/Dydx/interfaces/IDydxPriceOracle.sol";
+import { Monetary } from "set-protocol-oracles/contracts/external/Dydx/lib/Monetary.sol";
 
 /**
  * @title DydxConstantPriceOracleMock

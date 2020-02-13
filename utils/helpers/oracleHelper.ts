@@ -22,46 +22,50 @@ import {
   MovingAverageOracleContract,
   MovingAverageOracleV1ProxyContract,
   MovingAverageOracleV2Contract,
-  OracleProxyCallerContract,
   OracleProxyContract,
   PriceFeedContract,
   RSIOracleContract,
   TimeSeriesFeedContract,
   TimeSeriesFeedV2Contract,
-  TimeSeriesFeedV2MockContract,
   TwoAssetLinearizedTimeSeriesFeedContract
+} from 'set-protocol-oracles';
+
+import {
+  OracleProxyCallerContract,
+  TimeSeriesFeedV2MockContract,
 } from '../contracts';
 import {
   DEFAULT_GAS,
   ONE_DAY_IN_SECONDS,
   ONE_HOUR_IN_SECONDS,
 } from '@utils/constants';
-import { getWeb3, getContractInstance, txnFrom } from '../web3Helper';
+import { getWeb3, getContractInstance, importFromOracles, txnFrom } from '../web3Helper';
 import { FeedCreatedArgs } from '../contract_logs/oracle';
 
 const web3 = getWeb3();
 
-const ConstantPriceOracle = artifacts.require('ConstantPriceOracle');
-const CTokenOracle = artifacts.require('CTokenOracle');
-const DydxConstantPriceOracleMock = artifacts.require('DydxConstantPriceOracleMock');
-const DydxOracleAdapter = artifacts.require('DydxOracleAdapter');
-const EMAOracle = artifacts.require('EMAOracle');
-const FeedFactory = artifacts.require('FeedFactory');
-const HistoricalPriceFeed = artifacts.require('HistoricalPriceFeed');
-const TwoAssetRatioOracle = artifacts.require('TwoAssetRatioOracle');
-const LegacyMakerOracleAdapter = artifacts.require('LegacyMakerOracleAdapter');
-const LinearizedEMATimeSeriesFeed = artifacts.require('LinearizedEMATimeSeriesFeed');
-const LinearizedPriceDataSource = artifacts.require('LinearizedPriceDataSource');
-const Median = artifacts.require('Median');
-const MovingAverageOracle = artifacts.require('MovingAverageOracle');
-const MovingAverageOracleV1Proxy = artifacts.require('MovingAverageOracleV1Proxy');
-const MovingAverageOracleV2 = artifacts.require('MovingAverageOracleV2');
-const OracleProxy = artifacts.require('OracleProxy');
+const ConstantPriceOracle = importFromOracles('ConstantPriceOracle');
+const CTokenOracle = importFromOracles('CTokenOracle');
+const DydxConstantPriceOracleMock = importFromOracles('DydxConstantPriceOracleMock');
+const DydxOracleAdapter = importFromOracles('DydxOracleAdapter');
+const EMAOracle = importFromOracles('EMAOracle');
+const FeedFactory = importFromOracles('FeedFactory');
+const HistoricalPriceFeed = importFromOracles('HistoricalPriceFeed');
+const TwoAssetRatioOracle = importFromOracles('TwoAssetRatioOracle');
+const LegacyMakerOracleAdapter = importFromOracles('LegacyMakerOracleAdapter');
+const LinearizedEMATimeSeriesFeed = importFromOracles('LinearizedEMATimeSeriesFeed');
+const LinearizedPriceDataSource = importFromOracles('LinearizedPriceDataSource');
+const Median = importFromOracles('Median');
+const MovingAverageOracle = importFromOracles('MovingAverageOracle');
+const MovingAverageOracleV1Proxy = importFromOracles('MovingAverageOracleV1Proxy');
+const MovingAverageOracleV2 = importFromOracles('MovingAverageOracleV2');
+const OracleProxy = importFromOracles('OracleProxy');
+const RSIOracle = importFromOracles('RSIOracle');
+const TimeSeriesFeed = importFromOracles('TimeSeriesFeed');
+const TwoAssetLinearizedTimeSeriesFeed = importFromOracles('TwoAssetLinearizedTimeSeriesFeed');
+
 const OracleProxyCaller = artifacts.require('OracleProxyCaller');
-const RSIOracle = artifacts.require('RSIOracle');
-const TimeSeriesFeed = artifacts.require('TimeSeriesFeed');
 const TimeSeriesFeedV2Mock = artifacts.require('TimeSeriesFeedV2Mock');
-const TwoAssetLinearizedTimeSeriesFeed = artifacts.require('TwoAssetLinearizedTimeSeriesFeed');
 
 const { SetProtocolTestUtils: SetTestUtils, SetProtocolUtils: SetUtils } = setProtocolUtils;
 const setTestUtils = new SetTestUtils(web3);

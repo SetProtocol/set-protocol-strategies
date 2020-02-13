@@ -23,9 +23,9 @@ import { ICore } from "set-protocol-contracts/contracts/core/interfaces/ICore.so
 import { IRebalancingSetToken } from "set-protocol-contracts/contracts/core/interfaces/IRebalancingSetToken.sol";
 import { ISetToken } from "set-protocol-contracts/contracts/core/interfaces/ISetToken.sol";
 import { SetTokenLibrary } from "set-protocol-contracts/contracts/core/lib/SetTokenLibrary.sol";
+import { IOracle } from "set-protocol-oracles/contracts/meta-oracles/interfaces/IOracle.sol";
+import { IMetaOracleV2 } from "set-protocol-oracles/contracts/meta-oracles/interfaces/IMetaOracleV2.sol";
 
-import { IOracle } from "../meta-oracles/interfaces/IOracle.sol";
-import { IMetaOracleV2 } from "../meta-oracles/interfaces/IMetaOracleV2.sol";
 import { FlexibleTimingManagerLibrary } from "./lib/FlexibleTimingManagerLibrary.sol";
 
 

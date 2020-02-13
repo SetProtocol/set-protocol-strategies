@@ -17,7 +17,7 @@
 pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
-import { IOracle } from "../meta-oracles/interfaces/IOracle.sol";
+import { IOracle } from "set-protocol-oracles/contracts/meta-oracles/interfaces/IOracle.sol";
 
 /**
  * @title OracleProxyCaller

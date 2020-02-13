@@ -24,11 +24,11 @@ import { CommonMath } from "set-protocol-contracts/contracts/lib/CommonMath.sol"
 import { ICore } from "set-protocol-contracts/contracts/core/interfaces/ICore.sol";
 import { ISetToken } from "set-protocol-contracts/contracts/core/interfaces/ISetToken.sol";
 import { SetTokenLibrary } from "set-protocol-contracts/contracts/core/lib/SetTokenLibrary.sol";
+import { IOracle } from "set-protocol-oracles/contracts/meta-oracles/interfaces/IOracle.sol";
 
 import { AllocatorMathLibrary } from "../lib/AllocatorMathLibrary.sol";
 import { FlexibleTimingManagerLibrary } from "../lib/FlexibleTimingManagerLibrary.sol";
 import { IAllocator } from "./IAllocator.sol";
-import { IOracle } from "../../meta-oracles/interfaces/IOracle.sol";
 
 
 /**

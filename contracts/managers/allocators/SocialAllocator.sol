@@ -25,10 +25,10 @@ import { IOracleWhiteList } from "set-protocol-contracts/contracts/core/interfac
 import { ISetToken } from "set-protocol-contracts/contracts/core/interfaces/ISetToken.sol";
 import { SetTokenLibrary } from "set-protocol-contracts/contracts/core/lib/SetTokenLibrary.sol";
 import { SetUSDValuation } from "set-protocol-contracts/contracts/core/liquidators/impl/SetUSDValuation.sol";
+import { IOracle } from "set-protocol-oracles/contracts/meta-oracles/interfaces/IOracle.sol";
 
 import { AllocatorMathLibrary } from "../lib/AllocatorMathLibrary.sol";
 import { FlexibleTimingManagerLibrary } from "../lib/FlexibleTimingManagerLibrary.sol";
-import { IOracle } from "../../meta-oracles/interfaces/IOracle.sol";
 import { ISocialAllocator } from "./ISocialAllocator.sol";
 
 

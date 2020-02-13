@@ -17,8 +17,9 @@
 pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
-import { IOracle } from "../meta-oracles/interfaces/IOracle.sol";
-import { IMetaOracleV2 } from "../meta-oracles/interfaces/IMetaOracleV2.sol";
+import { IOracle } from "set-protocol-oracles/contracts/meta-oracles/interfaces/IOracle.sol";
+import { IMetaOracleV2 } from "set-protocol-oracles/contracts/meta-oracles/interfaces/IMetaOracleV2.sol";
+
 import { MACOStrategyManagerV2 } from "./MACOStrategyManagerV2.sol";
 
 

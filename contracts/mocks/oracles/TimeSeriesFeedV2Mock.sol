@@ -17,7 +17,7 @@
 pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
-import { TimeSeriesFeedV2 } from "../../meta-oracles/lib/TimeSeriesFeedV2.sol";
+import { TimeSeriesFeedV2 } from "set-protocol-oracles/contracts/meta-oracles/lib/TimeSeriesFeedV2.sol";
 
 /**
  * @title TimeSeriesFeedV2Mock
