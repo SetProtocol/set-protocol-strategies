@@ -14,11 +14,9 @@ import { Blockchain } from '@utils/blockchain';
 import { ether } from '@utils/units';
 
 import {
-  MedianContract
-} from 'set-protocol-contracts';
-import {
   LegacyMakerOracleAdapterContract,
   LinearizedPriceDataSourceContract,
+  MedianContract,
   MovingAverageOracleV2Contract,
   OracleProxyContract,
   TimeSeriesFeedContract,

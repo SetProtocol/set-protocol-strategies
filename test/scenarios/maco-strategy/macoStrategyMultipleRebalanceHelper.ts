@@ -10,7 +10,6 @@ import { BigNumberSetup } from '@utils/bigNumberSetup';
 import {
   CoreContract,
   LinearAuctionPriceCurveContract,
-  MedianContract,
   RebalanceAuctionModuleContract,
   RebalancingSetTokenContract,
   RebalancingSetTokenFactoryContract,
@@ -23,6 +22,7 @@ import {
 } from 'set-protocol-contracts';
 import {
   HistoricalPriceFeedContract,
+  MedianContract,
   MovingAverageOracleContract,
 } from 'set-protocol-oracles';
 import {

@@ -15,7 +15,6 @@ import { ether } from '@utils/units';
 import {
   Core,
   CoreContract,
-  MedianContract,
   SetTokenContract,
   SetTokenFactoryContract,
   WethMockContract,
@@ -25,6 +24,7 @@ import {
 import {
   ConstantPriceOracleContract,
   LegacyMakerOracleAdapterContract,
+  MedianContract,
   OracleProxyContract,
 } from 'set-protocol-oracles';
 

@@ -5,12 +5,11 @@ import { Address } from 'set-protocol-utils';
 import {
   Core,
   CoreContract,
-  FixedFeeCalculator,
-  LinearAuctionLiquidator,
+  FixedFeeCalculatorContract,
+  LinearAuctionLiquidatorContract,
   LinearAuctionPriceCurve,
   LinearAuctionPriceCurveContract,
-  MedianContract,
-  OracleWhiteList,
+  OracleWhiteListContract,
   RebalanceAuctionModule,
   RebalanceAuctionModuleContract,
   RebalancingSetTokenContract,
@@ -18,7 +17,7 @@ import {
   RebalancingSetTokenV2Contract,
   RebalancingSetTokenFactory,
   RebalancingSetTokenFactoryContract,
-  RebalancingSetTokenV2Factory,
+  RebalancingSetTokenV2FactoryContract,
   SetToken,
   SetTokenContract,
   SetTokenFactory,
@@ -29,9 +28,11 @@ import {
   Vault,
   VaultContract,
   WethMockContract,
-  WhiteList,
   WhiteListContract,
 } from 'set-protocol-contracts';
+import {
+  MedianContract
+} from 'set-protocol-oracles';
 import { BigNumber } from 'bignumber.js';
 
 import {
@@ -43,7 +44,7 @@ import {
   ONE_DAY_IN_SECONDS,
 } from '../constants';
 import { extractNewSetTokenAddressFromLogs } from '../contract_logs/core';
-import { getWeb3 } from '../web3Helper';
+import { getWeb3, getContractInstance, importFromContracts, txnFrom } from '../web3Helper';
 import { getDeployedAddress } from '../snapshotUtils';
 
 const web3 = getWeb3();
@@ -51,6 +52,11 @@ const web3 = getWeb3();
 const { SetProtocolTestUtils: SetTestUtils, SetProtocolUtils: SetUtils } = setProtocolUtils;
 const setTestUtils = new SetTestUtils(web3);
 
+const FixedFeeCalculator = importFromContracts('FixedFeeCalculator');
+const LinearAuctionLiquidator = importFromContracts('LinearAuctionLiquidator');
+const OracleWhiteList = importFromContracts('OracleWhiteList');
+const RebalancingSetTokenV2Factory = importFromContracts('RebalancingSetTokenV2Factory');
+const WhiteList = importFromContracts('WhiteList');
 
 export class ProtocolHelper {
   private _tokenOwnerAddress: Address;
@@ -148,31 +154,33 @@ export class ProtocolHelper {
   public async deployWhiteListAsync(
     initialAddresses: Address[] = [],
     from: Address = this._tokenOwnerAddress
-  ): Promise<string> {
-    const instance = await new web3.eth.Contract(WhiteList.abi).deploy({
-      data: WhiteList.bytecode,
-      arguments: [
-        initialAddresses,
-      ],
-    }).send({ from, gas: DEFAULT_GAS });
+  ): Promise<WhiteListContract> {
+    const whiteList = await WhiteList.new(
+      initialAddresses,
+      txnFrom(from),
+    );
 
-    return instance.options.address;
+    return new WhiteListContract(
+      getContractInstance(whiteList),
+      txnFrom(from),
+    );
   }
 
   public async deployOracleWhiteListAsync(
     initialTokenAddresses: Address[] = [],
     initialOracleAddresses: Address[] = [],
     from: Address = this._tokenOwnerAddress
-  ): Promise<string> {
-    const instance = await new web3.eth.Contract(OracleWhiteList.abi).deploy({
-      data: OracleWhiteList.bytecode,
-      arguments: [
-        initialTokenAddresses,
-        initialOracleAddresses,
-      ],
-    }).send({ from, gas: DEFAULT_GAS });
+  ): Promise<OracleWhiteListContract> {
+    const oracleWhiteList = await OracleWhiteList.new(
+      initialTokenAddresses,
+      initialOracleAddresses,
+      txnFrom(from),
+    );
 
-    return instance.options.address;
+    return new OracleWhiteListContract(
+      getContractInstance(oracleWhiteList),
+      txnFrom(from),
+    );
   }
 
   public async deployLinearLiquidatorAsync(
@@ -183,31 +191,34 @@ export class ProtocolHelper {
     rangeEnd: BigNumber = new BigNumber(10),
     name: string = 'Liquidator',
     from: Address = this._tokenOwnerAddress
-  ): Promise<string> {
-    const instance = await new web3.eth.Contract(LinearAuctionLiquidator.abi).deploy({
-      data: LinearAuctionLiquidator.bytecode,
-      arguments: [
-        core,
-        oracleWhiteList,
-        auctionPeriod.toString(),
-        rangeStart.toString(),
-        rangeEnd.toString(),
-        name,
-      ],
-    }).send({ from, gas: DEFAULT_GAS });
+  ): Promise<LinearAuctionLiquidatorContract> {
+    const linearLiquidator = await LinearAuctionLiquidator.new(
+      core,
+      oracleWhiteList,
+      auctionPeriod.toString(),
+      rangeStart.toString(),
+      rangeEnd.toString(),
+      name,
+      txnFrom(from),
+    );
 
-    return instance.options.address;
+    return new LinearAuctionLiquidatorContract(
+      getContractInstance(linearLiquidator),
+      txnFrom(from),
+    );
   }
 
   public async deployFixedFeeCalculatorAsync(
     from: Address = this._tokenOwnerAddress
-  ): Promise<string> {
-    const instance = await new web3.eth.Contract(FixedFeeCalculator.abi).deploy({
-      data: FixedFeeCalculator.bytecode,
-      arguments: [],
-    }).send({ from, gas: DEFAULT_GAS });
+  ): Promise<FixedFeeCalculatorContract> {
+    const feeCalculator = await FixedFeeCalculator.new(
+      txnFrom(from),
+    );
 
-    return instance.options.address;
+    return new FixedFeeCalculatorContract(
+      getContractInstance(feeCalculator),
+      txnFrom(from),
+    );
   }
 
   /* ============ CoreFactory Extension ============ */
@@ -223,23 +234,24 @@ export class ProtocolHelper {
     minimumNaturalUnit: BigNumber = DEFAULT_REBALANCING_MINIMUM_NATURAL_UNIT,
     maximumNaturalUnit: BigNumber = DEFAULT_REBALANCING_MAXIMUM_NATURAL_UNIT,
     from: Address = this._tokenOwnerAddress
-  ): Promise<string> {
-    const instance = await new web3.eth.Contract(RebalancingSetTokenV2Factory.abi).deploy({
-      data: RebalancingSetTokenV2Factory.bytecode,
-      arguments: [
-        coreAddress,
-        componentWhitelistAddress,
-        liquidatorWhitelistAddress,
-        rebalanceFeeWhiteListAddress,
-        minimumRebalanceInterval.toString(),
-        minimumFailRebalancePeriod.toString(),
-        maximumFailRebalancePeriod.toString(),
-        minimumNaturalUnit.toString(),
-        maximumNaturalUnit.toString(),
-      ],
-    }).send({ from, gas: DEFAULT_GAS });
+  ): Promise<RebalancingSetTokenV2FactoryContract> {
+    const factory = await RebalancingSetTokenV2Factory.new(
+      coreAddress,
+      componentWhitelistAddress,
+      liquidatorWhitelistAddress,
+      rebalanceFeeWhiteListAddress,
+      minimumRebalanceInterval.toString(),
+      minimumFailRebalancePeriod.toString(),
+      maximumFailRebalancePeriod.toString(),
+      minimumNaturalUnit.toString(),
+      maximumNaturalUnit.toString(),
+      txnFrom(from),
+    );
 
-    return instance.options.address;
+    return new RebalancingSetTokenV2FactoryContract(
+      getContractInstance(factory),
+      txnFrom(from),
+    );
   }
 
   public async createSetTokenAsync(

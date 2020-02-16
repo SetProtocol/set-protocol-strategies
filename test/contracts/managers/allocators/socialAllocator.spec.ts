@@ -15,7 +15,7 @@ import { ether } from '@utils/units';
 import {
   Core,
   CoreContract,
-  MedianContract,
+  OracleWhiteListContract,
   SetTokenFactoryContract,
   StandardTokenMockContract,
   WethMockContract,
@@ -24,6 +24,7 @@ import {
 import {
   ConstantPriceOracleContract,
   LegacyMakerOracleAdapterContract,
+  MedianContract,
   OracleProxyContract,
 } from 'set-protocol-oracles';
 import {
@@ -63,7 +64,7 @@ contract('SocialAllocator', accounts => {
   let core: CoreContract;
   let factory: SetTokenFactoryContract;
   let whiteList: WhiteListContract;
-  let oracleWhiteList: Address;
+  let oracleWhiteList: OracleWhiteListContract;
 
   let wrappedBTC: StandardTokenMockContract;
   let wrappedETH: WethMockContract;
@@ -180,7 +181,7 @@ contract('SocialAllocator', accounts => {
     beforeEach(async () => {
       subjectBaseAsset = wrappedETH.address;
       subjectQuoteAsset = wrappedBTC.address;
-      subjectOracleWhiteList = oracleWhiteList;
+      subjectOracleWhiteList = oracleWhiteList.address;
       subjectCore = core.address;
       subjectSetTokenFactory = factory.address;
       subjectPricePrecision = new BigNumber(100);
@@ -400,7 +401,7 @@ contract('SocialAllocator', accounts => {
       allocator = await managerHelper.deploySocialAllocatorAsync(
         baseAsset,
         quoteAsset,
-        oracleWhiteList,
+        oracleWhiteList.address,
         core.address,
         factory.address
       );
@@ -699,7 +700,7 @@ contract('SocialAllocator', accounts => {
       allocator = await managerHelper.deploySocialAllocatorAsync(
         wrappedETH.address,
         wrappedBTC.address,
-        oracleWhiteList,
+        oracleWhiteList.address,
         core.address,
         factory.address
       );

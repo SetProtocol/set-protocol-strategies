@@ -3,7 +3,6 @@ import * as setProtocolUtils from 'set-protocol-utils';
 import { Address } from 'set-protocol-utils';
 import { BigNumber } from 'bignumber.js';
 
-import { MedianContract } from 'set-protocol-contracts';
 import { Blockchain } from '@utils/blockchain';
 import { ether } from '@utils/units';
 
@@ -19,6 +18,7 @@ import {
   LegacyMakerOracleAdapterContract,
   LinearizedEMATimeSeriesFeedContract,
   LinearizedPriceDataSourceContract,
+  MedianContract,
   MovingAverageOracleContract,
   MovingAverageOracleV1ProxyContract,
   MovingAverageOracleV2Contract,

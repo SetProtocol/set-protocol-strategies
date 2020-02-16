@@ -16,7 +16,6 @@ import {
   Core,
   CoreContract,
   LinearAuctionPriceCurveContract,
-  MedianContract,
   RebalancingSetTokenContract,
   RebalancingSetTokenFactoryContract,
   SetTokenContract,
@@ -27,6 +26,7 @@ import {
 } from 'set-protocol-contracts';
 import {
   HistoricalPriceFeedContract,
+  MedianContract,
   MovingAverageOracleContract,
 } from 'set-protocol-oracles';
 import {

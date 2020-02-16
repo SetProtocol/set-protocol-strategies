@@ -16,7 +16,6 @@ import {
   Core,
   CoreContract,
   LinearAuctionPriceCurveContract,
-  MedianContract,
   RebalancingSetTokenContract,
   RebalancingSetTokenFactoryContract,
   SetTokenContract,
@@ -28,6 +27,7 @@ import {
 import {
   LegacyMakerOracleAdapterContract,
   LinearizedPriceDataSourceContract,
+  MedianContract,
   MovingAverageOracleV2Contract,
   OracleProxyContract,
   TimeSeriesFeedContract,

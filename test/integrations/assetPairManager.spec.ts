@@ -16,7 +16,6 @@ import {
   Core,
   CoreContract,
   LinearAuctionPriceCurveContract,
-  MedianContract,
   RebalancingSetTokenContract,
   RebalancingSetTokenFactoryContract,
   SetTokenContract,
@@ -30,6 +29,7 @@ import {
   EMAOracleContract,
   LegacyMakerOracleAdapterContract,
   LinearizedEMATimeSeriesFeedContract,
+  MedianContract,
   OracleProxyContract,
 } from 'set-protocol-oracles';
 import {

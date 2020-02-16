@@ -7477,9 +7477,9 @@ truffle-flattener@^1.4.0, truffle-flattener@^1.4.2:
     tsort "0.0.1"
 
 truffle@^5.0.37:
-  version "5.0.37"
-  resolved "https://registry.yarnpkg.com/truffle/-/truffle-5.0.37.tgz#10da6f1bb9e661c4ccec75c295554bc4434f6b18"
-  integrity sha512-od3mnu6sCV7sYbJCLSDV66RZ4bYeuLQ1QDpjGQHyJMB5AIw+u8GnxBmj6MKBOWHC+zixnwkRwS9yTYpj5IObFg==
+  version "5.1.13"
+  resolved "https://registry.yarnpkg.com/truffle/-/truffle-5.1.13.tgz#f0a071342616f23a52bceaedae4feaec0bc4d549"
+  integrity sha512-d+DKgNE389/WmSb68sDu/DnMpex18bx7edw4waSEESdynwTgocsPFumgWqzmmUTxjnaRAScPC7oA5X6ZVSKwLQ==
   dependencies:
     app-module-path "^2.2.0"
     mocha "5.2.0"
