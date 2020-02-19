@@ -16,7 +16,6 @@ import {
   Core,
   CoreContract,
   LinearAuctionPriceCurveContract,
-  MedianContract,
   RebalancingSetTokenContract,
   RebalancingSetTokenFactoryContract,
   SetTokenContract,
@@ -26,13 +25,16 @@ import {
   WhiteListContract,
 } from 'set-protocol-contracts';
 import {
-  BinaryAllocatorContract,
   ConstantPriceOracleContract,
   EMAOracleContract,
   LegacyMakerOracleAdapterContract,
   LinearizedEMATimeSeriesFeedContract,
-  MovingAverageCrossoverTriggerContract,
+  MedianContract,
   OracleProxyContract,
+} from 'set-protocol-oracles';
+import {
+  BinaryAllocatorContract,
+  MovingAverageCrossoverTriggerContract,
   AssetPairManagerContract,
   USDCMockContract,
 } from '@utils/contracts';

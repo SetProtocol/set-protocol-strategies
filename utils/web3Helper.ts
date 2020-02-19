@@ -2,6 +2,8 @@ const Web3 = require('web3'); // import web3 v1.0 constructor
 const BigNumber = require('bignumber.js');
 import { DEFAULT_GAS, NULL_ADDRESS } from './constants';
 
+const contract = require('@truffle/contract');
+
 // use globally injected web3 to find the currentProvider and wrap with web3 v1.0
 export const getWeb3 = () => {
   const myWeb3 = new Web3(web3.currentProvider);
@@ -35,4 +37,19 @@ export const blankTxn = async (from: string) => {
     to: NULL_ADDRESS,
     value: '1',
   });
+};
+
+export const importFromOracles = (contractName: string) => {
+  return importFromRepo('set-protocol-oracles', contractName);
+};
+
+export const importFromContracts = (contractName: string) => {
+  return importFromRepo('set-protocol-contracts', contractName);
+};
+
+const importFromRepo = (repoName: string, contractName: string) => {
+  const data = require(repoName + '/build/contracts/' + contractName + '.json');
+  const instance = contract(data);
+  instance.setProvider(web3.currentProvider);
+  return instance;
 };

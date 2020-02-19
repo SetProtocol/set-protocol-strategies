@@ -14,16 +14,15 @@ import { Blockchain } from '@utils/blockchain';
 import { ether } from '@utils/units';
 
 import {
-  MedianContract
-} from 'set-protocol-contracts';
-
-import {
   LegacyMakerOracleAdapterContract,
   LinearizedPriceDataSourceContract,
+  MedianContract,
   MovingAverageOracleV2Contract,
-  MovingAverageCrossoverTriggerContract,
   OracleProxyContract,
   TimeSeriesFeedContract,
+} from 'set-protocol-oracles';
+import {
+  MovingAverageCrossoverTriggerContract,
 } from '@utils/contracts';
 
 import {

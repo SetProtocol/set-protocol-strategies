@@ -13,7 +13,6 @@ import {
   Core,
   CoreContract,
   LinearAuctionPriceCurveContract,
-  MedianContract,
   SetTokenContract,
   RebalanceAuctionModuleContract,
   RebalancingSetTokenContract,
@@ -23,7 +22,9 @@ import {
   TransferProxyContract,
   WethMockContract,
 } from 'set-protocol-contracts';
-
+import {
+  MedianContract,
+} from 'set-protocol-oracles';
 import {
   BTCETHRebalancingManagerContract,
 } from '@utils/contracts';

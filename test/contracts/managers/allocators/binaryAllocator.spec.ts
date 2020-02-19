@@ -15,17 +15,21 @@ import { ether } from '@utils/units';
 import {
   Core,
   CoreContract,
-  MedianContract,
   SetTokenContract,
   SetTokenFactoryContract,
   WethMockContract,
   WhiteListContract,
 } from 'set-protocol-contracts';
+
 import {
-  BinaryAllocatorContract,
   ConstantPriceOracleContract,
   LegacyMakerOracleAdapterContract,
+  MedianContract,
   OracleProxyContract,
+} from 'set-protocol-oracles';
+
+import {
+  BinaryAllocatorContract,
   USDCMockContract,
 } from '@utils/contracts';
 

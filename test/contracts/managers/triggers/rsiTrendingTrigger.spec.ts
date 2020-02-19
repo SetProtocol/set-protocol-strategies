@@ -14,16 +14,15 @@ import { Blockchain } from '@utils/blockchain';
 import { ether } from '@utils/units';
 
 import {
-  MedianContract
-} from 'set-protocol-contracts';
-
-import {
   LegacyMakerOracleAdapterContract,
   LinearizedPriceDataSourceContract,
+  MedianContract,
   RSIOracleContract,
-  RSITrendingTriggerContract,
   OracleProxyContract,
   TimeSeriesFeedContract,
+} from 'set-protocol-oracles';
+import {
+  RSITrendingTriggerContract,
 } from '@utils/contracts';
 
 import {

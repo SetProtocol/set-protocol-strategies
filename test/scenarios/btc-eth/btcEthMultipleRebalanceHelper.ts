@@ -10,7 +10,6 @@ import { BigNumberSetup } from '@utils/bigNumberSetup';
 import {
   CoreContract,
   LinearAuctionPriceCurveContract,
-  MedianContract,
   RebalanceAuctionModuleContract,
   RebalancingSetTokenContract,
   RebalancingSetTokenFactoryContract,
@@ -21,6 +20,9 @@ import {
   VaultContract,
   WethMockContract,
 } from 'set-protocol-contracts';
+import {
+  MedianContract,
+} from 'set-protocol-oracles';
 import { BTCETHRebalancingManagerContract } from '@utils/contracts';
 import {
   DEFAULT_GAS,

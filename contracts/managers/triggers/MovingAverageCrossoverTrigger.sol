@@ -18,10 +18,10 @@ pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import { IOracle } from "set-protocol-oracles/contracts/meta-oracles/interfaces/IOracle.sol";
+import { IMetaOracleV2 } from "set-protocol-oracles/contracts/meta-oracles/interfaces/IMetaOracleV2.sol";
 
 import { ITrigger } from "./ITrigger.sol";
-import { IOracle } from "../../meta-oracles/interfaces/IOracle.sol";
-import { IMetaOracleV2 } from "../../meta-oracles/interfaces/IMetaOracleV2.sol";
 
 
 /**

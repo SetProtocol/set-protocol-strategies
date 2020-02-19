@@ -10,7 +10,6 @@ import { BigNumberSetup } from '@utils/bigNumberSetup';
 import {
   CoreContract,
   LinearAuctionPriceCurveContract,
-  MedianContract,
   RebalanceAuctionModuleContract,
   RebalancingSetTokenContract,
   RebalancingSetTokenFactoryContract,
@@ -23,8 +22,11 @@ import {
 } from 'set-protocol-contracts';
 import {
   HistoricalPriceFeedContract,
-  MACOStrategyManagerContract,
+  MedianContract,
   MovingAverageOracleContract,
+} from 'set-protocol-oracles';
+import {
+  MACOStrategyManagerContract,
   USDCMockContract,
 } from '@utils/contracts';
 import {

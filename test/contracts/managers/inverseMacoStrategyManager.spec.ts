@@ -16,7 +16,6 @@ import {
   Core,
   CoreContract,
   LinearAuctionPriceCurveContract,
-  MedianContract,
   RebalancingSetTokenContract,
   RebalancingSetTokenFactoryContract,
   SetTokenContract,
@@ -28,11 +27,14 @@ import {
 import {
   LegacyMakerOracleAdapterContract,
   LinearizedPriceDataSourceContract,
-  InverseMACOStrategyManagerContract,
+  MedianContract,
   MovingAverageOracleV2Contract,
   OracleProxyContract,
-  USDCMockContract,
   TimeSeriesFeedContract,
+} from 'set-protocol-oracles';
+import {
+  InverseMACOStrategyManagerContract,
+  USDCMockContract,
 } from '@utils/contracts';
 import {
   DEFAULT_GAS,

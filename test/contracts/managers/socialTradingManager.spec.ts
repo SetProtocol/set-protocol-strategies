@@ -15,16 +15,22 @@ import { ether } from '@utils/units';
 import {
   Core,
   CoreContract,
-  MedianContract,
+  FixedFeeCalculatorContract,
+  LinearAuctionLiquidatorContract,
+  OracleWhiteListContract,
   SetTokenFactoryContract,
   StandardTokenMockContract,
+  RebalancingSetTokenV2FactoryContract,
   TransferProxyContract,
   WethMockContract,
   WhiteListContract,
 } from 'set-protocol-contracts';
 import {
   LegacyMakerOracleAdapterContract,
+  MedianContract,
   OracleProxyContract,
+} from 'set-protocol-oracles';
+import {
   SocialAllocatorContract,
   SocialTradingManagerContract,
 } from '@utils/contracts';
@@ -80,12 +86,12 @@ contract('SocialTradingManager', accounts => {
   let wrappedBTC: StandardTokenMockContract;
   let wrappedETH: WethMockContract;
 
-  let liquidator: Address;
-  let feeCalculator: Address;
-  let rebalancingFactory: Address;
-  let oracleWhiteList: Address;
-  let liquidatorWhiteList: Address;
-  let feeCalculatorWhiteList: Address;
+  let liquidator: LinearAuctionLiquidatorContract;
+  let feeCalculator: FixedFeeCalculatorContract;
+  let rebalancingFactory: RebalancingSetTokenV2FactoryContract;
+  let oracleWhiteList: OracleWhiteListContract;
+  let liquidatorWhiteList: WhiteListContract;
+  let feeCalculatorWhiteList: WhiteListContract;
 
   let ethMedianizer: MedianContract;
   let ethLegacyMakerOracleAdapter: LegacyMakerOracleAdapterContract;
@@ -175,23 +181,23 @@ contract('SocialTradingManager', accounts => {
 
     liquidator = await protocolHelper.deployLinearLiquidatorAsync(
       core.address,
-      oracleWhiteList
+      oracleWhiteList.address
     );
-    liquidatorWhiteList = await protocolHelper.deployWhiteListAsync([liquidator, newLiquidator]);
+    liquidatorWhiteList = await protocolHelper.deployWhiteListAsync([liquidator.address, newLiquidator]);
 
     feeCalculator = await protocolHelper.deployFixedFeeCalculatorAsync();
-    feeCalculatorWhiteList = await protocolHelper.deployWhiteListAsync([feeCalculator]);
+    feeCalculatorWhiteList = await protocolHelper.deployWhiteListAsync([feeCalculator.address]);
 
     rebalancingFactory = await protocolHelper.deployRebalancingSetTokenV2FactoryAsync(
       core.address,
       rebalancingComponentWhiteList.address,
-      liquidatorWhiteList,
-      feeCalculatorWhiteList,
+      liquidatorWhiteList.address,
+      feeCalculatorWhiteList.address,
     );
 
-    await core.addFactory.sendTransactionAsync(rebalancingFactory, { from: deployerAccount });
+    await core.addFactory.sendTransactionAsync(rebalancingFactory.address, { from: deployerAccount });
     await blockchain.increaseTimeAsync(new BigNumber(2));
-    await core.addFactory.sendTransactionAsync(rebalancingFactory, { from: deployerAccount });
+    await core.addFactory.sendTransactionAsync(rebalancingFactory.address, { from: deployerAccount });
 
     await erc20Helper.approveTransfersAsync(
       [wrappedBTC, wrappedETH],
@@ -201,19 +207,19 @@ contract('SocialTradingManager', accounts => {
     allocator = await managerHelper.deploySocialAllocatorAsync(
       wrappedETH.address,
       wrappedBTC.address,
-      oracleWhiteList,
+      oracleWhiteList.address,
       core.address,
       factory.address,
     );
 
     await oracleHelper.addAuthorizedAddressesToOracleProxy(
       ethOracleProxy,
-      [allocator.address, liquidator]
+      [allocator.address, liquidator.address]
     );
 
     await oracleHelper.addAuthorizedAddressesToOracleProxy(
       btcOracleProxy,
-      [allocator.address, liquidator]
+      [allocator.address, liquidator.address]
     );
   });
 
@@ -231,7 +237,7 @@ contract('SocialTradingManager', accounts => {
 
     beforeEach(async () => {
       subjectCore = core.address;
-      subjectFactory = rebalancingFactory;
+      subjectFactory = rebalancingFactory.address;
       subjectWhiteListedAllocators = [allocator.address, newAllocator];
       subjectMaxEntryFee = ether(.1);
       subjectFeeUpdateTimelock = ONE_DAY_IN_SECONDS;
@@ -314,14 +320,14 @@ contract('SocialTradingManager', accounts => {
     beforeEach(async () => {
       setManager = await managerHelper.deploySocialTradingManagerAsync(
         core.address,
-        rebalancingFactory,
+        rebalancingFactory.address,
         [allocator.address]
       );
 
       callDataManagerAddress = customManagerAddress || setManager.address;
-      callDataLiquidator = liquidator;
+      callDataLiquidator = liquidator.address;
       callDataFeeRecipient = feeRecipient;
-      callDataRebalanceFeeCalculator = feeCalculator;
+      callDataRebalanceFeeCalculator = feeCalculator.address;
       callDataRebalanceInterval = ONE_DAY_IN_SECONDS;
       callDataFailAuctionPeriod = ONE_DAY_IN_SECONDS;
       const { timestamp } = await web3.eth.getBlock('latest');
@@ -549,14 +555,14 @@ contract('SocialTradingManager', accounts => {
     beforeEach(async () => {
       setManager = await managerHelper.deploySocialTradingManagerAsync(
         core.address,
-        rebalancingFactory,
+        rebalancingFactory.address,
         [allocator.address]
       );
 
       const callDataManagerAddress = setManager.address;
-      const callDataLiquidator = liquidator;
+      const callDataLiquidator = liquidator.address;
       const callDataFeeRecipient = feeRecipient;
-      const callDataFeeCalculator = feeCalculator;
+      const callDataFeeCalculator = feeCalculator.address;
       const callDataRebalanceInterval = ONE_DAY_IN_SECONDS;
       const callDataFailAuctionPeriod = ONE_DAY_IN_SECONDS;
       const { timestamp } = await web3.eth.getBlock('latest');
@@ -792,14 +798,14 @@ contract('SocialTradingManager', accounts => {
     beforeEach(async () => {
       setManager = await managerHelper.deploySocialTradingManagerAsync(
         core.address,
-        rebalancingFactory,
+        rebalancingFactory.address,
         [allocator.address]
       );
 
       const callDataManagerAddress = setManager.address;
-      const callDataLiquidator = liquidator;
+      const callDataLiquidator = liquidator.address;
       const callDataFeeRecipient = feeRecipient;
-      const callDataFeeCalculator = feeCalculator;
+      const callDataFeeCalculator = feeCalculator.address;
       const callDataRebalanceInterval = ONE_DAY_IN_SECONDS;
       const callDataFailAuctionPeriod = ONE_DAY_IN_SECONDS;
       const { timestamp } = await web3.eth.getBlock('latest');
@@ -900,14 +906,14 @@ contract('SocialTradingManager', accounts => {
     beforeEach(async () => {
       setManager = await managerHelper.deploySocialTradingManagerAsync(
         core.address,
-        rebalancingFactory,
+        rebalancingFactory.address,
         [allocator.address]
       );
 
       const callDataManagerAddress = setManager.address;
-      const callDataLiquidator = liquidator;
+      const callDataLiquidator = liquidator.address;
       const callDataFeeRecipient = feeRecipient;
-      const callDataFeeCalculator = feeCalculator;
+      const callDataFeeCalculator = feeCalculator.address;
       const callDataRebalanceInterval = ONE_DAY_IN_SECONDS;
       const callDataFailAuctionPeriod = ONE_DAY_IN_SECONDS;
       const { timestamp } = await web3.eth.getBlock('latest');
@@ -1035,14 +1041,14 @@ contract('SocialTradingManager', accounts => {
     beforeEach(async () => {
       setManager = await managerHelper.deploySocialTradingManagerAsync(
         core.address,
-        rebalancingFactory,
+        rebalancingFactory.address,
         [allocator.address]
       );
 
       const callDataManagerAddress = setManager.address;
-      const callDataLiquidator = liquidator;
+      const callDataLiquidator = liquidator.address;
       const callDataFeeRecipient = feeRecipient;
-      const callDataFeeCalculator = feeCalculator;
+      const callDataFeeCalculator = feeCalculator.address;
       const callDataRebalanceInterval = ONE_DAY_IN_SECONDS;
       const callDataFailAuctionPeriod = ONE_DAY_IN_SECONDS;
       const { timestamp } = await web3.eth.getBlock('latest');
@@ -1134,14 +1140,14 @@ contract('SocialTradingManager', accounts => {
     beforeEach(async () => {
       setManager = await managerHelper.deploySocialTradingManagerAsync(
         core.address,
-        rebalancingFactory,
+        rebalancingFactory.address,
         [allocator.address]
       );
 
       const callDataManagerAddress = setManager.address;
-      const callDataLiquidator = liquidator;
+      const callDataLiquidator = liquidator.address;
       const callDataFeeRecipient = feeRecipient;
-      const callDataFeeCalculator = feeCalculator;
+      const callDataFeeCalculator = feeCalculator.address;
       const callDataRebalanceInterval = ONE_DAY_IN_SECONDS;
       const callDataFailAuctionPeriod = ONE_DAY_IN_SECONDS;
       const { timestamp } = await web3.eth.getBlock('latest');
@@ -1219,14 +1225,14 @@ contract('SocialTradingManager', accounts => {
     beforeEach(async () => {
       setManager = await managerHelper.deploySocialTradingManagerAsync(
         core.address,
-        rebalancingFactory,
+        rebalancingFactory.address,
         [allocator.address]
       );
 
       const callDataManagerAddress = setManager.address;
-      const callDataLiquidator = liquidator;
+      const callDataLiquidator = liquidator.address;
       const callDataFeeRecipient = feeRecipient;
-      const callDataFeeCalculator = feeCalculator;
+      const callDataFeeCalculator = feeCalculator.address;
       const callDataRebalanceInterval = ONE_DAY_IN_SECONDS;
       const callDataFailAuctionPeriod = ONE_DAY_IN_SECONDS;
       const { timestamp } = await web3.eth.getBlock('latest');
