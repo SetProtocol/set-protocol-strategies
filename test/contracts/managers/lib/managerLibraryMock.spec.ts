@@ -9,7 +9,7 @@ import { BigNumberSetup } from '@utils/bigNumberSetup';
 import {
   ManagerLibraryMockContract
 } from '@utils/contracts';
-import { Blockchain } from '@utils/blockchain';
+import { Blockchain } from 'set-protocol-contracts';
 import { getWeb3 } from '@utils/web3Helper';
 import { DEFAULT_AUCTION_PRICE_DIVISOR } from '@utils/constants';
 

@@ -28,7 +28,7 @@ import {
 import {
   BTCDaiRebalancingManagerContract,
 } from '@utils/contracts';
-import { Blockchain } from '@utils/blockchain';
+import { Blockchain } from 'set-protocol-contracts';
 import { ether } from '@utils/units';
 import {
   DEFAULT_GAS,
@@ -40,7 +40,7 @@ import { LogManagerProposal } from '@utils/contract_logs/btcDaiRebalancingManage
 
 import { ProtocolHelper } from '@utils/helpers/protocolHelper';
 import { ERC20Helper } from '@utils/helpers/erc20Helper';
-import { OracleHelper } from '@utils/helpers/oracleHelper';
+import { OracleHelper } from 'set-protocol-oracles';
 import { ManagerHelper } from '@utils/helpers/managerHelper';
 
 BigNumberSetup.configure();

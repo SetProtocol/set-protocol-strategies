@@ -12,7 +12,7 @@ import {
 
 import ChaiSetup from '@utils/chaiSetup';
 import { BigNumberSetup } from '@utils/bigNumberSetup';
-import { Blockchain } from '@utils/blockchain';
+import { Blockchain } from 'set-protocol-contracts';
 import { getWeb3 } from '@utils/web3Helper';
 
 import { getScenarioData } from './scenarioData';
