@@ -41,7 +41,8 @@ import {
   ONE_DAY_IN_SECONDS,
   UNLIMITED_ALLOWANCE_IN_BASE_UNITS,
   WBTC_DECIMALS,
-  ZERO
+  ZERO,
+  ONE_HOUR_IN_SECONDS
 } from '@utils/constants';
 
 import { expectRevertError } from '@utils/tokenAssertions';
@@ -53,9 +54,16 @@ import {
 } from '@utils/contract_logs/socialTradingManager';
 import { getWeb3 } from '@utils/web3Helper';
 
+import {
+  CoreHelper,
+  FeeCalculatorHelper,
+  LiquidatorHelper,
+  ValuationHelper
+} from 'set-protocol-contracts';
+import { ERC20Helper as ERC20Contracts } from 'set-protocol-contracts';
+import { OracleHelper } from 'set-protocol-oracles';
 import { ERC20Helper } from '@utils/helpers/erc20Helper';
 import { ManagerHelper } from '@utils/helpers/managerHelper';
-import { OracleHelper } from 'set-protocol-oracles';
 import { ProtocolHelper } from '@utils/helpers/protocolHelper';
 
 BigNumberSetup.configure();
@@ -112,6 +120,12 @@ contract('SocialTradingManager', accounts => {
   const erc20Helper = new ERC20Helper(deployerAccount);
   const managerHelper = new ManagerHelper(deployerAccount);
   const oracleHelper = new OracleHelper(deployerAccount);
+
+  const coreHelper = new CoreHelper(deployerAccount, deployerAccount);
+  const feeCalculatorHelper = new FeeCalculatorHelper(deployerAccount);
+  const ercContracts = new ERC20Contracts(deployerAccount);
+  const valuationHelper = new ValuationHelper(deployerAccount, coreHelper, ercContracts, oracleHelper);
+  const liquidatorHelper = new LiquidatorHelper(deployerAccount, ercContracts, valuationHelper);
 
   before(async () => {
     ABIDecoder.addABI(Core.abi);
@@ -174,21 +188,25 @@ contract('SocialTradingManager', accounts => {
       btcLegacyMakerOracleAdapter.address,
     );
 
-    oracleWhiteList = await protocolHelper.deployOracleWhiteListAsync(
+    oracleWhiteList = await coreHelper.deployOracleWhiteListAsync(
       [wrappedETH.address, wrappedBTC.address],
       [ethOracleProxy.address, btcOracleProxy.address],
     );
 
-    liquidator = await protocolHelper.deployLinearLiquidatorAsync(
+    liquidator = await liquidatorHelper.deployLinearAuctionLiquidatorAsync(
       core.address,
-      oracleWhiteList.address
+      oracleWhiteList.address,
+      ONE_HOUR_IN_SECONDS.mul(4),
+      new BigNumber(3),
+      new BigNumber(21),
+      'LinearAuctionLiquidator'
     );
-    liquidatorWhiteList = await protocolHelper.deployWhiteListAsync([liquidator.address, newLiquidator]);
+    liquidatorWhiteList = await coreHelper.deployWhiteListAsync([liquidator.address, newLiquidator]);
 
-    feeCalculator = await protocolHelper.deployFixedFeeCalculatorAsync();
-    feeCalculatorWhiteList = await protocolHelper.deployWhiteListAsync([feeCalculator.address]);
+    feeCalculator = await feeCalculatorHelper.deployFixedFeeCalculatorAsync();
+    feeCalculatorWhiteList = await coreHelper.deployWhiteListAsync([feeCalculator.address]);
 
-    rebalancingFactory = await protocolHelper.deployRebalancingSetTokenV2FactoryAsync(
+    rebalancingFactory = await coreHelper.deployRebalancingSetTokenV2FactoryAsync(
       core.address,
       rebalancingComponentWhiteList.address,
       liquidatorWhiteList.address,
