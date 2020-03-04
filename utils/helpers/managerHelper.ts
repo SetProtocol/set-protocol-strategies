@@ -24,6 +24,7 @@ import {
   MovingAverageCrossoverTriggerContract,
   RSITrendingTriggerContract,
   SocialTradingManagerContract,
+  SocialTradingManagerV2Contract,
   TriggerMockContract,
   SocialAllocatorContract,
 } from '../contracts';
@@ -60,6 +61,7 @@ const MovingAverageCrossoverTrigger = artifacts.require(
 );
 const RSITrendingTrigger = artifacts.require('RSITrendingTrigger');
 const SocialTradingManager = artifacts.require('SocialTradingManager');
+const SocialTradingManagerV2 = artifacts.require('SocialTradingManagerV2');
 const TriggerMock = artifacts.require('TriggerMock');
 const UintArrayUtilsLibrary = artifacts.require('UintArrayUtilsLibrary');
 const SocialAllocator = artifacts.require('SocialAllocator');
@@ -338,6 +340,29 @@ export class ManagerHelper {
     );
 
     return new SocialTradingManagerContract(
+      getContractInstance(truffleRebalacingTokenManager),
+      { from, gas: DEFAULT_GAS },
+    );
+  }
+
+  public async deploySocialTradingManagerV2Async(
+    coreInstance: Address,
+    factory: Address,
+    whiteListedAllocators: Address[],
+    maxEntryFee: BigNumber = ether(.1),
+    feeUpdateTimelock: BigNumber = ONE_DAY_IN_SECONDS,
+    from: Address = this._tokenOwnerAddress
+  ): Promise<SocialTradingManagerV2Contract> {
+    const truffleRebalacingTokenManager = await SocialTradingManagerV2.new(
+      coreInstance,
+      factory,
+      whiteListedAllocators,
+      maxEntryFee,
+      feeUpdateTimelock,
+      { from },
+    );
+
+    return new SocialTradingManagerV2Contract(
       getContractInstance(truffleRebalacingTokenManager),
       { from, gas: DEFAULT_GAS },
     );

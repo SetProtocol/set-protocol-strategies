@@ -38,7 +38,7 @@ import { SocialTradingLibrary } from "./lib/SocialTradingLibrary.sol";
  * passed in on pool creation. Only compatible with RebalancingSetTokenV2 constracts. All permissioned functions
  * on the RebalancingSetTokenV2 must be called through the administrative functions exposed on this contract.
  */
-contract SocialTradingManager is 
+contract SocialTradingManager is
     WhiteList
 {
     using SafeMath for uint256;
@@ -298,7 +298,7 @@ contract SocialTradingManager is
             _newTrader
         );
 
-        pools[address(_tradingPool)].trader = _newTrader;        
+        pools[address(_tradingPool)].trader = _newTrader;
     }
 
     /*
@@ -376,7 +376,7 @@ contract SocialTradingManager is
     )
         internal
         view
-    {   
+    {
         validateAllocationAmount(_newAllocation);
 
         // If current allocation is 0/100%, cannot be the same allocation
@@ -400,7 +400,7 @@ contract SocialTradingManager is
         require(
             _tradingPool.rebalanceState() == RebalancingLibrary.State.Default,
             "SocialTradingManager.validateAllocationUpdate: State must be in Default"
-        );        
+        );
     }
 
     /*

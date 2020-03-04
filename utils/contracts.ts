@@ -15,6 +15,7 @@ export { MovingAverageCrossoverTriggerContract } from '../types/generated/moving
 export { TriggerMockContract } from '../types/generated/trigger_mock';
 export { RSITrendingTriggerContract } from '../types/generated/r_s_i_trending_trigger';
 export { SocialTradingManagerContract } from '../types/generated/social_trading_manager';
+export { SocialTradingManagerV2Contract } from '../types/generated/social_trading_manager_v2';
 export { UintArrayUtilsLibraryMockContract } from '../types/generated/uint_array_utils_library_mock';
 export { USDCMockContract } from '../types/generated/u_s_d_c_mock';
 export { SocialAllocatorContract } from '../types/generated/social_allocator';
