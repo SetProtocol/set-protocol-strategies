@@ -245,7 +245,7 @@ contract('SocialTradingManager', accounts => {
     blockchain.revertAsync();
   });
 
-  describe.only('#constructor', async () => {
+  describe('#constructor', async () => {
     let subjectCore: Address;
     let subjectFactory: Address;
     let subjectWhiteListedAllocators: Address[];

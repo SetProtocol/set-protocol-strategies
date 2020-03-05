@@ -17,6 +17,7 @@
 pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
+import { ICore } from "set-protocol-contracts/contracts/core/interfaces/ICore.sol";
 import { IRebalancingSetTokenV2 } from "set-protocol-contracts/contracts/core/interfaces/IRebalancingSetTokenV2.sol";
 import { IRebalancingSetTokenV3 } from "set-protocol-contracts/contracts/core/interfaces/IRebalancingSetTokenV3.sol";
 import { UnrestrictedTimeLockUpgrade } from "set-protocol-contracts/contracts/lib/UnrestrictedTimeLockUpgrade.sol";
@@ -35,7 +36,40 @@ contract SocialTradingManagerV2 is
     SocialTradingManager,
     UnrestrictedTimeLockUpgrade
 {
+    /*
+     * SocialTradingManager constructor.
+     *
+     * @param  _core                            The address of the Core contract
+     * @param  _factory                         Factory to use for RebalancingSetToken creation
+     * @param  _whiteListedAllocators           List of allocator addresses to WhiteList
+     * @param  _maxEntryFee                     Max entry fee when updating fees in a scaled decimal value
+     *                                          (e.g. 1% = 1e16, 1bp = 1e14)
+     * @param  _feeUpdateTimelock               Amount of time trader must wait between starting fee update
+     *                                          and finalizing fee update
+     */
+    constructor(
+        ICore _core,
+        address _factory,
+        address[] memory _whiteListedAllocators,
+        uint256 _maxEntryFee,
+        uint256 _feeUpdateTimelock
+    )
+        public
+        SocialTradingManager(
+            _core,
+            _factory,
+            _whiteListedAllocators,
+            _maxEntryFee,
+            _feeUpdateTimelock
+        )
+    {}
 
+    /**
+     * External function to remove upgrade. Modifiers should be added to restrict usage.
+     *
+     * @param _tradingPool       The address of the trading pool being updated
+     * @param _newFeeCallData    Bytestring representing feeData to pass to fee calculator
+     */
     function adjustFee(
         address _tradingPool,
         bytes calldata _newFeeCallData
@@ -47,18 +81,19 @@ contract SocialTradingManagerV2 is
         IRebalancingSetTokenV3(_tradingPool).adjustFee(_newFeeCallData);
     }
 
-    // /**
-    //  * External function to remove upgrade. Modifiers should be added to restrict usage.
-    //  *
-    //  * @param  _upgradeHash    Keccack256 hash that uniquely identifies function called and arguments
-    //  */
-    // function removeRegisteredUpgrade(
-    //     address _tradingPool,
-    //     bytes32 _upgradeHash
-    // )
-    //     external
-    //     onlyTrader(IRebalancingSetTokenV2(_tradingPool))
-    // {
-    //     UnrestrictedTimeLockUpgrade.removeRegisteredUpgradeInternal(_upgradeHash);
-    // }
+    /**
+     * External function to remove upgrade. Modifiers should be added to restrict usage.
+     *
+     * @param _tradingPool      The address of the trading pool being updated
+     * @param _upgradeHash      Keccack256 hash that uniquely identifies function called and arguments
+     */
+    function removeRegisteredUpgrade(
+        address _tradingPool,
+        bytes32 _upgradeHash
+    )
+        external
+        onlyTrader(IRebalancingSetTokenV2(_tradingPool))
+    {
+        UnrestrictedTimeLockUpgrade.removeRegisteredUpgradeInternal(_upgradeHash);
+    }
 }
