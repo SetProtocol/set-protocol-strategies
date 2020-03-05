@@ -417,6 +417,13 @@ contract('SocialTradingManagerV2', accounts => {
       expect(actualTimestamp).to.bignumber.equal(timestamp);
     });
 
+    it('sets the upgradeInProgress to true', async () => {
+      await subject();
+
+      const upgradeInProgress = await setManager.upgradeInProgress.callAsync(subjectPoolAddress);
+      expect(upgradeInProgress).to.be.true;
+    });
+
     describe('when called to confirm set streaming fee txn', async () => {
       beforeEach(async () => {
         await subject();
@@ -430,6 +437,13 @@ contract('SocialTradingManagerV2', accounts => {
 
         const feeState: any = await feeCalculator.feeState.callAsync(subjectPoolAddress);
         expect(feeState.streamingFeePercentage).to.be.bignumber.equal(newFeePercentage);
+      });
+
+      it('sets the upgradeInProgress to false', async () => {
+        await subject();
+
+        const upgradeInProgress = await setManager.upgradeInProgress.callAsync(subjectPoolAddress);
+        expect(upgradeInProgress).to.be.false;
       });
     });
 
@@ -456,6 +470,31 @@ contract('SocialTradingManagerV2', accounts => {
 
         const feeState: any = await feeCalculator.feeState.callAsync(subjectPoolAddress);
         expect(feeState.profitFeePercentage).to.be.bignumber.equal(newFeePercentage);
+      });
+
+      it('sets the upgradeInProgress to false', async () => {
+        await subject();
+
+        const upgradeInProgress = await setManager.upgradeInProgress.callAsync(subjectPoolAddress);
+        expect(upgradeInProgress).to.be.false;
+      });
+    });
+
+    describe('when a second upgrade is called', async () => {
+      beforeEach(async () => {
+        const firstUpdateData = feeCalculatorHelper.generateAdjustFeeCallData(feeType, ether(.05));
+        await setManager.adjustFee.sendTransactionAsync(
+          subjectPoolAddress,
+          firstUpdateData,
+          { from: subjectCaller }
+        );
+
+        await blockchain.increaseTimeAsync(ONE_DAY_IN_SECONDS);
+        await blockchain.mineBlockAsync();
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
       });
     });
 

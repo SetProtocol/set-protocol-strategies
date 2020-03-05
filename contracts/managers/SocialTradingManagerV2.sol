@@ -36,6 +36,36 @@ contract SocialTradingManagerV2 is
     SocialTradingManager,
     UnrestrictedTimeLockUpgrade
 {
+
+    /* ============ State Variables ============ */
+
+    mapping(address => bool) public upgradeInProgress;
+
+    /* ============ Modifier ============ */
+
+    modifier limitOneFeeUpdate(address _tradingPool) {
+        if (upgradeInProgress[_tradingPool]) {
+            // Get upgradeHash
+            bytes32 upgradeHash = keccak256(
+                abi.encodePacked(
+                    msg.data
+                )
+            );
+
+            // If upgrade hash has no record then revert since must be second upgrade
+            require(
+                timeLockedUpgrades[upgradeHash] != 0,
+                "Another fee update already in progress."
+            );
+
+            upgradeInProgress[_tradingPool] = false;
+        } else {
+            upgradeInProgress[_tradingPool] = true;
+        }
+
+        _;
+    }
+
     /*
      * SocialTradingManager constructor.
      *
@@ -64,6 +94,8 @@ contract SocialTradingManagerV2 is
         )
     {}
 
+    /* ============ External ============ */
+
     /**
      * External function to remove upgrade. Modifiers should be added to restrict usage.
      *
@@ -76,6 +108,7 @@ contract SocialTradingManagerV2 is
     )
         external
         onlyTrader(IRebalancingSetTokenV2(_tradingPool))
+        limitOneFeeUpdate(_tradingPool)
         timeLockUpgrade
     {
         IRebalancingSetTokenV3(_tradingPool).adjustFee(_newFeeCallData);
