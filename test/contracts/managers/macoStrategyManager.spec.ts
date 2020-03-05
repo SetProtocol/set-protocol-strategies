@@ -10,7 +10,7 @@ import { BigNumber } from 'bignumber.js';
 
 import ChaiSetup from '@utils/chaiSetup';
 import { BigNumberSetup } from '@utils/bigNumberSetup';
-import { Blockchain } from '@utils/blockchain';
+import { Blockchain } from 'set-protocol-contracts';
 import { ether } from '@utils/units';
 import {
   Core,
@@ -49,7 +49,7 @@ import { LogManagerProposal } from '@utils/contract_logs/macoStrategyManager';
 
 import { ERC20Helper } from '@utils/helpers/erc20Helper';
 import { ManagerHelper } from '@utils/helpers/managerHelper';
-import { OracleHelper } from '@utils/helpers/oracleHelper';
+import { OracleHelper } from 'set-protocol-oracles';
 import { ProtocolHelper } from '@utils/helpers/protocolHelper';
 
 BigNumberSetup.configure();

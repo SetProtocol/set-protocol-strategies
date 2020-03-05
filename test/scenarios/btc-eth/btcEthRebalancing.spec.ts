@@ -33,12 +33,12 @@ import {
   DEFAULT_GAS,
   UNLIMITED_ALLOWANCE_IN_BASE_UNITS,
 } from '@utils/constants';
-import { Blockchain } from '@utils/blockchain';
+import { Blockchain } from 'set-protocol-contracts';
 import { getWeb3 } from '@utils/web3Helper';
 
 import { ProtocolHelper } from '@utils/helpers/protocolHelper';
 import { ERC20Helper } from '@utils/helpers/erc20Helper';
-import { OracleHelper } from '@utils/helpers/oracleHelper';
+import { OracleHelper } from 'set-protocol-oracles';
 import { ManagerHelper } from '@utils/helpers/managerHelper';
 
 BigNumberSetup.configure();

@@ -45,7 +45,7 @@ import {
 
 import { ProtocolHelper } from '@utils/helpers/protocolHelper';
 import { ERC20Helper } from '@utils/helpers/erc20Helper';
-import { OracleHelper } from '@utils/helpers/oracleHelper';
+import { OracleHelper } from 'set-protocol-oracles';
 import { ManagerHelper } from '@utils/helpers/managerHelper';
 
 BigNumberSetup.configure();

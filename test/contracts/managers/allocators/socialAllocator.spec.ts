@@ -10,7 +10,7 @@ import { BigNumber } from 'bignumber.js';
 
 import ChaiSetup from '@utils/chaiSetup';
 import { BigNumberSetup } from '@utils/bigNumberSetup';
-import { Blockchain } from '@utils/blockchain';
+import { Blockchain } from 'set-protocol-contracts';
 import { ether } from '@utils/units';
 import {
   Core,
@@ -43,9 +43,10 @@ import { expectRevertError } from '@utils/tokenAssertions';
 import { extractNewSetTokenAddressFromLogs } from '@utils/contract_logs/core';
 import { getWeb3 } from '@utils/web3Helper';
 
+import { CoreHelper } from 'set-protocol-contracts';
+import { OracleHelper } from 'set-protocol-oracles';
 import { ERC20Helper } from '@utils/helpers/erc20Helper';
 import { ManagerHelper } from '@utils/helpers/managerHelper';
-import { OracleHelper } from '@utils/helpers/oracleHelper';
 import { ProtocolHelper } from '@utils/helpers/protocolHelper';
 
 BigNumberSetup.configure();
@@ -90,6 +91,7 @@ contract('SocialAllocator', accounts => {
   const erc20Helper = new ERC20Helper(deployerAccount);
   const managerHelper = new ManagerHelper(deployerAccount);
   const oracleHelper = new OracleHelper(deployerAccount);
+  const coreHelper = new CoreHelper(deployerAccount, deployerAccount);
 
   before(async () => {
     ABIDecoder.addABI(Core.abi);
@@ -158,7 +160,7 @@ contract('SocialAllocator', accounts => {
       btcLegacyMakerOracleAdapter.address,
     );
 
-    oracleWhiteList = await protocolHelper.deployOracleWhiteListAsync(
+    oracleWhiteList = await coreHelper.deployOracleWhiteListAsync(
       [wrappedETH.address, wrappedBTC.address, usdcMock.address],
       [ethOracleProxy.address, btcOracleProxy.address, usdcOracle.address],
     );

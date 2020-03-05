@@ -9,7 +9,7 @@ import { BigNumberSetup } from '@utils/bigNumberSetup';
 import {
   FlexibleTimingManagerLibraryMockContract
 } from '@utils/contracts';
-import { Blockchain } from '@utils/blockchain';
+import { Blockchain } from 'set-protocol-contracts';
 import { ether } from '@utils/units';
 import { expectRevertError } from '@utils/tokenAssertions';
 import { getWeb3 } from '@utils/web3Helper';
