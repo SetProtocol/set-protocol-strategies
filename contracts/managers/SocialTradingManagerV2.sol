@@ -20,7 +20,7 @@ pragma experimental "ABIEncoderV2";
 import { ICore } from "set-protocol-contracts/contracts/core/interfaces/ICore.sol";
 import { IRebalancingSetTokenV2 } from "set-protocol-contracts/contracts/core/interfaces/IRebalancingSetTokenV2.sol";
 import { IRebalancingSetTokenV3 } from "set-protocol-contracts/contracts/core/interfaces/IRebalancingSetTokenV3.sol";
-import { UnrestrictedTimeLockUpgrade } from "set-protocol-contracts/contracts/lib/UnrestrictedTimeLockUpgrade.sol";
+import { LimitOneUpgrade } from "set-protocol-contracts/contracts/lib/LimitOneUpgrade.sol";
 
 import { SocialTradingManager } from "./SocialTradingManager.sol";
 
@@ -34,38 +34,8 @@ import { SocialTradingManager } from "./SocialTradingManager.sol";
  */
 contract SocialTradingManagerV2 is
     SocialTradingManager,
-    UnrestrictedTimeLockUpgrade
+    LimitOneUpgrade
 {
-
-    /* ============ State Variables ============ */
-
-    mapping(address => bool) public upgradeInProgress;
-
-    /* ============ Modifier ============ */
-
-    modifier limitOneFeeUpdate(address _tradingPool) {
-        if (upgradeInProgress[_tradingPool]) {
-            // Get upgradeHash
-            bytes32 upgradeHash = keccak256(
-                abi.encodePacked(
-                    msg.data
-                )
-            );
-
-            // If upgrade hash has no record then revert since must be second upgrade
-            require(
-                timeLockedUpgrades[upgradeHash] != 0,
-                "Another fee update already in progress."
-            );
-
-            upgradeInProgress[_tradingPool] = false;
-        } else {
-            upgradeInProgress[_tradingPool] = true;
-        }
-
-        _;
-    }
-
     /*
      * SocialTradingManager constructor.
      *
@@ -108,7 +78,7 @@ contract SocialTradingManagerV2 is
     )
         external
         onlyTrader(IRebalancingSetTokenV2(_tradingPool))
-        limitOneFeeUpdate(_tradingPool)
+        limitOneUpgrade(_tradingPool)
         timeLockUpgrade
     {
         IRebalancingSetTokenV3(_tradingPool).adjustFee(_newFeeCallData);
@@ -127,6 +97,6 @@ contract SocialTradingManagerV2 is
         external
         onlyTrader(IRebalancingSetTokenV2(_tradingPool))
     {
-        UnrestrictedTimeLockUpgrade.removeRegisteredUpgradeInternal(_upgradeHash);
+        removeRegisteredUpgradeInternal(_upgradeHash);
     }
 }
