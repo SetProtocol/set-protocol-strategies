@@ -98,5 +98,7 @@ contract SocialTradingManagerV2 is
         onlyTrader(IRebalancingSetTokenV2(_tradingPool))
     {
         removeRegisteredUpgradeInternal(_upgradeHash);
+
+        upgradeInProgress[_tradingPool] = false;
     }
 }

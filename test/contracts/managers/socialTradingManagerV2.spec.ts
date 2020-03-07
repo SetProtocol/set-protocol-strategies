@@ -611,6 +611,16 @@ contract('SocialTradingManagerV2', accounts => {
       expect(actualTimestamp).to.bignumber.equal(ZERO);
     });
 
+    it('sets the upgradeInProgress to false', async () => {
+      const preUpgradeInProgress = await setManager.upgradeInProgress.callAsync(subjectPoolAddress);
+      expect(preUpgradeInProgress).to.be.true;
+
+      await subject();
+
+      const postUpgradeInProgress = await setManager.upgradeInProgress.callAsync(subjectPoolAddress);
+      expect(postUpgradeInProgress).to.be.false;
+    });
+
     describe('when the hash specified is not registered', async () => {
       beforeEach(async () => {
         subjectUpgradeHash = web3.utils.soliditySha3(5);
