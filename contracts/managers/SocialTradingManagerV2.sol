@@ -67,7 +67,7 @@ contract SocialTradingManagerV2 is
     /* ============ External ============ */
 
     /**
-     * External function to remove upgrade. Modifiers should be added to restrict usage.
+     * Allows traders to update fees on their Set. Only one fee update allowed at a time and timelocked.
      *
      * @param _tradingPool       The address of the trading pool being updated
      * @param _newFeeCallData    Bytestring representing feeData to pass to fee calculator
