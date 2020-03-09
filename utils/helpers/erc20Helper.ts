@@ -19,10 +19,11 @@ import {
 } from '../constants';
 import {
   getContractInstance,
+  importArtifactsFromSource
 } from '../web3Helper';
 
-const USDCMock = artifacts.require('USDCMock');
-const StandardTokenMock = artifacts.require('StandardTokenMock');
+const USDCMock = importArtifactsFromSource('USDCMock');
+const StandardTokenMock = importArtifactsFromSource('StandardTokenMock');
 
 export class ERC20Helper {
   private _senderAccountAddress: Address;

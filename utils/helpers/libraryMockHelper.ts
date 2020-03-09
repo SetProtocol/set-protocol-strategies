@@ -7,14 +7,15 @@ import {
 } from '../contracts';
 import {
   getContractInstance,
+  importArtifactsFromSource,
   txnFrom,
 } from '../web3Helper';
 
-const AllocatorMathLibraryMock = artifacts.require('AllocatorMathLibraryMock');
-const FlexibleTimingManagerLibraryMock = artifacts.require('FlexibleTimingManagerLibraryMock');
-const ManagerLibraryMock = artifacts.require('ManagerLibraryMock');
-const UintArrayUtilsLibrary = artifacts.require('UintArrayUtilsLibrary');
-const UintArrayUtilsLibraryMock = artifacts.require('UintArrayUtilsLibraryMock');
+const AllocatorMathLibraryMock = importArtifactsFromSource('AllocatorMathLibraryMock');
+const FlexibleTimingManagerLibraryMock = importArtifactsFromSource('FlexibleTimingManagerLibraryMock');
+const ManagerLibraryMock = importArtifactsFromSource('ManagerLibraryMock');
+const UintArrayUtilsLibrary = importArtifactsFromSource('UintArrayUtilsLibrary');
+const UintArrayUtilsLibraryMock = importArtifactsFromSource('UintArrayUtilsLibraryMock');
 
 export class LibraryMockHelper {
   private _contractOwnerAddress: Address;

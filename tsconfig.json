@@ -19,7 +19,8 @@
       "node_modules/set-protocol-utils/types",
       "node_modules/@types"
     ],
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "resolveJsonModule": true
   },
   "include": [
     "types/**/*.ts",
