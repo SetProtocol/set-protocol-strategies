@@ -28,6 +28,7 @@ export const USDC_DECIMALS = new BigNumber(10 ** 6);
 export const VALUE_TO_CENTS_CONVERSION = new BigNumber(10 ** 16);
 export const WBTC_DECIMALS = 8;
 export const ZERO: BigNumber = new BigNumber(0);
+export const ZERO_BYTES: string = '0x0000000000000000000000000000000000000000000000000000000000000000';
 
 export const PRIVATE_KEYS = [
   '767df558efc63b6ba9a9257e68509c38f5c48d5938a41ab191a9a073ebff7c4f',
