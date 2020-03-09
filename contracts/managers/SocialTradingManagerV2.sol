@@ -97,8 +97,6 @@ contract SocialTradingManagerV2 is
         external
         onlyTrader(IRebalancingSetTokenV2(_tradingPool))
     {
-        removeRegisteredUpgradeInternal(_upgradeHash);
-
-        upgradeInProgress[_tradingPool] = false;
+        LimitOneUpgrade.removeRegisteredUpgradeInternal(_tradingPool, _upgradeHash);
     }
 }

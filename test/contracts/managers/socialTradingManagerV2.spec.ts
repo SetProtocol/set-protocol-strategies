@@ -41,6 +41,7 @@ import {
   UNLIMITED_ALLOWANCE_IN_BASE_UNITS,
   WBTC_DECIMALS,
   ZERO,
+  ZERO_BYTES
 } from '@utils/constants';
 
 import { expectRevertError } from '@utils/tokenAssertions';
@@ -417,11 +418,12 @@ contract('SocialTradingManagerV2', accounts => {
       expect(actualTimestamp).to.bignumber.equal(timestamp);
     });
 
-    it('sets the upgradeInProgress to true', async () => {
-      await subject();
+    it('sets the upgradeIdentifier to upgradeHash', async () => {      const txHash = await subject();
+      const { input } = await web3.eth.getTransaction(txHash);
 
-      const upgradeInProgress = await setManager.upgradeInProgress.callAsync(subjectPoolAddress);
-      expect(upgradeInProgress).to.be.true;
+      const upgradeHash = web3.utils.soliditySha3(input);
+      const upgradeIdentifier = await setManager.upgradeIdentifier.callAsync(subjectPoolAddress);
+      expect(upgradeIdentifier).to.equal(upgradeHash);
     });
 
     describe('when called to confirm set streaming fee txn', async () => {
@@ -439,11 +441,11 @@ contract('SocialTradingManagerV2', accounts => {
         expect(feeState.streamingFeePercentage).to.be.bignumber.equal(newFeePercentage);
       });
 
-      it('sets the upgradeInProgress to false', async () => {
+      it('sets the upgradeIdentifier to false', async () => {
         await subject();
 
-        const upgradeInProgress = await setManager.upgradeInProgress.callAsync(subjectPoolAddress);
-        expect(upgradeInProgress).to.be.false;
+        const upgradeIdentifier = await setManager.upgradeIdentifier.callAsync(subjectPoolAddress);
+        expect(upgradeIdentifier).to.equal(ZERO_BYTES);
       });
     });
 
@@ -472,11 +474,11 @@ contract('SocialTradingManagerV2', accounts => {
         expect(feeState.profitFeePercentage).to.be.bignumber.equal(newFeePercentage);
       });
 
-      it('sets the upgradeInProgress to false', async () => {
+      it('sets the upgradeIdentifier to zero', async () => {
         await subject();
 
-        const upgradeInProgress = await setManager.upgradeInProgress.callAsync(subjectPoolAddress);
-        expect(upgradeInProgress).to.be.false;
+        const upgradeIdentifier = await setManager.upgradeIdentifier.callAsync(subjectPoolAddress);
+        expect(upgradeIdentifier).to.equal(ZERO_BYTES);
       });
     });
 
@@ -516,6 +518,7 @@ contract('SocialTradingManagerV2', accounts => {
 
     let feeType: BigNumber;
     let newFeePercentage: BigNumber;
+    let poolRebalancingSetCallData: string;
 
     before(async () => {
       feeType = ZERO;
@@ -551,7 +554,7 @@ contract('SocialTradingManagerV2', accounts => {
         profitFeePercentage,
         streamingFeePercentage
       );
-      const poolRebalancingSetCallData = v3Helper.generateRebalancingSetTokenV3CallData(
+      poolRebalancingSetCallData = v3Helper.generateRebalancingSetTokenV3CallData(
         callDataManagerAddress,
         callDataLiquidator,
         callDataFeeRecipient,
@@ -611,14 +614,14 @@ contract('SocialTradingManagerV2', accounts => {
       expect(actualTimestamp).to.bignumber.equal(ZERO);
     });
 
-    it('sets the upgradeInProgress to false', async () => {
-      const preUpgradeInProgress = await setManager.upgradeInProgress.callAsync(subjectPoolAddress);
-      expect(preUpgradeInProgress).to.be.true;
+    it('sets the upgradeIdentifier to zero', async () => {
+      const preUpgradeIdentifier = await setManager.upgradeIdentifier.callAsync(subjectPoolAddress);
+      expect(preUpgradeIdentifier).to.equal(subjectUpgradeHash);
 
       await subject();
 
-      const postUpgradeInProgress = await setManager.upgradeInProgress.callAsync(subjectPoolAddress);
-      expect(postUpgradeInProgress).to.be.false;
+      const postUpgradeIdentifier = await setManager.upgradeIdentifier.callAsync(subjectPoolAddress);
+      expect(postUpgradeIdentifier).to.equal(ZERO_BYTES);
     });
 
     describe('when the hash specified is not registered', async () => {
@@ -634,6 +637,34 @@ contract('SocialTradingManagerV2', accounts => {
     describe('when caller is not trader', async () => {
       beforeEach(async () => {
         subjectCaller = attackerAccount;
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('when caller is trader but passes other trader\'s upgradeHash', async () => {
+      beforeEach(async () => {
+        const poolAllocator = allocator.address;
+        const poolStartingBaseAssetAllocation = ether(1);
+        const poolStartingValue = ether(100);
+        const poolName = 'TestSet';
+        const poolSymbol = 'TEST';
+        const poolCaller = deployerAccount;
+        const txHash = await setManager.createTradingPool.sendTransactionAsync(
+          poolAllocator,
+          poolStartingBaseAssetAllocation,
+          poolStartingValue,
+          SetUtils.stringToBytes(poolName),
+          SetUtils.stringToBytes(poolSymbol),
+          poolRebalancingSetCallData,
+          { from: poolCaller }
+        );
+
+        const logs = await setTestUtils.getLogsFromTxHash(txHash);
+        const poolAddress = extractNewSetTokenAddressFromLogs(logs, 2);
+        subjectPoolAddress = poolAddress;
       });
 
       it('should revert', async () => {
