@@ -17,8 +17,13 @@
 pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
-
-contract AssetPairManager {
+/**
+ * @title IAssetPairManager
+ * @author Set Protocol
+ *
+ * Interface for interacting with AssetPairManager contracts
+ */
+interface IAssetPairManager {
     function signalConfirmationMinTime() external view returns (uint256);
     function signalConfirmationMaxTime() external view returns (uint256);
 }

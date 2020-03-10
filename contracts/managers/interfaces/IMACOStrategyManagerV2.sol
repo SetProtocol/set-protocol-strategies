@@ -17,8 +17,13 @@
 pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
-
-contract MACOStrategyManagerV2 {
+/**
+ * @title IMACOStrategyManagerV2
+ * @author Set Protocol
+ *
+ * Interface for interacting with MACOStrategyManagerV2 contracts
+ */
+interface IMACOStrategyManagerV2 {
     function crossoverConfirmationMinTime() external view returns (uint256);
     function crossoverConfirmationMaxTime() external view returns (uint256);
 }
