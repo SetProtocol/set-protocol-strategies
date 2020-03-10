@@ -26,5 +26,6 @@ pragma experimental "ABIEncoderV2";
 interface IMACOStrategyManagerV2 {
     function crossoverConfirmationMinTime() external view returns (uint256);
     function crossoverConfirmationMaxTime() external view returns (uint256);
+    function lastCrossoverConfirmationTimestamp() external view returns (uint256);
 }
 

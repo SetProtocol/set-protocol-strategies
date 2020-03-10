@@ -26,5 +26,6 @@ pragma experimental "ABIEncoderV2";
 interface IAssetPairManager {
     function signalConfirmationMinTime() external view returns (uint256);
     function signalConfirmationMaxTime() external view returns (uint256);
+    function recentInitialProposeTimestamp() external view returns (uint256);
 }
 
