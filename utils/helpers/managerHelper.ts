@@ -44,27 +44,27 @@ import {
 import { extractNewCollateralFromLogs } from '@utils/contract_logs/binaryAllocator';
 import { ProtocolHelper } from '@utils/helpers/protocolHelper';
 
-import { getWeb3, getContractInstance } from '../web3Helper';
+import { getWeb3, getContractInstance, importArtifactsFromSource } from '../web3Helper';
 
 const web3 = getWeb3();
-const AssetPairManager = artifacts.require('AssetPairManager');
-const BinaryAllocator = artifacts.require('BinaryAllocator');
-const BinaryAllocatorMock = artifacts.require('BinaryAllocatorMock');
-const BTCETHRebalancingManager = artifacts.require('BTCETHRebalancingManager');
-const BTCDaiRebalancingManager = artifacts.require('BTCDaiRebalancingManager');
-const ETHDaiRebalancingManager = artifacts.require('ETHDaiRebalancingManager');
-const InverseMACOStrategyManager = artifacts.require('InverseMACOStrategyManager');
-const MACOStrategyManager = artifacts.require('MACOStrategyManager');
-const MACOStrategyManagerV2 = artifacts.require('MACOStrategyManagerV2');
-const MovingAverageCrossoverTrigger = artifacts.require(
+const AssetPairManager = importArtifactsFromSource('AssetPairManager');
+const BinaryAllocator = importArtifactsFromSource('BinaryAllocator');
+const BinaryAllocatorMock = importArtifactsFromSource('BinaryAllocatorMock');
+const BTCETHRebalancingManager = importArtifactsFromSource('BTCETHRebalancingManager');
+const BTCDaiRebalancingManager = importArtifactsFromSource('BTCDaiRebalancingManager');
+const ETHDaiRebalancingManager = importArtifactsFromSource('ETHDaiRebalancingManager');
+const InverseMACOStrategyManager = importArtifactsFromSource('InverseMACOStrategyManager');
+const MACOStrategyManager = importArtifactsFromSource('MACOStrategyManager');
+const MACOStrategyManagerV2 = importArtifactsFromSource('MACOStrategyManagerV2');
+const MovingAverageCrossoverTrigger = importArtifactsFromSource(
   'MovingAverageCrossoverTrigger'
 );
-const RSITrendingTrigger = artifacts.require('RSITrendingTrigger');
-const SocialTradingManager = artifacts.require('SocialTradingManager');
-const SocialTradingManagerV2 = artifacts.require('SocialTradingManagerV2');
-const TriggerMock = artifacts.require('TriggerMock');
-const UintArrayUtilsLibrary = artifacts.require('UintArrayUtilsLibrary');
-const SocialAllocator = artifacts.require('SocialAllocator');
+const RSITrendingTrigger = importArtifactsFromSource('RSITrendingTrigger');
+const SocialTradingManager = importArtifactsFromSource('SocialTradingManager');
+const SocialTradingManagerV2 = importArtifactsFromSource('SocialTradingManagerV2');
+const TriggerMock = importArtifactsFromSource('TriggerMock');
+const UintArrayUtilsLibrary = importArtifactsFromSource('UintArrayUtilsLibrary');
+const SocialAllocator = importArtifactsFromSource('SocialAllocator');
 
 const { SetProtocolUtils: SetUtils, SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
 const setTestUtils = new SetTestUtils(web3);
