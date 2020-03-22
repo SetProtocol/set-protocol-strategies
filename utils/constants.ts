@@ -19,6 +19,7 @@ export const ONE_HOUR_IN_SECONDS = new BigNumber(3600);
 export const ONE_DAY_IN_SECONDS = new BigNumber(86400);
 export const RISK_COLLATERAL_NATURAL_UNIT = new BigNumber(10 ** 6);
 export const SNAPSHOT_TIME_LOCK = new BigNumber(1);
+export const SOCIAL_TRADING_NATURAL_UNIT = new BigNumber(10 ** 8);
 export const STABLE_COLLATERAL_NATURAL_UNIT = new BigNumber(10 ** 12);
 export const STANDARD_COMPONENT_UNIT = ether(1);
 export const STANDARD_NATURAL_UNIT = ether(1);

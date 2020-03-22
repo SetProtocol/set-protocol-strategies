@@ -76,7 +76,7 @@ contract SocialTradingManager is
 
     /* ============ Constants ============ */
 
-    uint256 public constant REBALANCING_SET_NATURAL_UNIT = 1e6;
+    uint256 public constant REBALANCING_SET_NATURAL_UNIT = 1e8;
     uint public constant ONE_PERCENT = 1e16;
     uint256 constant public MAXIMUM_ALLOCATION = 1e18;
 
