@@ -36,9 +36,9 @@ import {
 } from '@utils/contracts';
 
 import {
-  DEFAULT_REBALANCING_NATURAL_UNIT,
   ETH_DECIMALS,
   ONE_DAY_IN_SECONDS,
+  SOCIAL_TRADING_NATURAL_UNIT,
   UNLIMITED_ALLOWANCE_IN_BASE_UNITS,
   WBTC_DECIMALS,
   ZERO,
@@ -443,7 +443,7 @@ contract('SocialTradingManager', accounts => {
       );
 
       const expectedUnitShares = subjectStartingValue
-        .mul(DEFAULT_REBALANCING_NATURAL_UNIT)
+        .mul(SOCIAL_TRADING_NATURAL_UNIT)
         .div(collateralValue).round(0, 3);
 
       const poolInstance = await protocolHelper.getRebalancingSetTokenV2Async(poolAddress);
@@ -461,7 +461,7 @@ contract('SocialTradingManager', accounts => {
 
       const actualNaturalUnit = await poolInstance.naturalUnit.callAsync();
 
-      expect(actualNaturalUnit).to.be.bignumber.equal(DEFAULT_REBALANCING_NATURAL_UNIT);
+      expect(actualNaturalUnit).to.be.bignumber.equal(SOCIAL_TRADING_NATURAL_UNIT);
     });
 
     it('created pool has correct name', async () => {
