@@ -37,6 +37,8 @@ import { SocialTradingLibrary } from "./lib/SocialTradingLibrary.sol";
  * between 0 and 100 for each rebalance. The trading pair used for each trading pool is defined by the allocator
  * passed in on pool creation. Only compatible with RebalancingSetTokenV2 constracts. All permissioned functions
  * on the RebalancingSetTokenV2 must be called through the administrative functions exposed on this contract.
+ *
+ * CHANGELOG: As of version 1.1.31 the REBALANCING_SET_NATURAL_UNIT has been changed from 1e6 to 1e8.
  */
 contract SocialTradingManager is
     WhiteList
