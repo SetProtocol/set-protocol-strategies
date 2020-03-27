@@ -6,7 +6,6 @@
   "files": [
     "build",
     "dist",
-    "artifacts",
     "contracts",
     "migrations",
     "scripts",
