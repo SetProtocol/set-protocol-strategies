@@ -501,9 +501,10 @@
   version "1.8.9"
   resolved "https://registry.yarnpkg.com/@types/underscore/-/underscore-1.8.9.tgz#fef41f800cd23db1b4f262ddefe49cd952d82323"
 
-"@types/web3@^1.0.10":
-  version "1.0.10"
-  resolved "https://registry.yarnpkg.com/@types/web3/-/web3-1.0.10.tgz#04e8ffe62746de76001b00329b3908fc8c1fc117"
+"@types/web3@1.0.20":
+  version "1.0.20"
+  resolved "https://registry.yarnpkg.com/@types/web3/-/web3-1.0.20.tgz#234dd1f976702c0daaff147c80f24a5582e09d0e"
+  integrity sha512-KTDlFuYjzCUlBDGt35Ir5QRtyV9klF84MMKUsEJK10sTWga/71V+8VYLT7yysjuBjaOx2uFYtIWNGoz3yrNDlg==
   dependencies:
     "@types/bn.js" "*"
     "@types/underscore" "*"
@@ -6547,10 +6548,10 @@ set-immediate-shim@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/set-immediate-shim/-/set-immediate-shim-1.0.1.tgz#4b2b1b27eb808a9f8dcc481a58e5e56f599f3f61"
 
-set-protocol-contracts@^1.2.9:
-  version "1.2.9"
-  resolved "https://registry.yarnpkg.com/set-protocol-contracts/-/set-protocol-contracts-1.2.9.tgz#92ec40eab0ca019dd2cc36b210b00b8ed232f30d"
-  integrity sha512-EcXWh7yJgHqr5qrR/PGTurtORvDd5QRGvf6c5tomYB7/WTFu5ielQDHjM2T7InyG80OOrsNsYdNJhsVS3ZSndQ==
+set-protocol-contracts@^1.3.51-beta:
+  version "1.3.51-beta"
+  resolved "https://registry.yarnpkg.com/set-protocol-contracts/-/set-protocol-contracts-1.3.51-beta.tgz#874722ca8b7b61f125d8a2c84f78ce22e2b80743"
+  integrity sha512-/FijDvyNA+opC6HgiYn6md6PXzEOpIEK1LZwCmHzb+SvpOuKhA6543/GfnRMx0AwIusR+BdW6Qu474nqP1DIuQ==
   dependencies:
     bn-chai "^1.0.1"
     canonical-weth "^1.3.1"
@@ -6563,33 +6564,8 @@ set-protocol-contracts@^1.2.9:
     lint-staged "^7.2.0"
     module-alias "^2.1.0"
     openzeppelin-solidity "^2.2"
-    set-protocol-utils "^1.0.0-beta.41"
-    tiny-promisify "^1.0.0"
-    truffle-flattener "^1.4.0"
-    ts-mocha "^6.0.0"
-    ts-node "^8.0.2"
-    tslint-eslint-rules "^5.3.1"
-    web3 "1.0.0-beta.36"
-    web3-utils "1.0.0-beta.36"
-
-set-protocol-contracts@^1.3.13-beta:
-  version "1.3.13-beta"
-  resolved "https://registry.yarnpkg.com/set-protocol-contracts/-/set-protocol-contracts-1.3.13-beta.tgz#85529bbd2620640e91b7541bcbc1fca8d96b7145"
-  integrity sha512-TefAGIjQ6jkLlV2QQG5KkG81jOaKKyHy3lTGPgLsUrDY4kpUlE5RXW5QOP6pTMmM1km8DO6kdaOzkXpRElBNzA==
-  dependencies:
-    bn-chai "^1.0.1"
-    canonical-weth "^1.3.1"
-    dotenv "^6.2.0"
-    eth-gas-reporter "^0.1.10"
-    ethlint "^1.2.3"
-    expect "^24.1.0"
-    fs-extra "^5.0.0"
-    husky "^0.14.3"
-    lint-staged "^7.2.0"
-    module-alias "^2.1.0"
-    openzeppelin-solidity "^2.2"
-    set-protocol-strategies "^1.1.22"
-    set-protocol-utils "^1.0.0-beta.44"
+    set-protocol-oracles "^1.0.13"
+    set-protocol-utils "^1.1.2"
     tiny-promisify "^1.0.0"
     truffle-flattener "^1.4.0"
     ts-mocha "^6.0.0"
@@ -6599,119 +6575,10 @@ set-protocol-contracts@^1.3.13-beta:
     web3-utils "1.0.0-beta.36"
     zos-lib "^2.4.2"
 
-set-protocol-contracts@^1.3.32-beta:
-  version "1.3.32-beta"
-  resolved "https://registry.yarnpkg.com/set-protocol-contracts/-/set-protocol-contracts-1.3.32-beta.tgz#005bd41363c3be65397ebeaa3ac7faae247379ff"
-  integrity sha512-+d+nW+c1XuBB8pXKc3PpxTFQEic22pPcBcderJQynaw304KASqj3Vlg+nUU5Q6786mr5Cplfe9TaQGBcykiMPg==
-  dependencies:
-    bn-chai "^1.0.1"
-    canonical-weth "^1.3.1"
-    dotenv "^6.2.0"
-    eth-gas-reporter "^0.1.10"
-    ethlint "^1.2.3"
-    expect "^24.1.0"
-    fs-extra "^5.0.0"
-    husky "^0.14.3"
-    lint-staged "^7.2.0"
-    module-alias "^2.1.0"
-    openzeppelin-solidity "^2.2"
-    set-protocol-oracles "^1.0.1"
-    set-protocol-strategies "^1.1.24"
-    set-protocol-utils "^1.0.0-beta.44"
-    tiny-promisify "^1.0.0"
-    truffle-flattener "^1.4.0"
-    ts-mocha "^6.0.0"
-    ts-node "^8.0.2"
-    tslint-eslint-rules "^5.3.1"
-    web3 "1.0.0-beta.36"
-    web3-utils "1.0.0-beta.36"
-    zos-lib "^2.4.2"
-
-set-protocol-contracts@^1.3.49-beta:
-  version "1.3.49-beta"
-  resolved "https://registry.yarnpkg.com/set-protocol-contracts/-/set-protocol-contracts-1.3.49-beta.tgz#3977738bf9b217eba2004c9f3ba9d82a4f26eb67"
-  integrity sha512-V17/YGUZ8K9hmmrAMObLG19o3QxOlbPx4zwBVM9osg2p+ndJD4Z9TIkXqnQbOf7irzI+kLIvQu8Kcy2hF/7DGg==
-  dependencies:
-    bn-chai "^1.0.1"
-    canonical-weth "^1.3.1"
-    dotenv "^6.2.0"
-    eth-gas-reporter "^0.1.10"
-    ethlint "^1.2.3"
-    expect "^24.1.0"
-    fs-extra "^5.0.0"
-    husky "^0.14.3"
-    lint-staged "^7.2.0"
-    module-alias "^2.1.0"
-    openzeppelin-solidity "^2.2"
-    set-protocol-oracles "^1.0.5"
-    set-protocol-strategies "^1.1.24"
-    set-protocol-utils "^1.0.0-beta.44"
-    tiny-promisify "^1.0.0"
-    truffle-flattener "^1.4.0"
-    ts-mocha "^6.0.0"
-    ts-node "^8.0.2"
-    tslint-eslint-rules "^5.3.1"
-    web3 "1.0.0-beta.36"
-    web3-utils "1.0.0-beta.36"
-    zos-lib "^2.4.2"
-
-set-protocol-contracts@^1.3.8-beta:
-  version "1.3.8-beta"
-  resolved "https://registry.yarnpkg.com/set-protocol-contracts/-/set-protocol-contracts-1.3.8-beta.tgz#a632c07fbb8ed9ee74e9627805dc9abcec7f2f4f"
-  integrity sha512-oA5CpjjWpg2yTeaM6MyFBp893JokBExqOyQq2XeBypdI2fpH5V0F++Dd/6S/zLiyyTTctbrPkiAJ6D4Vn9IL6Q==
-  dependencies:
-    bn-chai "^1.0.1"
-    canonical-weth "^1.3.1"
-    dotenv "^6.2.0"
-    eth-gas-reporter "^0.1.10"
-    ethlint "^1.2.3"
-    expect "^24.1.0"
-    fs-extra "^5.0.0"
-    husky "^0.14.3"
-    lint-staged "^7.2.0"
-    module-alias "^2.1.0"
-    openzeppelin-solidity "^2.2"
-    set-protocol-strategies "^1.1.7"
-    set-protocol-utils "^1.0.0-beta.44"
-    tiny-promisify "^1.0.0"
-    truffle-flattener "^1.4.0"
-    ts-mocha "^6.0.0"
-    ts-node "^8.0.2"
-    tslint-eslint-rules "^5.3.1"
-    web3 "1.0.0-beta.36"
-    web3-utils "1.0.0-beta.36"
-    zos-lib "^2.4.2"
-
-set-protocol-oracles@^1.0.1:
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/set-protocol-oracles/-/set-protocol-oracles-1.0.1.tgz#64233a866fcec13e6ad3e1516900dea2a43bafbe"
-  integrity sha512-Ry9aF3unR7Is53NiMwH9NaEoiDl9tFERhY2gMvjDjd8yX1OF4qYs2ONaHdCrJ5XcJITF0P4YM9872Q+uWkvUqw==
-  dependencies:
-    bn-chai "^1.0.1"
-    canonical-weth "^1.3.1"
-    dotenv "^6.2.0"
-    eth-gas-reporter "^0.1.10"
-    ethlint "^1.2.3"
-    expect "^24.1.0"
-    fs-extra "^5.0.0"
-    husky "^0.14.3"
-    lint-staged "^7.2.0"
-    module-alias "^2.1.0"
-    openzeppelin-solidity "^2.2"
-    set-protocol-contracts "^1.3.13-beta"
-    set-protocol-utils "^1.0.0-beta.45"
-    tiny-promisify "^1.0.0"
-    truffle-flattener "^1.4.2"
-    ts-mocha "^6.0.0"
-    ts-node "^8.0.2"
-    tslint-eslint-rules "^5.3.1"
-    web3 "1.0.0-beta.36"
-    web3-utils "1.0.0-beta.36"
-
-set-protocol-oracles@^1.0.5:
-  version "1.0.5"
-  resolved "https://registry.yarnpkg.com/set-protocol-oracles/-/set-protocol-oracles-1.0.5.tgz#611e648c8a538b360b25e3450a062d61fd0a3fa4"
-  integrity sha512-t+Axb07DH7JBzHvtR52LuJlSYxu4rVM+CZwZApIXu69D+fJg8Y0PfGaRI0MiXZ2Fr+X18Q/Jcq1P0kuHeuvC3g==
+set-protocol-oracles@^1.0.13:
+  version "1.0.13"
+  resolved "https://registry.yarnpkg.com/set-protocol-oracles/-/set-protocol-oracles-1.0.13.tgz#92f26894af0fe726dd1e07b6d90aff90857a363f"
+  integrity sha512-o/RazH7LDYowEPIecmiuISq/qDaIBDJk0FhJOVva47Fj2+JlSvMiSOvDiMVPTbyIOoTYjXKMHtym7Rm2CCJZQA==
   dependencies:
     bn-chai "^1.0.1"
     canonical-weth "^1.3.1"
@@ -6725,8 +6592,7 @@ set-protocol-oracles@^1.0.5:
     lint-staged "^7.2.0"
     module-alias "^2.1.0"
     openzeppelin-solidity "^2.2"
-    set-protocol-contracts "^1.3.32-beta"
-    set-protocol-utils "^1.0.0-beta.45"
+    set-protocol-utils "^1.1.2"
     tiny-promisify "^1.0.0"
     truffle-flattener "^1.4.2"
     ts-mocha "^6.0.0"
@@ -6735,88 +6601,10 @@ set-protocol-oracles@^1.0.5:
     web3 "1.0.0-beta.36"
     web3-utils "1.0.0-beta.36"
 
-set-protocol-strategies@^1.1.22:
-  version "1.1.23"
-  resolved "https://registry.yarnpkg.com/set-protocol-strategies/-/set-protocol-strategies-1.1.23.tgz#5180326c3f7ead937d55f3c9293b92d2bc402842"
-  integrity sha512-eWpFiY2lQ9D8rwzvij+N0cdc8Bl6KTjyrTTnbyR7HaAUAqW65kgYl/KRgobhU0iVwWiVk+LrPksTcbkK2wTTcw==
-  dependencies:
-    bn-chai "^1.0.1"
-    canonical-weth "^1.3.1"
-    dotenv "^6.2.0"
-    eth-gas-reporter "^0.1.10"
-    ethlint "^1.2.3"
-    expect "^24.1.0"
-    fs-extra "^5.0.0"
-    husky "^0.14.3"
-    lint-staged "^7.2.0"
-    module-alias "^2.1.0"
-    openzeppelin-solidity "^2.2"
-    set-protocol-contracts "^1.3.8-beta"
-    set-protocol-utils "^1.0.0-beta.45"
-    tiny-promisify "^1.0.0"
-    truffle-flattener "^1.4.2"
-    ts-mocha "^6.0.0"
-    ts-node "^8.0.2"
-    tslint-eslint-rules "^5.3.1"
-    web3 "1.0.0-beta.36"
-    web3-utils "1.0.0-beta.36"
-
-set-protocol-strategies@^1.1.24:
-  version "1.1.26"
-  resolved "https://registry.yarnpkg.com/set-protocol-strategies/-/set-protocol-strategies-1.1.26.tgz#82f3758dec6bf8ce3ed99ba72674ac94910669b8"
-  integrity sha512-J/qnincwg6uxviq0WNNf2TdchAyYDlLzIep41+328rROXTy6GuMEs8WORAQKlkGQGaaOJ5Xp4r/8bz6FF1cVOQ==
-  dependencies:
-    bn-chai "^1.0.1"
-    canonical-weth "^1.3.1"
-    dotenv "^6.2.0"
-    eth-gas-reporter "^0.1.10"
-    ethlint "^1.2.3"
-    expect "^24.1.0"
-    fs-extra "^5.0.0"
-    husky "^0.14.3"
-    lint-staged "^7.2.0"
-    module-alias "^2.1.0"
-    openzeppelin-solidity "^2.2"
-    set-protocol-contracts "^1.3.13-beta"
-    set-protocol-utils "^1.0.0-beta.45"
-    tiny-promisify "^1.0.0"
-    truffle-flattener "^1.4.2"
-    ts-mocha "^6.0.0"
-    ts-node "^8.0.2"
-    tslint-eslint-rules "^5.3.1"
-    web3 "1.0.0-beta.36"
-    web3-utils "1.0.0-beta.36"
-
-set-protocol-strategies@^1.1.7:
-  version "1.1.16"
-  resolved "https://registry.yarnpkg.com/set-protocol-strategies/-/set-protocol-strategies-1.1.16.tgz#1c071c86951debc881d4af9059830285538ea2f7"
-  integrity sha512-Us47+iTwrXGiuloXBO2lhOfXsX1HPfBZ3IqUooE4jh6XxVNF139ZQ3vX9e/h7u0ahKj/0AdO8fjYxPRW2BB+Sw==
-  dependencies:
-    bn-chai "^1.0.1"
-    canonical-weth "^1.3.1"
-    dotenv "^6.2.0"
-    eth-gas-reporter "^0.1.10"
-    ethlint "^1.2.3"
-    expect "^24.1.0"
-    fs-extra "^5.0.0"
-    husky "^0.14.3"
-    lint-staged "^7.2.0"
-    module-alias "^2.1.0"
-    openzeppelin-solidity "^2.2"
-    set-protocol-contracts "^1.2.9"
-    set-protocol-utils "^1.0.0-beta.39"
-    tiny-promisify "^1.0.0"
-    truffle-flattener "^1.4.2"
-    ts-mocha "^6.0.0"
-    ts-node "^8.0.2"
-    tslint-eslint-rules "^5.3.1"
-    web3 "1.0.0-beta.36"
-    web3-utils "1.0.0-beta.36"
-
-set-protocol-utils@^1.0.0-beta.39, set-protocol-utils@^1.0.0-beta.41:
-  version "1.0.0-beta.43"
-  resolved "https://registry.yarnpkg.com/set-protocol-utils/-/set-protocol-utils-1.0.0-beta.43.tgz#15ae674c16f4bfd140ec79db6221de23aba0fb89"
-  integrity sha512-bMCJq3Yk2uj/CRiTSKZycBbtn5Cn62rpQrzWIl3zNZ+24EdNRHS+siE3EbPYVXq4I8qxAddWSriKIbO4HWFnmw==
+set-protocol-utils@^1.1.2:
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/set-protocol-utils/-/set-protocol-utils-1.1.2.tgz#02d2fabb30bb1be741bad9aede3a058f56a7301d"
+  integrity sha512-f5vPFbygm3h2ctnc6g/iH3RBqKQsq85M0HGaUxmaz0PkkPPUUjRXv/1Rwu3pDqyLobTVTNBxINWzu0ZgiUEUsg==
   dependencies:
     "@0xproject/base-contract" "^1.0.4"
     "@0xproject/order-utils" "^1.0.1"
@@ -6824,39 +6612,7 @@ set-protocol-utils@^1.0.0-beta.39, set-protocol-utils@^1.0.0-beta.41:
     "@0xproject/web3-wrapper" "^1.1.2"
     "@types/lodash" "4.14.104"
     "@types/node" "^8.9.1"
-    "@types/web3" "^1.0.10"
-    abi-decoder "^1.0.9"
-    bignumber.js "~4.1.0"
-    bn-chai "^1.0.1"
-    bn.js "^4.11.8"
-    chai "^4.1.2"
-    chai-as-promised "^7.1.1"
-    chai-bignumber "^2.0.2"
-    ethereum-types "^1.0.0"
-    ethereumjs-util "^5.0.0"
-    ethers "3.0.22"
-    husky "^0.14.3"
-    js-sha3 "^0.7.0"
-    lint-staged "^7.2.0"
-    lodash "^4.17.4"
-    tiny-promisify "^1.0.0"
-    tslint-eslint-rules "^5.3.1"
-    types-bn "^0.0.1"
-    web3 "1.0.0-beta.36"
-    web3-utils "1.0.0-beta.36"
-
-set-protocol-utils@^1.0.0-beta.44, set-protocol-utils@^1.0.0-beta.45:
-  version "1.0.0-beta.45"
-  resolved "https://registry.yarnpkg.com/set-protocol-utils/-/set-protocol-utils-1.0.0-beta.45.tgz#c399727b6f061ef5c99f2712e198ce2f8fea9d21"
-  integrity sha512-91UUsuOjx9JQ0DbWFA0bWJRrVioN3Gn61pLbEy9XyqYF4SwZ8Nh8aFRs9NghGNAQJ+xhSg7ag4YxVECjgsa6cw==
-  dependencies:
-    "@0xproject/base-contract" "^1.0.4"
-    "@0xproject/order-utils" "^1.0.1"
-    "@0xproject/types" "^1.0.7"
-    "@0xproject/web3-wrapper" "^1.1.2"
-    "@types/lodash" "4.14.104"
-    "@types/node" "^8.9.1"
-    "@types/web3" "^1.0.10"
+    "@types/web3" "1.0.20"
     abi-decoder "^1.0.9"
     bignumber.js "~4.1.0"
     bn-chai "^1.0.1"
