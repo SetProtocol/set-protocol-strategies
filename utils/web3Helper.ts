@@ -80,7 +80,7 @@ export const importArtifactsFromSource = (contractName: string) => {
   } catch (e) {}
 
   try {
-    const data = require('set-protocol-strategies/build/contracts/' + contractName + '.json');
+    const data = require('set-protocol-strategies/dist/artifacts/ts/' + contractName + '.js')[contractName];
     instance = contract(data);
     instance.setProvider(web3.currentProvider);
 
@@ -88,8 +88,8 @@ export const importArtifactsFromSource = (contractName: string) => {
   } catch (e) {}
 
   try {
-    const filePath = 'set-protocol-strategies-' + version + '/build/contracts/' + contractName + '.json';
-    const data = require(filePath);
+    const filePath = 'set-protocol-strategies-' + version + '/dist/artifacts/ts/' + contractName + '.js';
+    const data = require(filePath)[contractName];
     instance = contract(data);
     instance.setProvider(web3.currentProvider);
 
