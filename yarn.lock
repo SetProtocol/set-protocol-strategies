@@ -6668,10 +6668,10 @@ set-immediate-shim@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/set-immediate-shim/-/set-immediate-shim-1.0.1.tgz#4b2b1b27eb808a9f8dcc481a58e5e56f599f3f61"
 
-set-protocol-contracts@^1.3.52-beta:
-  version "1.3.52-beta"
-  resolved "https://registry.yarnpkg.com/set-protocol-contracts/-/set-protocol-contracts-1.3.52-beta.tgz#b98f390c4dc34eb109819781dc3475f1009657f3"
-  integrity sha512-nGYIMJwcpiaMjeh0sd+PYPYWSuVYcI3qctRzXCY/46PiYXVRQPT2j6hiWs6SG1FYx7JXSkGQay6OxX0uSkgwRw==
+set-protocol-contracts@^1.3.55-beta:
+  version "1.3.55-beta"
+  resolved "https://registry.yarnpkg.com/set-protocol-contracts/-/set-protocol-contracts-1.3.55-beta.tgz#8bc25960b9118c32206afc60314bc02d0fa518b0"
+  integrity sha512-BpGN+B+zG61UYeEC+Iz6orz3BDpQd+LVbhWPla7ChOwMbk0kyzMkAVMNUmvrTKsgPI/o81wTbQ7FAUGtUj13zQ==
   dependencies:
     bn-chai "^1.0.1"
     canonical-weth "^1.3.1"
