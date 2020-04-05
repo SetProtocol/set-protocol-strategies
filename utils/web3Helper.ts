@@ -65,7 +65,6 @@ export const importFromContracts = (contractName: string) => {
 
 const importFromRepo = (repoName: string, contractName: string) => {
   const data = require(repoName)[contractName];
-  console.log(data);
   const instance = contract(data);
   instance.setProvider(web3.currentProvider);
   return instance;
