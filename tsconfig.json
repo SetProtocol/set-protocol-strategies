@@ -8,13 +8,14 @@
     "baseUrl": ".",
     "moduleResolution": "node",
     "paths": {
-    "@deployments/*": [ "deployments/*" ],
-    "@utils/*": [ "utils/*" ]
+      "@deployments/*": [ "deployments/*" ],
+      "@utils/*": [ "utils/*" ]
     },
     "rootDir": ".",
     "target": "es5",
     "allowJs": true,
     "typeRoots": [
+      "node_modules/set-protocol-contracts/dist/typings/artifacts/ts",
       "node_modules/@0xproject/types",
       "node_modules/set-protocol-utils/types",
       "node_modules/@types"

@@ -13,7 +13,6 @@ import { BigNumberSetup } from '@utils/bigNumberSetup';
 import { Blockchain } from 'set-protocol-contracts';
 import { ether } from '@utils/units';
 import {
-  Core,
   CoreContract,
   LinearAuctionPriceCurveContract,
   RebalancingSetTokenContract,
@@ -51,6 +50,8 @@ import { ERC20Helper } from '@utils/helpers/erc20Helper';
 import { ManagerHelper } from '@utils/helpers/managerHelper';
 import { OracleHelper } from 'set-protocol-oracles';
 import { ProtocolHelper } from '@utils/helpers/protocolHelper';
+
+const Core = require('set-protocol-contracts/dist/artifacts/ts/Core').Core;
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
