@@ -10,12 +10,9 @@ import { SetProtocolTestUtils, Web3Utils } from 'set-protocol-utils';
 import ChaiSetup from '@utils/chaiSetup';
 import { BigNumberSetup } from '@utils/bigNumberSetup';
 import {
-  Core,
   CoreContract,
   LinearAuctionPriceCurveContract,
-  RebalanceAuctionModule,
   RebalanceAuctionModuleContract,
-  RebalancingSetToken,
   RebalancingSetTokenContract,
   RebalancingSetTokenFactoryContract,
   SetTokenContract,
@@ -25,6 +22,10 @@ import {
   VaultContract,
   WethMockContract,
 } from 'set-protocol-contracts';
+import { Core } from 'set-protocol-contracts/dist/artifacts/ts/Core';
+import { RebalanceAuctionModule } from 'set-protocol-contracts/dist/artifacts/ts/RebalanceAuctionModule';
+import { RebalancingSetToken } from 'set-protocol-contracts/dist/artifacts/ts/RebalancingSetToken';
+
 import {
   MedianContract,
 } from 'set-protocol-oracles';

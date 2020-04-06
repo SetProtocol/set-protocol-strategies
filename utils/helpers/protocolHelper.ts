@@ -3,29 +3,41 @@ import * as setProtocolUtils from 'set-protocol-utils';
 import { Address } from 'set-protocol-utils';
 
 import {
-  Core,
   CoreContract,
-  LinearAuctionPriceCurve,
   LinearAuctionPriceCurveContract,
-  RebalanceAuctionModule,
   RebalanceAuctionModuleContract,
   RebalancingSetTokenContract,
-  RebalancingSetTokenV2,
   RebalancingSetTokenV2Contract,
-  RebalancingSetTokenFactory,
   RebalancingSetTokenFactoryContract,
-  SetToken,
   SetTokenContract,
-  SetTokenFactory,
   SetTokenFactoryContract,
   StandardTokenMockContract,
-  TransferProxy,
   TransferProxyContract,
-  Vault,
   VaultContract,
   WethMockContract,
   WhiteListContract,
 } from 'set-protocol-contracts';
+const Core = require('set-protocol-contracts/dist/artifacts/ts/Core').Core;
+const LinearAuctionPriceCurve =
+  require(
+    'set-protocol-contracts/dist/artifacts/ts/LinearAuctionPriceCurve'
+  ).LinearAuctionPriceCurve;
+const RebalanceAuctionModule =
+  require('set-protocol-contracts/dist/artifacts/ts/RebalanceAuctionModule').RebalanceAuctionModule;
+const RebalancingSetTokenV2 =
+  require('set-protocol-contracts/dist/artifacts/ts/RebalancingSetTokenV2').RebalancingSetTokenV2;
+const RebalancingSetTokenFactory =
+  require(
+    'set-protocol-contracts/dist/artifacts/ts/RebalancingSetTokenFactory'
+  ).RebalancingSetTokenFactory;
+const SetToken = require('set-protocol-contracts/dist/artifacts/ts/SetToken').SetToken;
+const SetTokenFactory =
+  require('set-protocol-contracts/dist/artifacts/ts/SetTokenFactory').SetTokenFactory;
+const TransferProxy =
+  require('set-protocol-contracts/dist/artifacts/ts/TransferProxy').TransferProxy;
+const Vault =
+  require('set-protocol-contracts/dist/artifacts/ts/Vault').Vault;
+
 import {
   MedianContract
 } from 'set-protocol-oracles';

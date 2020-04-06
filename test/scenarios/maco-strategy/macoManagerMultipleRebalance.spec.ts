@@ -4,11 +4,6 @@ import * as chai from 'chai';
 import * as _ from 'lodash';
 import * as ABIDecoder from 'abi-decoder';
 import { BigNumber } from 'set-protocol-utils';
-import {
-  Core,
-  RebalancingSetToken,
-  RebalanceAuctionModule,
-} from 'set-protocol-contracts';
 
 import ChaiSetup from '@utils/chaiSetup';
 import { BigNumberSetup } from '@utils/bigNumberSetup';
@@ -23,6 +18,12 @@ import {
 } from './types';
 
 import { MACOStrategyMultipleRebalanceHelper } from './macoStrategyMultipleRebalanceHelper';
+
+const Core = require('set-protocol-contracts/dist/artifacts/ts/Core').Core;
+const RebalanceAuctionModule =
+  require('set-protocol-contracts/dist/artifacts/ts/RebalanceAuctionModule').RebalanceAuctionModule;
+const RebalancingSetToken =
+  require('set-protocol-contracts/dist/artifacts/ts/RebalancingSetToken').RebalancingSetToken;
 
 BigNumberSetup.configure();
 ChaiSetup.configure();
