@@ -1,5 +1,6 @@
 export { AllocatorMathLibraryMockContract } from '../types/generated/allocator_math_library_mock';
 export { AssetPairManagerContract } from '../types/generated/asset_pair_manager';
+export { AssetPairManagerV2Contract } from '../types/generated/asset_pair_manager_v2';
 export { BaseContract } from '../types/base_contract';
 export { BinaryAllocatorContract } from '../types/generated/binary_allocator';
 export { BinaryAllocatorMockContract } from '../types/generated/binary_allocator_mock';

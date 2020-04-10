@@ -19,6 +19,7 @@ pragma experimental "ABIEncoderV2";
 
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import { IRebalancingSetToken } from "set-protocol-contracts/contracts/core/interfaces/IRebalancingSetToken.sol";
+import { IRebalancingSetTokenV3 } from "set-protocol-contracts/contracts/core/interfaces/IRebalancingSetTokenV3.sol";
 import { RebalancingLibrary } from "set-protocol-contracts/contracts/core/lib/RebalancingLibrary.sol";
 import { IMedian } from "set-protocol-oracles/contracts/external/DappHub/interfaces/IMedian.sol";
 
@@ -56,6 +57,32 @@ library FlexibleTimingManagerLibrary {
         require(
             _rebalancingSetInterface.rebalanceState() == RebalancingLibrary.State.Default,
             "FlexibleTimingManagerLibrary.proposeNewRebalance: State must be in Default"
+        );        
+    }
+
+    /*
+     * Validates whether the Rebalancing Set V3 is in the correct state and sufficient time has elapsed.
+     *
+     * @param  _rebalancingSetInterface      Instance of the Rebalancing Set Token V3
+     */
+    function validateManagerV2Propose(
+        IRebalancingSetTokenV3 _rebalancingSetInterface
+    )
+        internal
+    {
+        // Require that enough time has passed from last rebalance
+        uint256 lastRebalanceTimestamp = _rebalancingSetInterface.lastRebalanceTimestamp();
+        uint256 rebalanceInterval = _rebalancingSetInterface.rebalanceInterval();
+        require(
+            block.timestamp >= lastRebalanceTimestamp.add(rebalanceInterval),
+            "FlexibleTimingManagerLibrary.validateManagerV2Propose: Rebalance interval not elapsed"
+        );
+
+        // Require that Rebalancing Set Token is in Default state, won't allow for re-proposals
+        // because malicious actor could prevent token from ever rebalancing
+        require(
+            _rebalancingSetInterface.rebalanceState() == RebalancingLibrary.State.Default,
+            "FlexibleTimingManagerLibrary.validateManagerV2Propose: State must be in Default"
         );        
     }
 

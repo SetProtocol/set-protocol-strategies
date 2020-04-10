@@ -13,6 +13,7 @@ import {
 
 import {
   AssetPairManagerContract,
+  AssetPairManagerV2Contract,
   BinaryAllocatorContract,
   BinaryAllocatorMockContract,
   BTCETHRebalancingManagerContract,
@@ -38,7 +39,8 @@ import {
   ONE_HOUR_IN_SECONDS,
   USDC_DECIMALS,
   VALUE_TO_CENTS_CONVERSION,
-  ZERO
+  ZERO,
+  ZERO_BYTES
 } from '../constants';
 
 import { extractNewCollateralFromLogs } from '@utils/contract_logs/binaryAllocator';
@@ -48,6 +50,7 @@ import { getWeb3, getContractInstance, importArtifactsFromSource } from '../web3
 
 const web3 = getWeb3();
 const AssetPairManager = importArtifactsFromSource('AssetPairManager');
+const AssetPairManagerV2 = importArtifactsFromSource('AssetPairManagerV2');
 const BinaryAllocator = importArtifactsFromSource('BinaryAllocator');
 const BinaryAllocatorMock = importArtifactsFromSource('BinaryAllocatorMock');
 const BTCETHRebalancingManager = importArtifactsFromSource('BTCETHRebalancingManager');
@@ -317,6 +320,36 @@ export class ManagerHelper {
     );
 
     return new AssetPairManagerContract(
+      getContractInstance(truffleRebalacingTokenManager),
+      { from, gas: DEFAULT_GAS },
+    );
+  }
+
+  public async deployAssetPairManagerV2Async(
+    coreInstance: Address,
+    allocatorInstance: Address,
+    triggerInstance: Address,
+    useBullishAllocation: boolean,
+    allocationPrecision: BigNumber = new BigNumber(100),
+    maxBaseAssetAllocation: BigNumber = new BigNumber(100),
+    signalConfirmationMinTime: BigNumber = ONE_HOUR_IN_SECONDS.mul(6),
+    signalConfirmationMaxTime: BigNumber = ONE_HOUR_IN_SECONDS.mul(12),
+    liquidatorData: Bytes = ZERO_BYTES,
+    from: Address = this._tokenOwnerAddress
+  ): Promise<AssetPairManagerV2Contract> {
+    const truffleRebalacingTokenManager = await AssetPairManagerV2.new(
+      coreInstance,
+      allocatorInstance,
+      triggerInstance,
+      useBullishAllocation,
+      allocationPrecision,
+      maxBaseAssetAllocation,
+      [signalConfirmationMinTime, signalConfirmationMaxTime],
+      liquidatorData,
+      { from },
+    );
+
+    return new AssetPairManagerV2Contract(
       getContractInstance(truffleRebalacingTokenManager),
       { from, gas: DEFAULT_GAS },
     );
