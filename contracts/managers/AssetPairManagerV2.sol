@@ -18,7 +18,6 @@ pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import { IAuctionPriceCurve } from "set-protocol-contracts/contracts/core/lib/auction-price-libraries/IAuctionPriceCurve.sol";
 import { ICore } from "set-protocol-contracts/contracts/core/interfaces/ICore.sol";
 import { ILiquidator } from "set-protocol-contracts/contracts/core/interfaces/ILiquidator.sol";
 import { IRebalancingSetTokenV3 } from "set-protocol-contracts/contracts/core/interfaces/IRebalancingSetTokenV3.sol";
@@ -54,9 +53,6 @@ contract AssetPairManagerV2 is
     event InitialProposeCalled(
         address indexed rebalancingSetToken
     );
-
-    /* ============ Constants ============ */
-    uint256 constant private HUNDRED = 100;
 
     /* ============ State Variables ============ */
     ICore public core;
