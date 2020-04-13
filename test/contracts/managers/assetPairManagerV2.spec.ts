@@ -1261,6 +1261,123 @@ contract('AssetPairManagerV2', accounts => {
     });
   });
 
+  describe('#removeRegisteredUpgrade', async () => {
+    let subjectUpgradeHash: string;
+    let subjectCaller: Address;
+
+    let feeType: BigNumber;
+    let newFeePercentage: BigNumber;
+
+    before(async () => {
+      feeType = ZERO;
+      newFeePercentage = ether(.03);
+    });
+
+    beforeEach(async () => {
+      const allocationDenominator = new BigNumber(100);
+      const maxBaseAssetAllocation = new BigNumber(100);
+      const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
+      const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
+      const liquidatorData = NON_ZERO_BYTES;
+      subjectCaller = deployerAccount;
+
+      setManager = await managerHelper.deployAssetPairManagerV2Async(
+        core.address,
+        allocator.address,
+        trigger.address,
+        false,
+        allocationDenominator,
+        maxBaseAssetAllocation,
+        signalConfirmationMinTime,
+        signalConfirmationMaxTime,
+        liquidatorData,
+        subjectCaller
+      );
+
+      await setManager.setTimeLockPeriod.sendTransactionAsync(ONE_DAY_IN_SECONDS, { from: deployerAccount });
+
+      const lastBlock = await web3.eth.getBlock('latest');
+      rebalancingSetToken = await protocolHelper.createDefaultRebalancingSetTokenV3Async(
+        core,
+        rebalancingFactory.address,
+        setManager.address,
+        liquidator.address,
+        feeRecipient,
+        feeCalculator.address,
+        quoteAssetCollateral.address,
+        ONE_DAY_IN_SECONDS,
+        new BigNumber(lastBlock.timestamp),
+      );
+
+      await setManager.initialize.sendTransactionAsync(
+        rebalancingSetToken.address,
+        { from: subjectCaller, gas: DEFAULT_GAS}
+      );
+
+      const newFeeCallData = feeCalculatorHelper.generateAdjustFeeCallData(feeType, newFeePercentage);
+      subjectCaller = deployerAccount;
+
+      // Issue currentSetToken
+      const initialAllocationToken = await protocolHelper.getSetTokenAsync(quoteAssetCollateral.address);
+      await core.issue.sendTransactionAsync(
+        initialAllocationToken.address,
+        ether(9),
+        {from: deployerAccount, gas: DEFAULT_GAS},
+      );
+      await erc20Helper.approveTransfersAsync([initialAllocationToken], transferProxy.address);
+
+      // Use issued currentSetToken to issue rebalancingSetToken
+      await core.issue.sendTransactionAsync(
+        rebalancingSetToken.address,
+        ether(7),
+        { from: deployerAccount, gas: DEFAULT_GAS }
+      );
+
+      const adjustTxHash = await setManager.adjustFee.sendTransactionAsync(
+        newFeeCallData,
+        { from: subjectCaller }
+      );
+
+      const { input } = await web3.eth.getTransaction(adjustTxHash);
+
+      subjectUpgradeHash = web3.utils.soliditySha3(input);
+    });
+
+    async function subject(): Promise<string> {
+      return setManager.removeRegisteredUpgrade.sendTransactionAsync(
+        subjectUpgradeHash,
+        { from: subjectCaller }
+      );
+    }
+
+    it('sets the upgradeHash to 0', async () => {
+      await subject();
+
+      const actualTimestamp = await setManager.timeLockedUpgrades.callAsync(subjectUpgradeHash);
+      expect(actualTimestamp).to.bignumber.equal(ZERO);
+    });
+
+    describe('when the hash specified is not registered', async () => {
+      beforeEach(async () => {
+        subjectUpgradeHash = web3.utils.soliditySha3(5);
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+
+    describe('when caller is not owner', async () => {
+      beforeEach(async () => {
+        subjectCaller = attackerAccount;
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
+      });
+    });
+  });
+
   describe('#setFeeRecipient', async () => {
     let subjectNewFeeRecipient: Address;
     let subjectCaller: Address;

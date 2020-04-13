@@ -40,7 +40,7 @@ import { ITrigger } from "./triggers/ITrigger.sol";
  * CHANGELOG:
  * - Support RebalancingSetTokenV3
  * - Remove logic associated with pricing auctions, which has been moved to liquidator contracts
- * - Add abilities to switch liquidator and liquidatorData, and ability to change fees
+ * - Add abilities to switch liquidator, liquidatorData, fee recipient, and adjust performance fees which is timelocked
  */
 contract AssetPairManagerV2 is
     TimeLockUpgradeV2
