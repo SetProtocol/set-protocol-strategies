@@ -39,11 +39,12 @@ import {
 
 import {
   DEFAULT_GAS,
+  NON_ZERO_BYTES,
   ONE_DAY_IN_SECONDS,
   ONE_HOUR_IN_SECONDS,
   WBTC_DECIMALS,
   ZERO,
-  ZERO_BYTES,
+  ZERO_BYTES
 } from '@utils/constants';
 
 import { expectRevertError } from '@utils/tokenAssertions';
@@ -289,7 +290,7 @@ contract('AssetPairManagerV2', accounts => {
       subjectBullishBaseAssetAllocation = new BigNumber(100);
       subjectSignalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
       subjectSignalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
-      subjectLiquidatorData = ZERO_BYTES;
+      subjectLiquidatorData = NON_ZERO_BYTES;
       subjectCaller = deployerAccount;
     });
 
@@ -433,7 +434,7 @@ contract('AssetPairManagerV2', accounts => {
       const maxBaseAssetAllocation = new BigNumber(100);
       const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
       const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
-      const liquidatorData = ZERO_BYTES;
+      const liquidatorData = NON_ZERO_BYTES;
       subjectCaller = deployerAccount;
       setManager = await managerHelper.deployAssetPairManagerV2Async(
         core.address,
@@ -517,10 +518,12 @@ contract('AssetPairManagerV2', accounts => {
     });
 
     describe('but a rebalancing set has already been initialized', async () => {
-      it('should revert', async () => {
+      beforeEach(async () => {
         // Initialize the first time
         await subject();
+      });
 
+      it('should revert', async () => {
         // Attempt to initialize again
         await expectRevertError(subject());
       });
@@ -547,7 +550,7 @@ contract('AssetPairManagerV2', accounts => {
       const maxBaseAssetAllocation = new BigNumber(100);
       const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
       const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
-      const liquidatorData = ZERO_BYTES;
+      const liquidatorData = NON_ZERO_BYTES;
       subjectCaller = deployerAccount;
       setManager = await managerHelper.deployAssetPairManagerV2Async(
         core.address,
@@ -767,7 +770,7 @@ contract('AssetPairManagerV2', accounts => {
       const maxBaseAssetAllocation = new BigNumber(100);
       const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
       const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
-      const liquidatorData = ZERO_BYTES;
+      const liquidatorData = NON_ZERO_BYTES;
       subjectCaller = deployerAccount;
       setManager = await managerHelper.deployAssetPairManagerV2Async(
         core.address,
@@ -970,7 +973,7 @@ contract('AssetPairManagerV2', accounts => {
       const maxBaseAssetAllocation = new BigNumber(100);
       const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
       const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
-      const liquidatorData = ZERO_BYTES;
+      const liquidatorData = NON_ZERO_BYTES;
       subjectCaller = deployerAccount;
       setManager = await managerHelper.deployAssetPairManagerV2Async(
         core.address,
@@ -1042,7 +1045,7 @@ contract('AssetPairManagerV2', accounts => {
       const maxBaseAssetAllocation = new BigNumber(100);
       const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
       const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
-      const liquidatorData = ZERO_BYTES;
+      const liquidatorData = NON_ZERO_BYTES;
       subjectCaller = deployerAccount;
       setManager = await managerHelper.deployAssetPairManagerV2Async(
         core.address,
@@ -1076,8 +1079,7 @@ contract('AssetPairManagerV2', accounts => {
       );
 
       subjectCaller = deployerAccount;
-      subjectLiquidatorData
-        = '0x0000000000000000000000000000000000000000000000000000000000000001';
+      subjectLiquidatorData = ZERO_BYTES;
     });
 
     async function subject(): Promise<string> {
@@ -1123,7 +1125,7 @@ contract('AssetPairManagerV2', accounts => {
       const maxBaseAssetAllocation = new BigNumber(100);
       const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
       const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
-      const liquidatorData = ZERO_BYTES;
+      const liquidatorData = NON_ZERO_BYTES;
       subjectCaller = deployerAccount;
 
       setManager = await managerHelper.deployAssetPairManagerV2Async(
@@ -1268,7 +1270,7 @@ contract('AssetPairManagerV2', accounts => {
       const maxBaseAssetAllocation = new BigNumber(100);
       const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
       const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
-      const liquidatorData = ZERO_BYTES;
+      const liquidatorData = NON_ZERO_BYTES;
       subjectCaller = deployerAccount;
       setManager = await managerHelper.deployAssetPairManagerV2Async(
         core.address,
@@ -1351,7 +1353,7 @@ contract('AssetPairManagerV2', accounts => {
       const maxBaseAssetAllocation = new BigNumber(100);
       const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
       const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
-      const liquidatorData = ZERO_BYTES;
+      const liquidatorData = NON_ZERO_BYTES;
       subjectCaller = deployerAccount;
       setManager = await managerHelper.deployAssetPairManagerV2Async(
         core.address,
@@ -1561,7 +1563,7 @@ contract('AssetPairManagerV2', accounts => {
       const maxBaseAssetAllocation = new BigNumber(100);
       const signalConfirmationMinTime = ONE_HOUR_IN_SECONDS.mul(6);
       const signalConfirmationMaxTime = ONE_HOUR_IN_SECONDS.mul(12);
-      const liquidatorData = ZERO_BYTES;
+      const liquidatorData = NON_ZERO_BYTES;
       subjectCaller = deployerAccount;
       setManager = await managerHelper.deployAssetPairManagerV2Async(
         core.address,

@@ -61,32 +61,6 @@ library FlexibleTimingManagerLibrary {
     }
 
     /*
-     * Validates whether the Rebalancing Set V3 is in the correct state and sufficient time has elapsed.
-     *
-     * @param  _rebalancingSetInterface      Instance of the Rebalancing Set Token V3
-     */
-    function validateManagerV2Propose(
-        IRebalancingSetTokenV3 _rebalancingSetInterface
-    )
-        internal
-    {
-        // Require that enough time has passed from last rebalance
-        uint256 lastRebalanceTimestamp = _rebalancingSetInterface.lastRebalanceTimestamp();
-        uint256 rebalanceInterval = _rebalancingSetInterface.rebalanceInterval();
-        require(
-            block.timestamp >= lastRebalanceTimestamp.add(rebalanceInterval),
-            "FlexibleTimingManagerLibrary.validateManagerV2Propose: Rebalance interval not elapsed"
-        );
-
-        // Require that Rebalancing Set Token is in Default state, won't allow for re-proposals
-        // because malicious actor could prevent token from ever rebalancing
-        require(
-            _rebalancingSetInterface.rebalanceState() == RebalancingLibrary.State.Default,
-            "FlexibleTimingManagerLibrary.validateManagerV2Propose: State must be in Default"
-        );        
-    }
-
-    /*
     /*
      * Calculates the auction price parameters, targetting 1% slippage every 10 minutes. Fair value
      * placed in middle of price range.

@@ -25,7 +25,6 @@ import { ISetToken } from "set-protocol-contracts/contracts/core/interfaces/ISet
 import { RebalancingLibrary } from "set-protocol-contracts/contracts/core/lib/RebalancingLibrary.sol";
 import { TimeLockUpgradeV2 } from "set-protocol-contracts/contracts/lib/TimeLockUpgradeV2.sol";
 
-import { FlexibleTimingManagerLibrary } from "./lib/FlexibleTimingManagerLibrary.sol";
 import { IAllocator } from "./allocators/IAllocator.sol";
 import { ITrigger } from "./triggers/ITrigger.sol";
 
@@ -167,7 +166,10 @@ contract AssetPairManagerV2 is
         );
 
         // Check enough time has passed for proposal and RebalancingSetToken in Default state
-        FlexibleTimingManagerLibrary.validateManagerV2Propose(rebalancingSetToken);
+        require(
+            rebalancingSetTokenInValidState(),
+            "AssetPairManagerV2.initialPropose: RebalancingSetToken must be in valid state"
+        );
 
         // Make sure there is not an existing initial proposal underway
         require(
@@ -204,7 +206,10 @@ contract AssetPairManagerV2 is
         );
         
         // Check that enough time has passed for the proposal and RebalancingSetToken is in Default state
-        FlexibleTimingManagerLibrary.validateManagerV2Propose(rebalancingSetToken);
+        require(
+            rebalancingSetTokenInValidState(),
+            "AssetPairManagerV2.confirmPropose: RebalancingSetToken must be in valid state"
+        );
 
         // Make sure in confirmation window
         require(
