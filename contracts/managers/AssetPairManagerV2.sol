@@ -53,19 +53,24 @@ contract AssetPairManagerV2 is
         address indexed rebalancingSetToken
     );
 
+    event NewLiquidatorDataAdded(
+        bytes newLiquidatorData,
+        bytes oldLiquidatorData
+    );
+
     /* ============ State Variables ============ */
     ICore public core;
     IAllocator public allocator;
     ITrigger public trigger;
     IRebalancingSetTokenV3 public rebalancingSetToken;
-    uint256 public baseAssetAllocation;  // Percent of base asset currently allocated in strategy
+    uint256 public baseAssetAllocation;  // Proportion of base asset currently allocated in strategy
     uint256 public allocationDenominator;    
     uint256 public bullishBaseAssetAllocation;
     uint256 public bearishBaseAssetAllocation;
 
-    // Time until start of confirmation period after initialPropse called, in seconds
+    // Time until start of confirmation period after initialPropose called, in seconds
     uint256 public signalConfirmationMinTime;
-    // Time until end of confirmation period after intialPropse called, in seconds
+    // Time until end of confirmation period after initialPropose called, in seconds
     uint256 public signalConfirmationMaxTime;
     // Timestamp of last successful initialPropose call
     uint256 public recentInitialProposeTimestamp;
@@ -96,6 +101,13 @@ contract AssetPairManagerV2 is
     )
         public
     {
+        // Make sure allocation denominator is > 0
+        require(
+            _allocationDenominator > 0,
+            "AssetPairManagerV2.constructor: Allocation denonimator must be nonzero."
+        );
+
+
         // Make sure confirmation max time is greater than confirmation min time
         require(
             _signalConfirmationBounds[1] >= _signalConfirmationBounds[0],
@@ -111,7 +123,7 @@ contract AssetPairManagerV2 is
         bullishBaseAssetAllocation = _bullishBaseAssetAllocation;
         bearishBaseAssetAllocation = _allocationDenominator.sub(_bullishBaseAssetAllocation);
         // If bullish flag is true, use bullishBaseAssetAllocation else use bearishBaseAssetAllocation
-        baseAssetAllocation = _useBullishAllocation ? bullishBaseAssetAllocation : bearishBaseAssetAllocation;
+        baseAssetAllocation = _useBullishAllocation ? _bullishBaseAssetAllocation : bearishBaseAssetAllocation;
 
         core = _core;
         allocator = _allocator;
@@ -167,7 +179,7 @@ contract AssetPairManagerV2 is
 
         // Check enough time has passed for proposal and RebalancingSetToken in Default state
         require(
-            rebalancingSetTokenInValidState(),
+            rebalancingAllowed(),
             "AssetPairManagerV2.initialPropose: RebalancingSetToken must be in valid state"
         );
 
@@ -207,7 +219,7 @@ contract AssetPairManagerV2 is
         
         // Check that enough time has passed for the proposal and RebalancingSetToken is in Default state
         require(
-            rebalancingSetTokenInValidState(),
+            rebalancingAllowed(),
             "AssetPairManagerV2.confirmPropose: RebalancingSetToken must be in valid state"
         );
 
@@ -272,6 +284,8 @@ contract AssetPairManagerV2 is
         external
         onlyOwner
     {
+        emit NewLiquidatorDataAdded(_newLiquidatorData, liquidatorData);
+        
         liquidatorData = _newLiquidatorData;
     }
 
@@ -316,7 +330,7 @@ contract AssetPairManagerV2 is
     {
         // If RebalancingSetToken in valid state and new allocation different from last known allocation
         // then return true, else false
-        return rebalancingSetTokenInValidState()
+        return rebalancingAllowed()
             && calculateBaseAssetAllocation() != baseAssetAllocation
             && hasConfirmationWindowElapsed();
     }
@@ -333,7 +347,7 @@ contract AssetPairManagerV2 is
     {
         // If RebalancingSetToken in valid state and new allocation different from last known allocation
         // then return true, else false
-        return rebalancingSetTokenInValidState()
+        return rebalancingAllowed()
             && calculateBaseAssetAllocation() != baseAssetAllocation
             && inConfirmationWindow();
     }
@@ -357,9 +371,9 @@ contract AssetPairManagerV2 is
      * Function returning whether the rebalanceInterval has elapsed and then RebalancingSetToken is in 
      * Default state
      *
-     * @return       Whether RebalancingSetToken is in valid state for rebalance
+     * @return       Whether a RebalancingSetToken rebalance is allowed
      */
-    function rebalancingSetTokenInValidState()
+    function rebalancingAllowed()
         internal
         view
         returns (bool)
@@ -369,8 +383,8 @@ contract AssetPairManagerV2 is
         uint256 rebalanceInterval = rebalancingSetToken.rebalanceInterval();
 
         // Require that Rebalancing Set Token is in Default state and rebalanceInterval elapsed
-        return block.timestamp.sub(lastRebalanceTimestamp) >= rebalanceInterval &&
-            rebalancingSetToken.rebalanceState() == RebalancingLibrary.State.Default;        
+        return rebalancingSetToken.rebalanceState() == RebalancingLibrary.State.Default &&
+            block.timestamp.sub(lastRebalanceTimestamp) >= rebalanceInterval;        
     }
 
     /*
