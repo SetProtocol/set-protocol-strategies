@@ -18,7 +18,7 @@ pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import { AddressArrayUtils } from "set-protocol-contracts/contracts/lib/AddressArrayUtils.sol";
+import { AddressArrayUtils } from "set-protocol-contract-utils/contracts/lib/AddressArrayUtils.sol";
 import { ICore } from "set-protocol-contracts/contracts/core/interfaces/ICore.sol";
 import { IRebalancingSetToken } from "set-protocol-contracts/contracts/core/interfaces/IRebalancingSetToken.sol";
 import { ISetToken } from "set-protocol-contracts/contracts/core/interfaces/ISetToken.sol";
@@ -42,8 +42,8 @@ contract ETHDaiRebalancingManager {
 
     uint256 constant PRICE_PRECISION = 100;
     uint256 constant AUCTION_LIB_PRICE_DIVISOR = 1000;
-    
-    // Equal to $1 
+
+    // Equal to $1
     uint256 constant DAI_PRICE = 10 ** 18;
     uint256 constant DAI_DECIMALS = 18;
     uint256 constant ETH_DECIMALS = 18;
@@ -111,7 +111,7 @@ contract ETHDaiRebalancingManager {
             _allocationBounds[1] >= _allocationBounds[0],
             "RebalancingTokenManager.constructor: Upper allocation bound must be greater than lower."
         );
-        
+
         coreAddress = _coreAddress;
 
         ethPriceFeed = _ethPriceFeedAddress;
@@ -146,7 +146,7 @@ contract ETHDaiRebalancingManager {
             ICore(coreAddress).validSets(_rebalancingSetTokenAddress),
             "RebalanceAuctionModule.bid: Invalid or disabled SetToken address"
         );
-        
+
         // Create interface to interact with RebalancingSetToken
         IRebalancingSetToken rebalancingSetInterface = IRebalancingSetToken(_rebalancingSetTokenAddress);
 
@@ -160,7 +160,7 @@ contract ETHDaiRebalancingManager {
             ethPrice,
             rebalancingSetInterface.currentSet()
         );
-        
+
         // Create new Set Token that collateralizes Rebalancing Set Token
         (
             address nextSetAddress,
@@ -180,7 +180,7 @@ contract ETHDaiRebalancingManager {
             AUCTION_LIB_PRICE_DIVISOR,
             auctionTimeToPivot
         );
-        
+
         // Propose new allocation to Rebalancing Set Token
         rebalancingSetInterface.propose(
             nextSetAddress,
@@ -275,7 +275,7 @@ contract ETHDaiRebalancingManager {
         ) = calculateNextSetUnits(
             _ethPrice
         );
-        
+
         // Create static components array
         address[] memory nextSetComponents = new address[](2);
         nextSetComponents[0] = daiAddress;
@@ -320,15 +320,15 @@ contract ETHDaiRebalancingManager {
 
             // Create unit array and define natural unit
             nextSetUnits[0] = daiUnits.mul(daiMultiplier);
-            nextSetUnits[1] = ethMultiplier.mul(PRICE_PRECISION);          
+            nextSetUnits[1] = ethMultiplier.mul(PRICE_PRECISION);
         } else {
-            // Calculate dai nextSetUnits as (daiPrice/ethPrice)*100. 100 is used to add 
+            // Calculate dai nextSetUnits as (daiPrice/ethPrice)*100. 100 is used to add
             // precision.
             uint256 ethDaiPrice = DAI_PRICE.mul(PRICE_PRECISION).div(_ethPrice);
 
             // Create unit array and define natural unit
-            nextSetUnits[0] = daiMultiplier.mul(PRICE_PRECISION); 
-            nextSetUnits[1] = ethDaiPrice.mul(ethMultiplier);         
+            nextSetUnits[0] = daiMultiplier.mul(PRICE_PRECISION);
+            nextSetUnits[1] = ethDaiPrice.mul(ethMultiplier);
         }
 
         uint256[] memory assetPrices = new uint256[](2);
