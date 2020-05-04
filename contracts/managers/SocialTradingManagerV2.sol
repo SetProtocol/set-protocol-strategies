@@ -20,7 +20,7 @@ pragma experimental "ABIEncoderV2";
 import { ICore } from "set-protocol-contracts/contracts/core/interfaces/ICore.sol";
 import { IRebalancingSetTokenV2 } from "set-protocol-contracts/contracts/core/interfaces/IRebalancingSetTokenV2.sol";
 import { IRebalancingSetTokenV3 } from "set-protocol-contracts/contracts/core/interfaces/IRebalancingSetTokenV3.sol";
-import { LimitOneUpgrade } from "set-protocol-contracts/contract-utils/lib/LimitOneUpgrade.sol";
+import { LimitOneUpgrade } from "set-protocol-contract-utils/contracts/lib/LimitOneUpgrade.sol";
 
 import { SocialTradingManager } from "./SocialTradingManager.sol";
 
