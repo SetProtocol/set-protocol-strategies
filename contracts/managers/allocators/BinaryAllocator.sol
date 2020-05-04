@@ -20,7 +20,7 @@ pragma experimental "ABIEncoderV2";
 import { ERC20Detailed } from "openzeppelin-solidity/contracts/token/ERC20/ERC20Detailed.sol";
 import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import { CommonMath } from "set-protocol-contracts/contracts/lib/CommonMath.sol";
+import { CommonMath } from "set-protocol-contract-utils/contracts/lib/CommonMath.sol";
 import { ICore } from "set-protocol-contracts/contracts/core/interfaces/ICore.sol";
 import { ISetToken } from "set-protocol-contracts/contracts/core/interfaces/ISetToken.sol";
 import { SetTokenLibrary } from "set-protocol-contracts/contracts/core/lib/SetTokenLibrary.sol";
@@ -62,7 +62,7 @@ contract BinaryAllocator is
     ERC20Detailed public baseAsset;
     ERC20Detailed public quoteAsset;
     IOracle public baseAssetOracle;
-    IOracle public quoteAssetOracle;  
+    IOracle public quoteAssetOracle;
     uint8 public baseAssetDecimals;
     uint8 public quoteAssetDecimals;
 
@@ -244,13 +244,13 @@ contract BinaryAllocator is
         internal
         returns (ISetToken)
     {
-        // Create collateralIDHash 
+        // Create collateralIDHash
         bytes32 collateralIDHash = calculateCollateralIDHash(
             _nextSetUnit,
             _nextSetNaturalUnit,
             address(_nextSetComponent)
         );
-        
+
         // If collateralIDHash exists then use existing collateral set otherwise create new collateral and
         // store in mapping
         if (address(storedCollateral[collateralIDHash]) != address(0)) {
@@ -299,7 +299,7 @@ contract BinaryAllocator is
      */
     function validateCurrentCollateralSet(
         ISetToken _currentCollateralSet,
-        bool _toBaseAsset    
+        bool _toBaseAsset
     )
         internal
         view
@@ -359,7 +359,7 @@ contract BinaryAllocator is
             currentSetDetails.naturalUnit,
             currentSetDetails.units[0],
             currentComponentDecimals
-        );       
+        );
     }
 
     /*
@@ -399,7 +399,7 @@ contract BinaryAllocator is
             uint8 nextSetComponentDecimals
         ) = getComponentPriceAndDecimalData(_toBaseAsset);
 
-        // Determine minimum natural unit based on max of pre-defined minimum or (18 - decimals) of the 
+        // Determine minimum natural unit based on max of pre-defined minimum or (18 - decimals) of the
         // component in the new Set.
         uint256 kOne = Math.max(
             MINIMUM_COLLATERAL_NATURAL_UNIT_DECIMALS,
@@ -422,14 +422,14 @@ contract BinaryAllocator is
         uint256 unroundedNextUnit = (uint256(10) ** uint256(nextSetComponentDecimals + k - 18))
             .mul(_currentSetValue)
             .div(nextSetComponentPrice);
-        
+
         // Round raw nextSet unit to nearest power of 2
         uint256 nextSetUnit = AllocatorMathLibrary.roundToNearestPowerOfTwo(
             unroundedNextUnit
         );
 
         // Get nextSetComponent
-        ERC20Detailed nextSetComponent = _toBaseAsset ? baseAsset : quoteAsset;  
+        ERC20Detailed nextSetComponent = _toBaseAsset ? baseAsset : quoteAsset;
 
         return (nextSetComponent, nextSetUnit, CommonMath.safePower(10, k));
     }
@@ -453,11 +453,11 @@ contract BinaryAllocator is
             return (baseAssetOracle.read(), baseAssetDecimals);
         } else {
             return (quoteAssetOracle.read(), quoteAssetDecimals);
-        }        
+        }
     }
 
     /*
-     * Creates a CollateralIDHash from a passed SetToken instance. 
+     * Creates a CollateralIDHash from a passed SetToken instance.
      *
      * @param  _setToken         SetToken to make CollateralIDHash of
      * @return bytes32           CollateralIDHash of SetToken
@@ -483,7 +483,7 @@ contract BinaryAllocator is
     }
 
     /*
-     * Creates a CollateralIDHash from passed SetToken parameters. 
+     * Creates a CollateralIDHash from passed SetToken parameters.
      *
      * @param  _units           Units of SetToken
      * @param  _naturalUnit     NaturalUnit of SetToken
