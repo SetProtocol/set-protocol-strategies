@@ -1,6 +1,6 @@
 {
   "name": "set-protocol-strategies",
-  "version": "1.1.37",
+  "version": "1.1.38",
   "main": "dist/artifacts/index.js",
   "typings": "dist/typings/artifacts/index.d.ts",
   "files": [
@@ -44,7 +44,7 @@
     "transformJson": "node scripts/transform_contract_json.js",
     "truffle-test-scenarios": "truffle test `find transpiled/test/scenarios -name '*.spec.js'`",
     "truffle-test-integrations": "truffle test `find transpiled/test/integrations -name '*.spec.js'`",
-    "truffle-test-contracts": "truffle test `find transpiled/test/contracts -name 'assetPairManagerV2.spec.js'`",
+    "truffle-test-contracts": "truffle test `find transpiled/test/contracts -name '*.spec.js'`",
     "prepublishOnly": "yarn dist",
     "flatten": "truffle-flattener contracts/[XXX]/[XXX].sol",
     "minify-artifacts": "yarn run minify-all dist/artifacts/ts/"
