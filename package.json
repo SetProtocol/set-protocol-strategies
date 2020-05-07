@@ -43,7 +43,7 @@
     "transpile": "tsc",
     "truffle-test-scenarios": "truffle test `find transpiled/test/scenarios -name '*.spec.js'`",
     "truffle-test-integrations": "truffle test `find transpiled/test/integrations -name '*.spec.js'`",
-    "truffle-test-contracts": "truffle test `find transpiled/test/contracts -name '*.spec.js'`",
+    "truffle-test-contracts": "truffle test `find transpiled/test/contracts -name 'assetPairManagerV2.spec.js'`",
     "prepublishOnly": "yarn dist",
     "flatten": "truffle-flattener contracts/[XXX]/[XXX].sol",
     "minify-artifacts": "yarn run minify-all dist/artifacts/ts/"

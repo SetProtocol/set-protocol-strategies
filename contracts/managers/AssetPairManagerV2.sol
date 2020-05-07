@@ -179,7 +179,7 @@ contract AssetPairManagerV2 is
 
         // Check enough time has passed for proposal and RebalancingSetToken in Default state
         require(
-            rebalancingAllowed(),
+            rebalancingSetReady(),
             "AssetPairManagerV2.initialPropose: RebalancingSetToken must be in valid state"
         );
 
@@ -219,7 +219,7 @@ contract AssetPairManagerV2 is
         
         // Check that enough time has passed for the proposal and RebalancingSetToken is in Default state
         require(
-            rebalancingAllowed(),
+            rebalancingSetReady(),
             "AssetPairManagerV2.confirmPropose: RebalancingSetToken must be in valid state"
         );
 
@@ -284,9 +284,10 @@ contract AssetPairManagerV2 is
         external
         onlyOwner
     {
-        emit NewLiquidatorDataAdded(_newLiquidatorData, liquidatorData);
-        
+        bytes memory oldLiquidatorData = liquidatorData;
         liquidatorData = _newLiquidatorData;
+        
+        emit NewLiquidatorDataAdded(_newLiquidatorData, oldLiquidatorData);
     }
 
     /**
@@ -330,7 +331,7 @@ contract AssetPairManagerV2 is
     {
         // If RebalancingSetToken in valid state and new allocation different from last known allocation
         // then return true, else false
-        return rebalancingAllowed()
+        return rebalancingSetReady()
             && calculateBaseAssetAllocation() != baseAssetAllocation
             && hasConfirmationWindowElapsed();
     }
@@ -347,7 +348,7 @@ contract AssetPairManagerV2 is
     {
         // If RebalancingSetToken in valid state and new allocation different from last known allocation
         // then return true, else false
-        return rebalancingAllowed()
+        return rebalancingSetReady()
             && calculateBaseAssetAllocation() != baseAssetAllocation
             && inConfirmationWindow();
     }
@@ -373,7 +374,7 @@ contract AssetPairManagerV2 is
      *
      * @return       Whether a RebalancingSetToken rebalance is allowed
      */
-    function rebalancingAllowed()
+    function rebalancingSetReady()
         internal
         view
         returns (bool)
