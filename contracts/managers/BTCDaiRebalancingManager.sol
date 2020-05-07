@@ -18,7 +18,7 @@ pragma solidity 0.5.7;
 pragma experimental "ABIEncoderV2";
 
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import { AddressArrayUtils } from "set-protocol-contracts/contracts/lib/AddressArrayUtils.sol";
+import { AddressArrayUtils } from "set-protocol-contract-utils/contracts/lib/AddressArrayUtils.sol";
 import { ICore } from "set-protocol-contracts/contracts/core/interfaces/ICore.sol";
 import { IRebalancingSetToken } from "set-protocol-contracts/contracts/core/interfaces/IRebalancingSetToken.sol";
 import { ISetToken } from "set-protocol-contracts/contracts/core/interfaces/ISetToken.sol";
@@ -42,8 +42,8 @@ contract BTCDaiRebalancingManager {
 
     uint256 constant PRICE_PRECISION = 1;
     uint256 constant AUCTION_LIB_PRICE_DIVISOR = 1000;
-    
-    // Equal to $1 
+
+    // Equal to $1
     uint256 constant DAI_PRICE = 10 ** 18;
     uint256 constant DAI_DECIMALS = 18;
     uint256 constant BTC_DECIMALS = 8;
@@ -112,7 +112,7 @@ contract BTCDaiRebalancingManager {
             _allocationBounds[1] >= _allocationBounds[0],
             "RebalancingTokenManager.constructor: Upper allocation bound must be greater than lower."
         );
-        
+
         coreAddress = _coreAddress;
 
         btcPriceFeed = _btcPriceFeedAddress;
@@ -161,7 +161,7 @@ contract BTCDaiRebalancingManager {
             btcPrice,
             rebalancingSetInterface.currentSet()
         );
-        
+
         // Create new Set Token that collateralizes Rebalancing Set Token
         (
             address nextSetAddress,
@@ -179,7 +179,7 @@ contract BTCDaiRebalancingManager {
             AUCTION_LIB_PRICE_DIVISOR,
             auctionTimeToPivot
         );
-        
+
         // Propose new allocation to Rebalancing Set Token
         rebalancingSetInterface.propose(
             nextSetAddress,
@@ -195,7 +195,7 @@ contract BTCDaiRebalancingManager {
     }
 
     /* ============ Internal ============ */
-    
+
     /*
      * Check there has been a sufficient change in allocation as defined by maximumUpperThreshold
      * and minimumLowerThreshold and return USD value of currentSet.
@@ -274,7 +274,7 @@ contract BTCDaiRebalancingManager {
         ) = calculateNextSetUnits(
             _btcPrice
         );
-        
+
         // Create static components array
         address[] memory nextSetComponents = new address[](2);
         nextSetComponents[0] = daiAddress;
@@ -319,15 +319,15 @@ contract BTCDaiRebalancingManager {
 
             // Create unit array and define natural unit
             nextSetUnits[0] = daiUnits.mul(daiMultiplier).mul(PRICE_PRECISION);
-            nextSetUnits[1] = btcMultiplier.mul(PRICE_PRECISION);          
+            nextSetUnits[1] = btcMultiplier.mul(PRICE_PRECISION);
         } else {
-            // Calculate btc nextSetUnits as (daiPrice/btcPrice)*100. 100 is used to add 
+            // Calculate btc nextSetUnits as (daiPrice/btcPrice)*100. 100 is used to add
             // precision.
             uint256 btcDaiPrice = DAI_PRICE.mul(PRICE_PRECISION).div(_btcPrice);
 
             // Create unit array and define natural unit
-            nextSetUnits[0] = daiMultiplier.mul(DECIMAL_DIFF_MULTIPLIER).mul(PRICE_PRECISION); 
-            nextSetUnits[1] = btcDaiPrice.mul(btcMultiplier);        
+            nextSetUnits[0] = daiMultiplier.mul(DECIMAL_DIFF_MULTIPLIER).mul(PRICE_PRECISION);
+            nextSetUnits[1] = btcDaiPrice.mul(btcMultiplier);
         }
 
         uint256[] memory assetPrices = new uint256[](2);

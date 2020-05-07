@@ -23,7 +23,7 @@ import { ILiquidator } from "set-protocol-contracts/contracts/core/interfaces/IL
 import { IRebalancingSetTokenV3 } from "set-protocol-contracts/contracts/core/interfaces/IRebalancingSetTokenV3.sol";
 import { ISetToken } from "set-protocol-contracts/contracts/core/interfaces/ISetToken.sol";
 import { RebalancingLibrary } from "set-protocol-contracts/contracts/core/lib/RebalancingLibrary.sol";
-import { TimeLockUpgradeV2 } from "set-protocol-contracts/contracts/lib/TimeLockUpgradeV2.sol";
+import { TimeLockUpgradeV2 } from "set-protocol-contract-utils/contracts/lib/TimeLockUpgradeV2.sol";
 
 import { IAllocator } from "./allocators/IAllocator.sol";
 import { ITrigger } from "./triggers/ITrigger.sol";
@@ -33,10 +33,10 @@ import { ITrigger } from "./triggers/ITrigger.sol";
  * @title AssetPairManagerV2
  * @author Set Protocol
  *
- * Manager contract for implementing any trading pair and strategy for RebalancingSetTokenV3. Allocation 
- * determinations are made based on output of Trigger contract. bullishBaseAssetAllocation amount is 
+ * Manager contract for implementing any trading pair and strategy for RebalancingSetTokenV3. Allocation
+ * determinations are made based on output of Trigger contract. bullishBaseAssetAllocation amount is
  * passed in and used when bullish, allocationDenominator - bullishBaseAssetAllocation used when bearish.
- * 
+ *
  * CHANGELOG:
  * - Support RebalancingSetTokenV3
  * - Remove logic associated with pricing auctions, which has been moved to liquidator contracts
@@ -216,7 +216,7 @@ contract AssetPairManagerV2 is
             address(rebalancingSetToken) != address(0),
             "AssetPairManagerV2.confirmPropose: Manager must be initialized with RebalancingSetToken."
         );
-        
+
         // Check that enough time has passed for the proposal and RebalancingSetToken is in Default state
         require(
             rebalancingSetReady(),
@@ -228,7 +228,7 @@ contract AssetPairManagerV2 is
             inConfirmationWindow(),
             "AssetPairManagerV2.confirmPropose: Confirming signal must be within confirmation window."
         );
-        
+
         // Get new baseAsset allocation amount
         uint256 newBaseAssetAllocation = calculateBaseAssetAllocation();
 
@@ -239,7 +239,7 @@ contract AssetPairManagerV2 is
         );
 
         // Get current collateral Set
-        ISetToken currentCollateralSet = ISetToken(rebalancingSetToken.currentSet());        
+        ISetToken currentCollateralSet = ISetToken(rebalancingSetToken.currentSet());
 
         // If price trigger has been met, get next Set allocation. Create new set if price difference is too
         // great to run good auction. Return nextSet address.
@@ -365,11 +365,11 @@ contract AssetPairManagerV2 is
         view
         returns (uint256)
     {
-        return trigger.isBullish() ? bullishBaseAssetAllocation : bearishBaseAssetAllocation;  
+        return trigger.isBullish() ? bullishBaseAssetAllocation : bearishBaseAssetAllocation;
     }
 
      /*
-     * Function returning whether the rebalanceInterval has elapsed and then RebalancingSetToken is in 
+     * Function returning whether the rebalanceInterval has elapsed and then RebalancingSetToken is in
      * Default state
      *
      * @return       Whether a RebalancingSetToken rebalance is allowed

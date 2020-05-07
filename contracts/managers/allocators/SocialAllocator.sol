@@ -19,7 +19,7 @@ pragma solidity 0.5.7;
 import { ERC20Detailed } from "openzeppelin-solidity/contracts/token/ERC20/ERC20Detailed.sol";
 import { Math } from "openzeppelin-solidity/contracts/math/Math.sol";
 import { SafeMath } from "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import { CommonMath } from "set-protocol-contracts/contracts/lib/CommonMath.sol";
+import { CommonMath } from "set-protocol-contract-utils/contracts/lib/CommonMath.sol";
 import { ICore } from "set-protocol-contracts/contracts/core/interfaces/ICore.sol";
 import { IOracleWhiteList } from "set-protocol-contracts/contracts/core/interfaces/IOracleWhiteList.sol";
 import { ISetToken } from "set-protocol-contracts/contracts/core/interfaces/ISetToken.sol";
@@ -37,7 +37,7 @@ import { ISocialAllocator } from "./ISocialAllocator.sol";
  * @author Set Protocol
  *
  * Implementing ISocialAllocator the SocialAllocator creates new SetTokens that represent a mix of two
- * assets. 
+ * assets.
  */
 contract SocialAllocator is
     ISocialAllocator
@@ -50,7 +50,7 @@ contract SocialAllocator is
     struct AssetPrices {
         uint256 baseAssetPrice;
         uint256 quoteAssetPrice;
-    } 
+    }
 
     /* ============ Constants ============ */
     // Asset multiplier for single assets. Used to define value of collateral as 4 * (priceA, priceB).
@@ -63,7 +63,7 @@ contract SocialAllocator is
 
     ERC20Detailed public baseAsset;
     ERC20Detailed public quoteAsset;
-    IOracleWhiteList public oracleWhiteList;  
+    IOracleWhiteList public oracleWhiteList;
     uint8 public baseAssetDecimals;
     uint8 public quoteAssetDecimals;
 
@@ -101,7 +101,7 @@ contract SocialAllocator is
         bytes32 _collateralSymbol
     )
         public
-    {   
+    {
         require(
             _pricePrecision > 0,
             "SocialAllocator.constructor: Price precision must be greater than 0."
@@ -241,7 +241,7 @@ contract SocialAllocator is
                 baseAssetFullUnitMultiplier
             );
 
-            return (units, baseAssetNextSetComponents);       
+            return (units, baseAssetNextSetComponents);
         }
 
         // Calculate multi-asset units and component arrays
