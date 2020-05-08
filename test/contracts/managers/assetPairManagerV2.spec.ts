@@ -48,7 +48,10 @@ import {
 } from '@utils/constants';
 
 import { expectRevertError } from '@utils/tokenAssertions';
-import { LogInitialProposeCalled } from '@utils/contract_logs/assetPairManager';
+import {
+  LogInitialProposeCalled,
+  LogNewLiquidatorDataAdded
+} from '@utils/contract_logs/assetPairManager';
 import { getWeb3, blankTxn } from '@utils/web3Helper';
 
 import { OracleHelper } from 'set-protocol-oracles';
@@ -400,6 +403,16 @@ contract('AssetPairManagerV2', accounts => {
         const actualBaseAssetAllocation = await setManager.baseAssetAllocation.callAsync();
 
         expect(actualBaseAssetAllocation).to.be.bignumber.equal(ZERO);
+      });
+    });
+
+    describe('but allocationDenominator is zero', async () => {
+      beforeEach(async () => {
+        subjectAllocationDenominator = ZERO;
+      });
+
+      it('should revert', async () => {
+        await expectRevertError(subject());
       });
     });
 
@@ -1095,6 +1108,19 @@ contract('AssetPairManagerV2', accounts => {
       const actualLiquidatorData = await setManager.liquidatorData.callAsync();
 
       expect(actualLiquidatorData).to.equal(subjectLiquidatorData);
+    });
+
+    it('it emits NewLiquidatorDataAdded event', async () => {
+      const txHash = await subject();
+
+      const formattedLogs = await setTestUtils.getLogsFromTxHash(txHash);
+      const expectedLogs = LogNewLiquidatorDataAdded(
+        ZERO_BYTES,
+        NON_ZERO_BYTES,
+        setManager.address
+      );
+
+      await SetTestUtils.assertLogEquivalence(formattedLogs, expectedLogs);
     });
 
     describe('but caller is not owner', async () => {
