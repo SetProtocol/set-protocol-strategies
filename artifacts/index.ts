@@ -1,4 +1,5 @@
 export { AssetPairManager } from './ts/AssetPairManager';
+export { AssetPairManagerV2 } from './ts/AssetPairManagerV2';
 export { BinaryAllocator } from './ts/BinaryAllocator';
 export { BTCDaiRebalancingManager } from './ts/BTCDaiRebalancingManager';
 export { BTCETHRebalancingManager } from './ts/BTCETHRebalancingManager';
@@ -16,6 +17,7 @@ export { SocialTradingManagerV2 } from './ts/SocialTradingManagerV2';
 // Export abi-gen contract wrappers
 export {
 	AssetPairManagerContract,
+	AssetPairManagerV2Contract,
 	BaseContract,
 	BinaryAllocatorContract,
 	BTCDaiRebalancingManagerContract,
