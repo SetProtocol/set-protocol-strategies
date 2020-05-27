@@ -1,13 +1,9 @@
 export { AssetPairManager } from './ts/AssetPairManager';
 export { AssetPairManagerV2 } from './ts/AssetPairManagerV2';
 export { BinaryAllocator } from './ts/BinaryAllocator';
-export { BTCDaiRebalancingManager } from './ts/BTCDaiRebalancingManager';
-export { BTCETHRebalancingManager } from './ts/BTCETHRebalancingManager';
-export { ETHDaiRebalancingManager } from './ts/ETHDaiRebalancingManager';
 export { InverseMACOStrategyManager } from './ts/InverseMACOStrategyManager';
 export { MACOStrategyManager } from './ts/MACOStrategyManager';
 export { MACOStrategyManagerV2 } from './ts/MACOStrategyManagerV2';
-export { ManagerLibraryMock } from './ts/ManagerLibraryMock';
 export { MovingAverageCrossoverTrigger } from './ts/MovingAverageCrossoverTrigger';
 export { RSITrendingTrigger } from './ts/RSITrendingTrigger';
 export { SocialAllocator } from './ts/SocialAllocator';
@@ -20,13 +16,9 @@ export {
 	AssetPairManagerV2Contract,
 	BaseContract,
 	BinaryAllocatorContract,
-	BTCDaiRebalancingManagerContract,
-	BTCETHRebalancingManagerContract,
-	ETHDaiRebalancingManagerContract,
 	InverseMACOStrategyManagerContract,
 	MACOStrategyManagerContract,
 	MACOStrategyManagerV2Contract,
-	ManagerLibraryMockContract,
 	MovingAverageCrossoverTriggerContract,
 	RSITrendingTriggerContract,
 	SocialAllocatorContract,

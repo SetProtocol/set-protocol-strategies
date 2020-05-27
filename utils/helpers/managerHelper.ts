@@ -16,9 +16,6 @@ import {
   AssetPairManagerV2Contract,
   BinaryAllocatorContract,
   BinaryAllocatorMockContract,
-  BTCETHRebalancingManagerContract,
-  BTCDaiRebalancingManagerContract,
-  ETHDaiRebalancingManagerContract,
   InverseMACOStrategyManagerContract,
   MACOStrategyManagerContract,
   MACOStrategyManagerV2Contract,
@@ -53,9 +50,6 @@ const AssetPairManager = importArtifactsFromSource('AssetPairManager');
 const AssetPairManagerV2 = importArtifactsFromSource('AssetPairManagerV2');
 const BinaryAllocator = importArtifactsFromSource('BinaryAllocator');
 const BinaryAllocatorMock = importArtifactsFromSource('BinaryAllocatorMock');
-const BTCETHRebalancingManager = importArtifactsFromSource('BTCETHRebalancingManager');
-const BTCDaiRebalancingManager = importArtifactsFromSource('BTCDaiRebalancingManager');
-const ETHDaiRebalancingManager = importArtifactsFromSource('ETHDaiRebalancingManager');
 const InverseMACOStrategyManager = importArtifactsFromSource('InverseMACOStrategyManager');
 const MACOStrategyManager = importArtifactsFromSource('MACOStrategyManager');
 const MACOStrategyManagerV2 = importArtifactsFromSource('MACOStrategyManagerV2');
@@ -71,11 +65,7 @@ const SocialAllocator = importArtifactsFromSource('SocialAllocator');
 
 const { SetProtocolUtils: SetUtils, SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
 const setTestUtils = new SetTestUtils(web3);
-const {
-  SET_FULL_TOKEN_UNITS,
-  WBTC_FULL_TOKEN_UNITS,
-  WETH_FULL_TOKEN_UNITS,
-} = SetUtils.CONSTANTS;
+const { SET_FULL_TOKEN_UNITS } = SetUtils.CONSTANTS;
 
 export class ManagerHelper {
   private _tokenOwnerAddress: Address;
@@ -87,101 +77,6 @@ export class ManagerHelper {
   }
 
   /* ============ Rebalancing Token Manager Deployment ============ */
-
-  public async deployBTCETHRebalancingManagerAsync(
-    coreAddress: Address,
-    btcPriceFeedAddress: Address,
-    ethPriceFeedAddress: Address,
-    btcAddress: Address,
-    ethAddress: Address,
-    setTokenFactoryAddress: Address,
-    auctionLibrary: Address,
-    auctionTimeToPivot: BigNumber = new BigNumber(100000),
-    multiplers: BigNumber[],
-    allocationBounds: BigNumber[],
-    from: Address = this._tokenOwnerAddress
-  ): Promise<BTCETHRebalancingManagerContract> {
-    const truffleRebalacingTokenManager = await BTCETHRebalancingManager.new(
-      coreAddress,
-      btcPriceFeedAddress,
-      ethPriceFeedAddress,
-      btcAddress,
-      ethAddress,
-      setTokenFactoryAddress,
-      auctionLibrary,
-      auctionTimeToPivot,
-      multiplers,
-      allocationBounds,
-      { from },
-    );
-
-    return new BTCETHRebalancingManagerContract(
-      getContractInstance(truffleRebalacingTokenManager),
-      { from, gas: DEFAULT_GAS },
-    );
-  }
-
-  public async deployBTCDaiRebalancingManagerAsync(
-    coreAddress: Address,
-    btcPriceFeedAddress: Address,
-    daiAddress: Address,
-    btcAddress: Address,
-    setTokenFactoryAddress: Address,
-    auctionLibrary: Address,
-    auctionTimeToPivot: BigNumber = new BigNumber(100000),
-    multiplers: BigNumber[],
-    allocationBounds: BigNumber[],
-    from: Address = this._tokenOwnerAddress
-  ): Promise<BTCDaiRebalancingManagerContract> {
-    const truffleRebalacingTokenManager = await BTCDaiRebalancingManager.new(
-      coreAddress,
-      btcPriceFeedAddress,
-      daiAddress,
-      btcAddress,
-      setTokenFactoryAddress,
-      auctionLibrary,
-      auctionTimeToPivot,
-      multiplers,
-      allocationBounds,
-      { from },
-    );
-
-    return new BTCDaiRebalancingManagerContract(
-      getContractInstance(truffleRebalacingTokenManager),
-      { from, gas: DEFAULT_GAS },
-    );
-  }
-
-  public async deployETHDaiRebalancingManagerAsync(
-    coreAddress: Address,
-    ethPriceFeedAddress: Address,
-    daiAddress: Address,
-    ethAddress: Address,
-    setTokenFactoryAddress: Address,
-    auctionLibrary: Address,
-    auctionTimeToPivot: BigNumber = new BigNumber(100000),
-    multiplers: BigNumber[],
-    allocationBounds: BigNumber[],
-    from: Address = this._tokenOwnerAddress
-  ): Promise<ETHDaiRebalancingManagerContract> {
-    const truffleRebalacingTokenManager = await ETHDaiRebalancingManager.new(
-      coreAddress,
-      ethPriceFeedAddress,
-      daiAddress,
-      ethAddress,
-      setTokenFactoryAddress,
-      auctionLibrary,
-      auctionTimeToPivot,
-      multiplers,
-      allocationBounds,
-      { from },
-    );
-
-    return new ETHDaiRebalancingManagerContract(
-      getContractInstance(truffleRebalacingTokenManager),
-      { from, gas: DEFAULT_GAS },
-    );
-  }
 
   public async deployMACOStrategyManagerAsync(
     coreAddress: Address,
@@ -619,31 +514,6 @@ export class ManagerHelper {
     }
   }
 
-  public getExpectedBtcEthNextSetParameters(
-    btcPrice: BigNumber,
-    ethPrice: BigNumber,
-    btcMultiplier: BigNumber,
-    ethMultiplier: BigNumber,
-  ): any {
-    let units: BigNumber[];
-    let naturalUnit: BigNumber;
-    if (btcPrice.greaterThanOrEqualTo(ethPrice)) {
-      const ethUnits = btcPrice.mul(new BigNumber(10 ** 10)).div(ethPrice).round(0, 3);
-      units = [new BigNumber(1).mul(btcMultiplier), ethUnits.mul(ethMultiplier)];
-      naturalUnit = new BigNumber(10 ** 10);
-    } else {
-      const btcUnits = ethPrice.mul(new BigNumber(100)).mul(btcMultiplier).div(btcPrice).round(0, 3);
-      const ethUnits = new BigNumber(100).mul(new BigNumber(10 ** 10)).mul(ethMultiplier);
-      units = [btcUnits, ethUnits];
-      naturalUnit = new BigNumber(10 ** 12);
-    }
-
-    return {
-      units,
-      naturalUnit,
-    };
-  }
-
   public getExpectedGeneralNextSetParameters(
     tokenOnePrice: BigNumber,
     tokenTwoPrice: BigNumber,
@@ -908,61 +778,6 @@ export class ManagerHelper {
 
     const auctionStartPrice = fairValue.sub(auctionStartPercentage.mul(onePercentSlippage));
     const auctionPivotPrice = fairValue.add(auctionEndPercentage.mul(onePercentSlippage));
-
-    return {
-      auctionStartPrice,
-      auctionPivotPrice,
-    };
-  }
-
-  public async getExpectedBtcEthAuctionParameters(
-    btcPrice: BigNumber,
-    ethPrice: BigNumber,
-    btcMultiplier: BigNumber,
-    ethMultiplier: BigNumber,
-    auctionTimeToPivot: BigNumber,
-    currentSetToken: SetTokenContract,
-  ): Promise<any> {
-    const THIRTY_MINUTES_IN_SECONDS = new BigNumber(30 * 60);
-    const BTC_DECIMALS = WBTC_FULL_TOKEN_UNITS;
-    const ETH_DECIMALS = WETH_FULL_TOKEN_UNITS;
-
-    const nextSetParams = this.getExpectedBtcEthNextSetParameters(
-      btcPrice,
-      ethPrice,
-      btcMultiplier,
-      ethMultiplier,
-    );
-
-    const currentSetNaturalUnit = await currentSetToken.naturalUnit.callAsync();
-    const currentSetUnits = await currentSetToken.getUnits.callAsync();
-
-    const currentSetDollarAmount = this.computeTokenValue(
-      currentSetUnits,
-      currentSetNaturalUnit,
-      btcPrice,
-      ethPrice,
-      BTC_DECIMALS,
-      ETH_DECIMALS,
-    );
-
-    const nextSetDollarAmount = this.computeTokenValue(
-      nextSetParams['units'],
-      nextSetParams['naturalUnit'],
-      btcPrice,
-      ethPrice,
-      BTC_DECIMALS,
-      ETH_DECIMALS,
-    );
-
-    const fairValue = nextSetDollarAmount.div(currentSetDollarAmount).mul(1000).round(0, 3);
-    const onePercentSlippage = fairValue.div(100).round(0, 3);
-
-    const thirtyMinutePeriods = auctionTimeToPivot.div(THIRTY_MINUTES_IN_SECONDS).round(0, 3);
-    const halfPriceRange = thirtyMinutePeriods.mul(onePercentSlippage).div(2).round(0, 3);
-
-    const auctionStartPrice = fairValue.sub(halfPriceRange);
-    const auctionPivotPrice = fairValue.add(halfPriceRange);
 
     return {
       auctionStartPrice,
