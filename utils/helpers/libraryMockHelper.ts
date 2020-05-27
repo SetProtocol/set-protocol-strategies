@@ -2,7 +2,6 @@ import { Address } from 'set-protocol-utils';
 import {
   AllocatorMathLibraryMockContract,
   FlexibleTimingManagerLibraryMockContract,
-  ManagerLibraryMockContract,
   UintArrayUtilsLibraryMockContract,
 } from '../contracts';
 import {
@@ -13,7 +12,6 @@ import {
 
 const AllocatorMathLibraryMock = importArtifactsFromSource('AllocatorMathLibraryMock');
 const FlexibleTimingManagerLibraryMock = importArtifactsFromSource('FlexibleTimingManagerLibraryMock');
-const ManagerLibraryMock = importArtifactsFromSource('ManagerLibraryMock');
 const UintArrayUtilsLibrary = importArtifactsFromSource('UintArrayUtilsLibrary');
 const UintArrayUtilsLibraryMock = importArtifactsFromSource('UintArrayUtilsLibraryMock');
 
@@ -25,17 +23,6 @@ export class LibraryMockHelper {
   }
 
   /* ============ Deployment ============ */
-
-  public async deployManagerLibraryMockAsync(
-    from: Address = this._contractOwnerAddress
-  ): Promise<ManagerLibraryMockContract> {
-    const managerLibraryMockContract = await ManagerLibraryMock.new(txnFrom(from));
-
-    return new ManagerLibraryMockContract(
-      getContractInstance(managerLibraryMockContract),
-      txnFrom(from),
-    );
-  }
 
   public async deployFlexibleTimingManagerLibraryMockAsync(
     from: Address = this._contractOwnerAddress
