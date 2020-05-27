@@ -8,7 +8,6 @@ export { FlexibleTimingManagerLibraryMockContract } from '../types/generated/fle
 export { InverseMACOStrategyManagerContract } from '../types/generated/inverse_m_a_c_o_strategy_manager';
 export { MACOStrategyManagerContract } from '../types/generated/m_a_c_o_strategy_manager';
 export { MACOStrategyManagerV2Contract } from '../types/generated/m_a_c_o_strategy_manager_v2';
-export { ManagerLibraryMockContract } from '../types/generated/manager_library_mock';
 export { MovingAverageCrossoverTriggerContract } from '../types/generated/moving_average_crossover_trigger';
 export { TriggerMockContract } from '../types/generated/trigger_mock';
 export { RSITrendingTriggerContract } from '../types/generated/r_s_i_trending_trigger';

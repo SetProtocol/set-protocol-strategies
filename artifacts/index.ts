@@ -4,7 +4,6 @@ export { BinaryAllocator } from './ts/BinaryAllocator';
 export { InverseMACOStrategyManager } from './ts/InverseMACOStrategyManager';
 export { MACOStrategyManager } from './ts/MACOStrategyManager';
 export { MACOStrategyManagerV2 } from './ts/MACOStrategyManagerV2';
-export { ManagerLibraryMock } from './ts/ManagerLibraryMock';
 export { MovingAverageCrossoverTrigger } from './ts/MovingAverageCrossoverTrigger';
 export { RSITrendingTrigger } from './ts/RSITrendingTrigger';
 export { SocialAllocator } from './ts/SocialAllocator';
@@ -20,7 +19,6 @@ export {
 	InverseMACOStrategyManagerContract,
 	MACOStrategyManagerContract,
 	MACOStrategyManagerV2Contract,
-	ManagerLibraryMockContract,
 	MovingAverageCrossoverTriggerContract,
 	RSITrendingTriggerContract,
 	SocialAllocatorContract,
