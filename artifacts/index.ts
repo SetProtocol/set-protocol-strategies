@@ -1,9 +1,6 @@
 export { AssetPairManager } from './ts/AssetPairManager';
 export { AssetPairManagerV2 } from './ts/AssetPairManagerV2';
 export { BinaryAllocator } from './ts/BinaryAllocator';
-export { BTCDaiRebalancingManager } from './ts/BTCDaiRebalancingManager';
-export { BTCETHRebalancingManager } from './ts/BTCETHRebalancingManager';
-export { ETHDaiRebalancingManager } from './ts/ETHDaiRebalancingManager';
 export { InverseMACOStrategyManager } from './ts/InverseMACOStrategyManager';
 export { MACOStrategyManager } from './ts/MACOStrategyManager';
 export { MACOStrategyManagerV2 } from './ts/MACOStrategyManagerV2';
@@ -20,9 +17,6 @@ export {
 	AssetPairManagerV2Contract,
 	BaseContract,
 	BinaryAllocatorContract,
-	BTCDaiRebalancingManagerContract,
-	BTCETHRebalancingManagerContract,
-	ETHDaiRebalancingManagerContract,
 	InverseMACOStrategyManagerContract,
 	MACOStrategyManagerContract,
 	MACOStrategyManagerV2Contract,
