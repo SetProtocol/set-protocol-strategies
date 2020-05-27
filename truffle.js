@@ -1,5 +1,12 @@
 require('dotenv').config();
 
+//
+// Register alias
+//
+const moduleAlias = require('module-alias')
+moduleAlias.addAlias('@utils', __dirname + '/transpiled/utils');
+moduleAlias.addAlias('@deployments', __dirname + '/transpiled/deployments');
+
 module.exports = {
   networks: {
     development: {
