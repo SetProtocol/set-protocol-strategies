@@ -24,6 +24,7 @@ import {
   SocialTradingManagerContract,
   SocialTradingManagerV2Contract,
   TriggerMockContract,
+  TwoMovingAverageCrossoverTriggerContract,
   SocialAllocatorContract,
 } from '../contracts';
 import { BigNumber } from 'bignumber.js';
@@ -62,7 +63,9 @@ const SocialTradingManagerV2 = importArtifactsFromSource('SocialTradingManagerV2
 const TriggerMock = importArtifactsFromSource('TriggerMock');
 const UintArrayUtilsLibrary = importArtifactsFromSource('UintArrayUtilsLibrary');
 const SocialAllocator = importArtifactsFromSource('SocialAllocator');
-
+const TwoMovingAverageCrossoverTrigger = importArtifactsFromSource(
+  'TwoMovingAverageCrossoverTrigger'
+);
 const { SetProtocolUtils: SetUtils, SetProtocolTestUtils: SetTestUtils } = setProtocolUtils;
 const setTestUtils = new SetTestUtils(web3);
 const { SET_FULL_TOKEN_UNITS } = SetUtils.CONSTANTS;
@@ -336,6 +339,27 @@ export class ManagerHelper {
     );
 
     return new MovingAverageCrossoverTriggerContract(
+      getContractInstance(trufflePriceTrigger),
+      { from, gas: DEFAULT_GAS },
+    );
+  }
+
+  public async deployTwoMovingAverageCrossoverTrigger(
+    longTermMAOracle: Address,
+    shortTermMAOracle: Address,
+    longTermMADays: BigNumber,
+    shortTermMADays: BigNumber,
+    from: Address = this._tokenOwnerAddress,
+  ): Promise<TwoMovingAverageCrossoverTriggerContract> {
+    const trufflePriceTrigger = await TwoMovingAverageCrossoverTrigger.new(
+      longTermMAOracle,
+      shortTermMAOracle,
+      longTermMADays,
+      shortTermMADays,
+      { from }
+    );
+
+    return new TwoMovingAverageCrossoverTriggerContract(
       getContractInstance(trufflePriceTrigger),
       { from, gas: DEFAULT_GAS },
     );
