@@ -10,6 +10,7 @@ export { MACOStrategyManagerContract } from '../types/generated/m_a_c_o_strategy
 export { MACOStrategyManagerV2Contract } from '../types/generated/m_a_c_o_strategy_manager_v2';
 export { MovingAverageCrossoverTriggerContract } from '../types/generated/moving_average_crossover_trigger';
 export { TriggerMockContract } from '../types/generated/trigger_mock';
+export { TwoMovingAverageCrossoverTriggerContract } from '../types/generated/two_moving_average_crossover_trigger';
 export { RSITrendingTriggerContract } from '../types/generated/r_s_i_trending_trigger';
 export { SocialTradingManagerContract } from '../types/generated/social_trading_manager';
 export { SocialTradingManagerV2Contract } from '../types/generated/social_trading_manager_v2';

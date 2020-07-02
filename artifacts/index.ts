@@ -9,6 +9,7 @@ export { RSITrendingTrigger } from './ts/RSITrendingTrigger';
 export { SocialAllocator } from './ts/SocialAllocator';
 export { SocialTradingManager } from './ts/SocialTradingManager';
 export { SocialTradingManagerV2 } from './ts/SocialTradingManagerV2';
+export { TwoMovingAverageCrossoverTrigger } from './ts/TwoMovingAverageCrossoverTrigger';
 
 // Export abi-gen contract wrappers
 export {
@@ -24,4 +25,5 @@ export {
 	SocialAllocatorContract,
 	SocialTradingManagerContract,
 	SocialTradingManagerV2Contract,
+	TwoMovingAverageCrossoverTriggerContract,
 } from "../utils/contracts";
