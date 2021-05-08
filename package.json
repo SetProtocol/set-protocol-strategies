@@ -85,7 +85,7 @@
     "import-sort-parser-babylon": "^4.2.0",
     "import-sort-style-eslint": "^4.2.0",
     "json-stable-stringify": "^1.0.1",
-    "lodash": "^4.17.13",
+    "lodash": "^4.17.21",
     "set-abi-gen": "1.1.0-beta.1",
     "solc": "^0.5.4",
     "solidity-coverage": "^0.6.3",
